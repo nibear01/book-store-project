@@ -7,3 +7,7 @@ cd frontend ->
 npm install 
 ```
 
+run frontend -> 
+```
+npm run dev
+```
