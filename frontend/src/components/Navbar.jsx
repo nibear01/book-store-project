@@ -1,16 +1,22 @@
 import React, { useState } from "react";
-import { MagnifyingGlassIcon, Bars3Icon } from "@heroicons/react/24/outline";
+import { Link } from "react-router-dom";
+import { Bars3Icon } from "@heroicons/react/24/outline";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navigationLinks = [
-    "Home",
-    "Categories",
-    "Shop",
-    "Pages",
-    "Blog",
-    "Others",
+    { name: "Home", path: "/" },
+    { name: "About", path: "/about" },
+    { name: "Categories", path: "/categories" },
+    { name: "Shop", path: "/shop" },
+    { name: "Terms and Conditions", path: "/terms" },
+    { name: "Contact Us", path: "/contact" },
+  ];
+
+  const authLinks = [
+    { name: "Login", path: "/login" },
+    { name: "Sign Up", path: "/signup" },
   ];
 
   return (
@@ -29,26 +35,29 @@ const Navbar = () => {
 
           {/* Logo */}
           <div className="flex-shrink-0 ml-4">
-            <div className="flex items-center">
+            <Link to="/" className="flex items-center">
               <span className="text-2xl font-bold text-gray-900">
                 BOOK
-                <span className="text-red-500 relative">
-                  U
+                <span className="text-red-500">
+                  S
                   <div className="absolute -top-1 left-0 w-full h-0.5 bg-red-500"></div>
                   <div className="absolute -top-0.5 left-1/2 transform -translate-x-1/2 w-0.5 h-1 bg-red-500"></div>
                 </span>
-                RM
+                TOP
               </span>
-            </div>
+            </Link>
           </div>
 
           {/* Navigation Links */}
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-8">
               {navigationLinks.map((link) => (
-                <div key={link} className="relative group">
-                  <button className="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium flex items-center">
-                    {link}
+                <div key={link.name} className="relative group">
+                  <Link
+                    to={link.path}
+                    className="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium flex items-center"
+                  >
+                    {link.name}
                     <svg
                       className="ml-1 h-3 w-3"
                       fill="none"
@@ -62,24 +71,27 @@ const Navbar = () => {
                         d="M19 9l-7 7-7-7"
                       />
                     </svg>
-                  </button>
+                  </Link>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="flex-1 max-w-lg ml-8">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search by Keywords"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:placeholder-gray-500 focus:ring-1 focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
-              />
-            </div>
+          {/* Auth Links */}
+          <div className="hidden md:flex items-center space-x-4 ml-auto">
+            {authLinks.map((link) => (
+              <Link
+                key={link.name}
+                to={link.path}
+                className={`px-3 py-2 text-sm font-medium rounded-md ${
+                  link.name === "Sign Up"
+                    ? "bg-red-500 text-white hover:bg-red-600"
+                    : "text-gray-700 hover:text-gray-900"
+                }`}
+              >
+                {link.name}
+              </Link>
+            ))}
           </div>
         </div>
       </div>
@@ -89,14 +101,31 @@ const Navbar = () => {
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-gray-200">
             {navigationLinks.map((link) => (
-              <a
-                key={link}
-                href="#"
+              <Link
+                key={link.name}
+                to={link.path}
                 className="text-gray-700 hover:text-gray-900 block px-3 py-2 text-base font-medium"
+                onClick={() => setIsMenuOpen(false)}
               >
-                {link}
-              </a>
+                {link.name}
+              </Link>
             ))}
+            <div className="border-t border-gray-200 pt-2 mt-2">
+              {authLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  to={link.path}
+                  className={`block px-3 py-2 text-base font-medium rounded-md ${
+                    link.name === "Sign Up"
+                      ? "bg-red-500 text-white hover:bg-red-600"
+                      : "text-gray-700 hover:text-gray-900"
+                  }`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       )}
