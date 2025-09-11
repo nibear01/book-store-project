@@ -37,8 +37,8 @@ const SignupPage = () => {
   };
 
   return (
-    <div className="flex justify-center pt-15">
-      <div className="min-h-[500px] h-auto w-[400px] min-w-[350px] bg-white shadow-xl flex-col justify-center">
+    <div className="flex justify-center py-15">
+      <div className="h-auto w-[400px] min-w-[350px] bg-white shadow-xl pb-10 flex-col justify-center items-center">
         <div className="py-6 w-full flex-col justify-center">
           <h1 className="text-[25px] text-center">Register</h1>
           <h3 className="text-center">Create a new account</h3>
@@ -146,7 +146,7 @@ const SignupPage = () => {
           {/* Redirect to Login */}
           <p className="text-sm text-center mt-4">
             Already have an account?{" "}
-            <Link to="/login" className="text-blue-600 hover:underline">
+            <Link to="/login" className="text-gray-600 hover:text-black">
               Login
             </Link>
           </p>

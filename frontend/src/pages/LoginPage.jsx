@@ -11,12 +11,11 @@ const LoginPage = () => {
   const handleLogin = (e) => {
     e.preventDefault();
 
-    const data = {email, password};
+    const data = { email, password };
     console.log(data);
-    
   };
   return (
-    <div className="flex justify-center pt-15">
+    <div className="flex justify-center pt-15 pb-20">
       <div
         className="min-h-[450px] h-[500px] w-[400px] min-w-[350px] bg-white
        shadow-xl flex-col justify-center"
@@ -63,7 +62,7 @@ const LoginPage = () => {
               <div className="!flex !justify-end">
                 <Link
                   to="#"
-                  className="text-xs text-grey-600 hover:text-grey-300 transition-colors"
+                  className="text-xs text-black hover:text-gray-600 transition-colors"
                 >
                   Forgot password?
                 </Link>
@@ -93,6 +92,7 @@ const LoginPage = () => {
           </div>
         </div>
       </div>
+
     </div>
   );
 };
