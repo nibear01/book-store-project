@@ -1,0 +1,36 @@
+{
+  "deals_of_the_week": [
+    {
+      "cover_image": "../src/assets/images/14-120x183.jpg",
+      "format": "PAPERBACK",
+      "title": "When We Believed in Mermaids: A Novel",
+      "author": "Barbara O'Neal",
+      "price": "$2.00",
+      "original_price": "$6.99"
+    },
+    {
+      "cover_image": "../src/assets/images/12-120x183.jpg",
+      "format": "KINDLE",
+      "title": "Angry God (All Saints High Book 3)",
+      "author": "L.J. Shen",
+      "price": "$1.30",
+      "original_price": "$6.95"
+    },
+     {
+      "cover_image": "../src/assets/images/18-120x183 (1).jpg",
+      "format": "KINDLE",
+      "title": "Angry God (All Saints High Book 3)",
+      "author": "L.J. Shen",
+      "price": "$1.30",
+      "original_price": "$6.95"
+    },
+     {
+      "cover_image": "../src/assets/images/23-120x183.jpg",
+      "format": "KINDLE",
+      "title": "Angry God (All Saints High Book 3)",
+      "author": "L.J. Shen",
+      "price": "$1.30",
+      "original_price": "$6.95"
+    }
+  ]
+}
