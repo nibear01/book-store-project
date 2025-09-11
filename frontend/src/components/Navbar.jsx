@@ -53,25 +53,12 @@ const Navbar = () => {
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-8">
               {navigationLinks.map((link) => (
-                <div key={link.name} className="relative group">
+                <div key={link.name}>
                   <Link
                     to={link.path}
-                    className="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium flex items-center"
+                    className="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium"
                   >
                     {link.name}
-                    <svg
-                      className="ml-1 h-3 w-3"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
                   </Link>
                 </div>
               ))}
