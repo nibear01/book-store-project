@@ -6,13 +6,11 @@ import Book from "@/components/Book";
 const homepage = () => {
   return (
     <div className="min-h-screen bg-gray-50 mx-20 ">
-      <Hero></Hero>
-       <Category></Category>
-       <Feature></Feature>
-       <Deals></Deals>
-       <Book></Book>
-
- 
+      <Hero />
+      <Category />
+      <Feature />
+      <Deals />
+      <Book />
     </div>
   );
 };

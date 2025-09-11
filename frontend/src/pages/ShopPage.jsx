@@ -16,12 +16,12 @@ const ShopPage = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-8">
         {demoBooks.map((b) => (
-          <div key={b.id} className="border rounded-lg p-4">
+          <div key={b.id} className="border rounded-[2px] p-4">
             <h3 className="font-semibold">{b.title}</h3>
             <p className="text-gray-700 mb-3">${b.price.toFixed(2)}</p>
             <button
               onClick={() => dispatch({ type: "ADD_ITEM", item: b })}
-              className="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600"
+              className="bg-red-500 text-white px-3 py-2 rounded-[2px] hover:bg-red-600"
             >
               Add to Cart
             </button>

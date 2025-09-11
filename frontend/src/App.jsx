@@ -13,6 +13,7 @@ import CheckoutPage from "./pages/CheckoutPage";
 import { CartProvider } from "./context/CartContext";
 import Footer from "./pages/Footer";
 import BookViewPage from "./pages/BookViewPage";
+import dummyBooks from "./data/dummyBooks.json";
 
 function App() {
   return (
@@ -23,7 +24,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Homepage />} />
             <Route path="/about" element={<AboutPage />} />
-            <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/categories" element={<CategoriesPage book={dummyBooks} />} />
             <Route path="/shop" element={<ShopPage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
@@ -31,7 +32,7 @@ function App() {
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
-            <Route path="/bookView" element={<BookViewPage />} />
+            <Route path="/bookview" element={<BookViewPage />} />
           </Routes>
         </div>
         <Footer />

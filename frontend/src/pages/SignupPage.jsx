@@ -38,7 +38,7 @@ const SignupPage = () => {
 
   return (
     <div className="flex justify-center py-15">
-      <div className="h-auto w-[400px] min-w-[350px] bg-white shadow-xl pb-10 flex-col justify-center items-center">
+      <div className="h-auto w-[400px] min-w-[350px] bg-white shadow-xl pb-10 flex-col justify-center items-center rounded-[2px]">
         <div className="py-6 w-full flex-col justify-center">
           <h1 className="text-[25px] text-center">Register</h1>
           <h3 className="text-center">Create a new account</h3>
@@ -47,14 +47,16 @@ const SignupPage = () => {
           <form onSubmit={handleRegister} className="flex-col justify-center">
             {/* Name */}
             <div className="space-y-3 mb-3">
-              <label className="text-sm font-medium text-gray-700">Full Name</label>
+              <label className="text-sm font-medium text-gray-700">
+                Full Name
+              </label>
               <input
                 type="text"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
                 placeholder="Enter your name"
-                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-grey-500 outline-none transition-all duration-200 text-sm"
+                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-grey-500 outline-none transition-all duration-200 text-sm rounded-[2px]"
                 required
               />
             </div>
@@ -68,14 +70,16 @@ const SignupPage = () => {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="Enter your email"
-                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-grey-500 outline-none transition-all duration-200 text-sm"
+                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-grey-500 outline-none transition-all duration-200 text-sm rounded-[2px]"
                 required
               />
             </div>
 
             {/* Password */}
             <div className="space-y-1 relative mb-3">
-              <label className="text-sm font-medium text-gray-700">Password</label>
+              <label className="text-sm font-medium text-gray-700">
+                Password
+              </label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -83,7 +87,7 @@ const SignupPage = () => {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="••••••••"
-                  className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-grey-500 outline-none transition-all duration-200 pr-10"
+                  className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-grey-500 outline-none transition-all duration-200 pr-10 rounded-[2px]"
                   required
                 />
                 <button
@@ -98,7 +102,9 @@ const SignupPage = () => {
 
             {/* Confirm Password */}
             <div className="space-y-1 relative">
-              <label className="text-sm font-medium text-gray-700">Confirm Password</label>
+              <label className="text-sm font-medium text-gray-700">
+                Confirm Password
+              </label>
               <div className="relative">
                 <input
                   type={showConfirmPassword ? "text" : "password"}
@@ -106,12 +112,14 @@ const SignupPage = () => {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   placeholder="••••••••"
-                  className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-grey-500 outline-none transition-all duration-200 pr-10"
+                  className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-grey-500 outline-none transition-all duration-200 pr-10 rounded-[2px]"
                   required
                 />
                 <button
                   type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  onClick={() =>
+                    setShowConfirmPassword(!showConfirmPassword)
+                  }
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
@@ -122,7 +130,7 @@ const SignupPage = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              className="text-center w-full bg-black text-white p-2 my-6 cursor-pointer"
+              className="text-center w-full bg-black text-white p-2 my-6 cursor-pointer rounded-[2px]"
             >
               Register
             </button>
@@ -132,7 +140,7 @@ const SignupPage = () => {
           <div className="mt-4">
             <button
               type="button"
-              className="w-full flex items-center justify-center gap-2 border border-gray-300 bg-white text-gray-700 font-medium py-2 cursor-pointer hover:bg-gray-100 transition"
+              className="w-full flex items-center justify-center gap-2 border border-gray-300 bg-white text-gray-700 font-medium py-2 cursor-pointer hover:bg-gray-100 transition rounded-[2px]"
             >
               <img
                 src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"

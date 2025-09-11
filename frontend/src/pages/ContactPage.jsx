@@ -60,28 +60,28 @@ export default function ContactUs() {
               type="text"
               placeholder="Name *"
               required
-              className="border border-gray-300 rounded-sm p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
+              className="border border-gray-300 rounded-[2px] p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
             />
             <input
               type="email"
               placeholder="Email *"
               required
-              className="border border-gray-300 rounded-sm p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
+              className="border border-gray-300 rounded-[2px] p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
             />
           </div>
           <input
             type="text"
             placeholder="Subject"
-            className="border border-gray-300 rounded-sm p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
+            className="border border-gray-300 rounded-[2px] p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
           />
           <textarea
             placeholder="Details please! Your review helps other shoppers."
             rows="5"
-            className="border border-gray-300 rounded-sm p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
+            className="border border-gray-300 rounded-[2px] p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
           ></textarea>
           <button
             type="submit"
-            className="cursor-pointer bg-black text-white px-6 py-3 rounded-xs hover:bg-gray-800 transition"
+            className="cursor-pointer bg-black text-white px-6 py-3 rounded-[2px] hover:bg-gray-800 transition"
           >
             Submit Message
           </button>

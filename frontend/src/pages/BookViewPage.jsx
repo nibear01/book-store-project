@@ -40,7 +40,7 @@ const SingleBookPage = ({ book }) => {
           </Link>
           <span>/</span>
           <Link
-            to={`/categories/${book.genre}`}
+            to={`/categories`}
             className="hover:text-[var(--hover-color)] transition-colors"
           >
             Products
