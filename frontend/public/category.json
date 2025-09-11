@@ -1,0 +1,29 @@
+{
+  "featured_categories": [
+    {
+      "name": "Arts & Photography",
+      "icon": "🖼️",
+      "action_link": "/shop/arts-photography"
+    },
+    {
+      "name": "Food & Drink",
+      "icon": "🍔",
+      "action_link": "/shop/food-drink"
+    },
+    {
+      "name": "Romance",
+      "icon": "❤️",
+      "action_link": "/shop/romance"
+    },
+    {
+      "name": "Health",
+      "icon": "🩺",
+      "action_link": "/shop/health"
+    },
+    {
+      "name": "Biography",
+      "icon": "✍️",
+      "action_link": "/shop/biography"
+    }
+  ]
+}

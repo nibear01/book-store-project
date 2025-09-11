@@ -1,0 +1,11 @@
+{
+  "books": [
+    {
+      "cover_image": "../src/assets/images/32-120x183.jpg",
+      "format": "PAPERBACK",
+      "title": "Broken Faith: Inside the Word of Faith...",
+      "author": "Edward Lee",
+      "price": "$10.29"
+    }
+  ]
+}

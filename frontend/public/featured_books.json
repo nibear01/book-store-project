@@ -1,0 +1,18 @@
+{
+  "books": [
+    {
+      "cover_image": "../src/assets/images/12-120x183.jpg",
+      "format": "HARDCOVER",
+      "title": "All You Can Ever Know: A Memoir",
+      "author": "Connie Guldin",
+      "price_range": "$29.59 - $59.95"
+    },
+    {
+      "cover_image": "../src/assets/images/18-120x183.jpg",
+      "format": "PAPERBACK",
+      "title": "A Long Way Down",
+      "author": "J. D. Robb",
+      "price": "$11.51"
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+[
+{
+"id": 1,
+"title": "All You Can Ever Know: A Memoir",
+"author": "J. D. Robb",
+"type": "HARDCOVER",
+"price": "14.20",
+"category": "History",
+"image": "../src/assets/images/img1-13.png"
+},
+{
+"id": 2,
+"title": "Broken Faith: Inside the Word of Faith",
+"author": "Edward Lee",
+"type": "PAPERBACK",
+"price": "10.29",
+"category": "History",
+"image": "../src/assets/images/12-120x183.jpg"
+},
+{
+"id": 3,
+"title": "Eternity Springs: The McBrides of Texas EV...",
+"author": "Emily March",
+"type": "PAPERBACK",
+"price": "6.99",
+"category": "History",
+"image": "../src/assets/images/14-120x183.jpg"
+},
+{
+"id": 4,
+"title": "Jesus: The God Who Knows Your Name",
+"author": "Max Lucado",
+"type": "HARDCOVER",
+"price": "16.59",
+"category": "History",
+"image": "../src/assets/images/img1-13.png"
+},
+{
+"id": 5,
+"title": "Next Level Basic: The Definitive Basic Bitch...",
+"author": "Stassi Schroeder",
+"type": "KINDLE",
+"originalPrice": "9.99",
+"price": "4.72",
+"category": "Science & Math",
+"image": "../src/assets/images/22-200x327.jpg"
+},
+{
+"id": 6,
+"title": "The Rural Diaries: Love, Livestock, and Big Lif...",
+"author": "Hilarie Burton",
+"type": "HARDCOVER",
+"price": "14.82",
+"category": "Science & Math",
+"image": "../src/assets/images/30-120x183.jpg"
+},
+{
+"id": 7,
+"title": "Foreman",
+"author": "Pieter du Toit",
+"type": "HARDCOVER, KINDLE, PAPERBACK",
+"price": "29.95",
+"category": "Science & Math",
+"image": "../src/assets/images/23-120x183.jpg"
+},
+{
+"id": 8,
+"title": "Think Like a Monk: Train Your Mind for...",
+"author": "Anna Burns",
+"type": "KINDLE EDITION",
+"price": "56.00",
+"category": "Science & Math",
+"image": "../src/assets/images/32-120x183.jpg"
+}
+]
