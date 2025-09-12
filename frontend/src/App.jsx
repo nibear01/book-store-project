@@ -11,6 +11,7 @@ import Navbar from "./components/Navbar";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import { CartProvider } from "./context/CartContext";
+import AdminPage from "./pages/AdminPage";
 import Footer from "./pages/Footer";
 import BookViewPage from "./pages/BookViewPage";
 import dummyBooks from "./data/dummyBooks.json";
@@ -24,8 +25,12 @@ function App() {
           <Routes>
             <Route path="/" element={<Homepage />} />
             <Route path="/about" element={<AboutPage />} />
-            <Route path="/categories" element={<CategoriesPage book={dummyBooks} />} />
+            <Route
+              path="/categories"
+              element={<CategoriesPage book={dummyBooks} />}
+            />
             <Route path="/shop" element={<ShopPage />} />
+            <Route path="/admin" element={<AdminPage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/terms" element={<TermsPage />} />
