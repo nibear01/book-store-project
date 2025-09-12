@@ -30,7 +30,9 @@ function App() {
               element={<CategoriesPage book={dummyBooks} />}
             />
             <Route path="/shop" element={<ShopPage />} />
-            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/admin" element={<AdminPage />}>
+              {/* <Route path="dashboard" element={<BookForm />} /> */}
+            </Route>
             <Route path="/cart" element={<CartPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/terms" element={<TermsPage />} />
