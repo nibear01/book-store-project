@@ -73,13 +73,13 @@ const Users = () => {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Users Management</h2>
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto">
+      <h2 className="text-xl sm:text-2xl font-bold mb-4">Users Management</h2>
 
       {/* Filters + Search */}
-      <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
         <select
-          className="border p-2 rounded-[2px] w-full md:w-auto"
+          className="border p-2 rounded-[2px] w-full sm:w-auto"
           value={roleFilter}
           onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
         >
@@ -90,7 +90,7 @@ const Users = () => {
         </select>
 
         <select
-          className="border p-2 rounded-[2px] w-full md:w-auto"
+          className="border p-2 rounded-[2px] w-full sm:w-auto"
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
         >
@@ -109,8 +109,8 @@ const Users = () => {
         />
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto shadow rounded-[2px]">
+      {/* Table for desktop */}
+      <div className="overflow-x-auto shadow rounded-[2px] hidden md:block">
         <table className="min-w-full text-sm text-left">
           <thead className="bg-gray-100 text-gray-600 uppercase">
             <tr>
@@ -131,31 +131,31 @@ const Users = () => {
                 <td className="px-4 py-2 flex gap-2 flex-wrap">
                   <button
                     onClick={() => handleAction(user.id, "Approve")}
-                    className="bg-green-500 text-white px-2 py-1 rounded-[2px] text-sm"
+                    className="bg-green-500 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
                   >
                     Approve
                   </button>
                   <button
                     onClick={() => handleAction(user.id, "Ban")}
-                    className="bg-red-500 text-white px-2 py-1 rounded-[2px] text-sm"
+                    className="bg-red-500 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
                   >
                     Ban
                   </button>
                   <button
                     onClick={() => openEditModal(user)}
-                    className="bg-blue-500 text-white px-2 py-1 rounded-[2px] text-sm"
+                    className="bg-blue-500 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleResetPassword(user.id)}
-                    className="bg-yellow-500 text-white px-2 py-1 rounded-[2px] text-sm"
+                    className="bg-yellow-500 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
                   >
-                    Reset Password
+                    Reset PW
                   </button>
                   <button
                     onClick={() => handleDelete(user.id)}
-                    className="bg-gray-600 text-white px-2 py-1 rounded-[2px] text-sm"
+                    className="bg-gray-600 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
                   >
                     Delete
                   </button>
@@ -173,27 +173,126 @@ const Users = () => {
         </table>
       </div>
 
+      {/* Mobile Cards View */}
+      <div className="md:hidden space-y-3">
+        {paginatedUsers.length === 0 ? (
+          <div className="text-center p-4 text-gray-500 italic bg-white rounded-[2px] shadow">
+            No users found
+          </div>
+        ) : (
+          paginatedUsers.map((user) => (
+            <div key={user.id} className="bg-white p-4 rounded-[2px] shadow border border-gray-100">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <h3 className="font-medium text-gray-900">{user.name}</h3>
+                  <p className="text-sm text-gray-600">{user.email}</p>
+                </div>
+                <div className="text-right">
+                  <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-[2px]">
+                    {user.role}
+                  </span>
+                  <span className={`block mt-1 text-xs ${
+                    user.status === 'Active' ? 'text-green-600' : 
+                    user.status === 'Pending' ? 'text-yellow-600' : 
+                    'text-red-600'
+                  }`}>
+                    {user.status}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handleAction(user.id, "Approve")}
+                  className="bg-green-500 text-white p-2 rounded-[2px] text-xs"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => handleAction(user.id, "Ban")}
+                  className="bg-red-500 text-white p-2 rounded-[2px] text-xs"
+                >
+                  Ban
+                </button>
+                <button
+                  onClick={() => openEditModal(user)}
+                  className="bg-blue-500 text-white p-2 rounded-[2px] text-xs"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleResetPassword(user.id)}
+                  className="bg-yellow-500 text-white p-2 rounded-[2px] text-xs"
+                >
+                  Reset PW
+                </button>
+                <button
+                  onClick={() => handleDelete(user.id)}
+                  className="bg-gray-600 text-white p-2 rounded-[2px] text-xs col-span-2"
+                >
+                  Delete User
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center mt-4 gap-2">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPage(p)}
-              className={`px-3 py-1 rounded-[2px] ${
-                p === page ? "bg-blue-500 text-white" : "bg-gray-200"
-              }`}
-            >
-              {p}
-            </button>
-          ))}
+        <div className="flex justify-center mt-4 gap-1 sm:gap-2 flex-wrap">
+          <button
+            onClick={() => setPage(Math.max(1, page - 1))}
+            disabled={page === 1}
+            className="px-2 sm:px-3 py-1 rounded-[2px] bg-gray-200 disabled:opacity-50 text-xs sm:text-sm"
+          >
+            Previous
+          </button>
+          
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            // Show limited page numbers on mobile
+            let pageNum;
+            if (totalPages <= 5) {
+              pageNum = i + 1;
+            } else if (page <= 3) {
+              pageNum = i + 1;
+            } else if (page >= totalPages - 2) {
+              pageNum = totalPages - 4 + i;
+            } else {
+              pageNum = page - 2 + i;
+            }
+            
+            return (
+              <button
+                key={pageNum}
+                onClick={() => setPage(pageNum)}
+                className={`px-2 sm:px-3 py-1 rounded-[2px] text-xs sm:text-sm ${
+                  pageNum === page ? "bg-blue-500 text-white" : "bg-gray-200"
+                }`}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+          
+          {totalPages > 5 && (
+            <span className="px-2 py-1 text-gray-500">...</span>
+          )}
+          
+          <button
+            onClick={() => setPage(Math.min(totalPages, page + 1))}
+            disabled={page === totalPages}
+            className="px-2 sm:px-3 py-1 rounded-[2px] bg-gray-200 disabled:opacity-50 text-xs sm:text-sm"
+          >
+            Next
+          </button>
         </div>
       )}
 
       {/* --- Edit Modal --- */}
       {editingUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-[2px] w-96">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-4 sm:p-6 rounded-[2px] w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold mb-4">Edit User</h3>
 
             <label className="block mb-2 text-sm">Name</label>
@@ -229,10 +328,10 @@ const Users = () => {
               <option value="Admin">Admin</option>
             </select>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
               <button
                 onClick={closeEditModal}
-                className="px-3 py-2 rounded-[2px] bg-gray-200"
+                className="px-3 py-2 rounded-[2px] bg-gray-200 mt-2 sm:mt-0"
               >
                 Cancel
               </button>

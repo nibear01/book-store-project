@@ -123,36 +123,36 @@ const Settings = () => {
 
   const Msg = ({ msg }) =>
     msg ? (
-      <p className={`${msg.type === 'error' ? 'text-red-600' : 'text-green-600'} text-sm`}>
+      <p className={`${msg.type === 'error' ? 'text-red-600' : 'text-green-600'} text-sm mt-2 md:mt-0`}>
         {msg.text}
       </p>
     ) : null;
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-10">
+    <div className="p-3 sm:p-4 md:p-6 lg:p-8 space-y-6 md:space-y-10">
       {/* Admin Profile */}
-      <section className="bg-white rounded-md border p-4 md:p-6 space-y-4">
-        <h2 className="text-xl font-semibold">Admin Profile</h2>
+      <section className="bg-white rounded-md border p-3 sm:p-4 md:p-6 space-y-4">
+        <h2 className="text-lg sm:text-xl font-semibold">Admin Profile</h2>
         <form onSubmit={submitProfile} className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 border">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 border flex-shrink-0">
               {profile.avatarPreview ? (
                 <img src={profile.avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No Img</div>
               )}
             </div>
-            <label className="cursor-pointer">
-              <span className="px-3 py-2 border rounded-md text-sm">Upload Avatar</span>
+            <label className="cursor-pointer inline-block">
+              <span className="px-3 py-2 border rounded-md text-sm block text-center sm:text-left">Upload Avatar</span>
               <input type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
             </label>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block text-sm mb-1">Name</label>
               <input
-                className="border border-gray-300 rounded-[2px] p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
+                className="border border-gray-300 rounded-[2px] p-2 sm:p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
                 value={profile.name}
                 onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))}
                 placeholder="Admin Name"
@@ -163,7 +163,7 @@ const Settings = () => {
               <label className="block text-sm mb-1">Email</label>
               <input
                 type="email"
-                className="border border-gray-300 rounded-[2px] p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
+                className="border border-gray-300 rounded-[2px] p-2 sm:p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
                 value={profile.email}
                 onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))}
                 placeholder="admin@example.com"
@@ -172,10 +172,10 @@ const Settings = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <button
               type="submit"
-              className="cursor-pointer bg-black text-white px-6 py-3 rounded-[2px] hover:bg-gray-800 transition"
+              className="cursor-pointer bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-[2px] hover:bg-gray-800 transition w-full sm:w-auto text-center"
               disabled={savingProfile}
             >
               {savingProfile ? 'Saving...' : 'Save Profile'}
@@ -186,15 +186,15 @@ const Settings = () => {
       </section>
 
       {/* Change Password */}
-      <section className="bg-white rounded-md border p-4 md:p-6 space-y-4">
-        <h2 className="text-xl font-semibold">Change Password</h2>
+      <section className="bg-white rounded-md border p-3 sm:p-4 md:p-6 space-y-4">
+        <h2 className="text-lg sm:text-xl font-semibold">Change Password</h2>
         <form onSubmit={submitPassword} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+            <div className="sm:col-span-2 md:col-span-1">
               <label className="block text-sm mb-1">Current Password</label>
               <input
                 type="password"
-                className="border border-gray-300 rounded-[2px] p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
+                className="border border-gray-300 rounded-[2px] p-2 sm:p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
                 value={pwd.current}
                 onChange={(e) => setPwd((p) => ({ ...p, current: e.target.value }))}
                 placeholder="••••••••"
@@ -205,7 +205,7 @@ const Settings = () => {
               <label className="block text-sm mb-1">New Password</label>
               <input
                 type="password"
-                className="border border-gray-300 rounded-[2px] p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
+                className="border border-gray-300 rounded-[2px] p-2 sm:p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
                 value={pwd.next}
                 onChange={(e) => setPwd((p) => ({ ...p, next: e.target.value }))}
                 placeholder="At least 8 chars"
@@ -216,7 +216,7 @@ const Settings = () => {
               <label className="block text-sm mb-1">Confirm Password</label>
               <input
                 type="password"
-                className="border border-gray-300 rounded-[2px] p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
+                className="border border-gray-300 rounded-[2px] p-2 sm:p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
                 value={pwd.confirm}
                 onChange={(e) => setPwd((p) => ({ ...p, confirm: e.target.value }))}
                 placeholder="Repeat new password"
@@ -224,10 +224,10 @@ const Settings = () => {
               />
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <button
               type="submit"
-              className="cursor-pointer bg-black text-white px-6 py-3 rounded-[2px] hover:bg-gray-800 transition"
+              className="cursor-pointer bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-[2px] hover:bg-gray-800 transition w-full sm:w-auto text-center"
               disabled={savingPwd}
             >
               {savingPwd ? 'Updating...' : 'Update Password'}
@@ -238,30 +238,30 @@ const Settings = () => {
       </section>
 
       {/* Platform Settings */}
-      <section className="bg-white rounded-md border p-4 md:p-6 space-y-4">
-        <h2 className="text-xl font-semibold">Platform Settings</h2>
+      <section className="bg-white rounded-md border p-3 sm:p-4 md:p-6 space-y-4">
+        <h2 className="text-lg sm:text-xl font-semibold">Platform Settings</h2>
         <form onSubmit={submitPlatform} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
             <div>
               <label className="block text-sm mb-1">Site Name</label>
               <input
-                className="border border-gray-300 rounded-[2px] p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
+                className="border border-gray-300 rounded-[2px] p-2 sm:p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
                 value={platform.siteName}
                 onChange={(e) => setPlatform((p) => ({ ...p, siteName: e.target.value }))}
                 placeholder="Book Store"
                 required
               />
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-24 h-12 border rounded bg-white flex items-center justify-center overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="w-20 sm:w-24 h-10 sm:h-12 border rounded bg-white flex items-center justify-center overflow-hidden mx-auto sm:mx-0">
                 {platform.logoPreview ? (
-                  <img src={platform.logoPreview} alt="Logo preview" className="max-h-12" />
+                  <img src={platform.logoPreview} alt="Logo preview" className="max-h-full" />
                 ) : (
                   <span className="text-xs text-gray-400">No Logo</span>
                 )}
               </div>
-              <label className="cursor-pointer">
-                <span className="px-3 py-2 border rounded-md text-sm">Upload Logo</span>
+              <label className="cursor-pointer inline-block text-center sm:text-left">
+                <span className="px-3 py-2 border rounded-md text-sm block">Upload Logo</span>
                 <input type="file" accept="image/*" className="hidden" onChange={onLogoChange} />
               </label>
             </div>
@@ -269,12 +269,12 @@ const Settings = () => {
 
           <div>
             <h3 className="font-medium mb-2">Social Media</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {['facebook', 'twitter', 'instagram', 'youtube', 'linkedin'].map((k) => (
                 <div key={k}>
                   <label className="block text-sm mb-1 capitalize">{k}</label>
                   <input
-                    className="border border-gray-300 rounded-[2px] p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
+                    className="border border-gray-300 rounded-[2px] p-2 sm:p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
                     value={platform.socials[k]}
                     onChange={(e) =>
                       setPlatform((p) => ({ ...p, socials: { ...p.socials, [k]: e.target.value } }))
@@ -286,10 +286,10 @@ const Settings = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <button
               type="submit"
-              className="cursor-pointer bg-black text-white px-6 py-3 rounded-[2px] hover:bg-gray-800 transition"
+              className="cursor-pointer bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-[2px] hover:bg-gray-800 transition w-full sm:w-auto text-center"
               disabled={savingPlatform}
             >
               {savingPlatform ? 'Saving...' : 'Save Settings'}

@@ -95,7 +95,7 @@ const StatusBadge = ({ status, type = 'order' }) => {
   const config = statusConfig[type][status] || { class: "bg-gray-100 text-gray-800", text: status };
 
   return (
-    <span className={`px-3 py-1 text-xs font-medium rounded-[2px] ${config.class}`}>
+    <span className={`px-2 py-1 text-xs font-medium rounded-[2px] ${config.class}`}>
       {config.text}
     </span>
   );
@@ -134,9 +134,9 @@ const StatusModal = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-[2px] shadow-xl max-w-md w-full p-6">
+      <div className="bg-white rounded-[2px] shadow-xl max-w-md w-full p-4 md:p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">Update Order Status</h2>
+          <h2 className="text-lg md:text-xl font-semibold text-gray-800">Update Order Status</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -144,7 +144,7 @@ const StatusModal = ({
           </button>
         </div>
         
-        <p className="text-gray-600 mb-6">
+        <p className="text-gray-600 mb-4 md:mb-6">
           Order ID: <span className="font-medium">#{order?.orderId || "N/A"}</span>
         </p>
 
@@ -161,7 +161,7 @@ const StatusModal = ({
                   orderStatus: e.target.value,
                 }))
               }
-              className="w-full px-4 py-2 border border-gray-300 rounded-[2px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 md:px-4 md:py-2 border border-gray-300 rounded-[2px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
               <option value="">Select Status</option>
@@ -185,7 +185,7 @@ const StatusModal = ({
                   paymentStatus: e.target.value,
                 }))
               }
-              className="w-full px-4 py-2 border border-gray-300 rounded-[2px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 md:px-4 md:py-2 border border-gray-300 rounded-[2px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
               <option value="">Select Status</option>
@@ -210,16 +210,16 @@ const StatusModal = ({
                   trackingNumber: e.target.value,
                 }))
               }
-              className="w-full px-4 py-2 border border-gray-300 rounded-[2px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 md:px-4 md:py-2 border border-gray-300 rounded-[2px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Enter tracking number"
             />
           </div>
 
-          <div className="flex justify-end gap-3">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-[2px] hover:bg-gray-300 transition-all focus:outline-none focus:ring-2 focus:ring-gray-400"
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-[2px] hover:bg-gray-300 transition-all focus:outline-none focus:ring-2 focus:ring-gray-400 mt-2 sm:mt-0"
               disabled={isLoading}
             >
               Cancel
@@ -249,7 +249,7 @@ const StatusModal = ({
 // Filter buttons component
 const FilterButtons = ({ filter, setFilter }) => {
   const filters = [
-    { key: "all", label: "All Orders" },
+    { key: "all", label: "All" },
     { key: ORDER_STATUS.PENDING, label: "Pending" },
     { key: ORDER_STATUS.CONFIRMED, label: "Confirmed" },
     { key: ORDER_STATUS.PROCESSING, label: "Processing" },
@@ -259,12 +259,12 @@ const FilterButtons = ({ filter, setFilter }) => {
   ];
 
   return (
-    <div className="flex flex-wrap gap-2 mb-6">
+    <div className="flex flex-wrap gap-2 mb-6 overflow-x-auto pb-2">
       {filters.map(({ key, label }) => (
         <button
           key={key}
           onClick={() => setFilter(key)}
-          className={`px-4 py-2 rounded-[2px] transition-all text-sm font-medium ${
+          className={`px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm font-medium rounded-[2px] transition-all whitespace-nowrap ${
             filter === key
               ? "bg-black text-white"
               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -277,7 +277,58 @@ const FilterButtons = ({ filter, setFilter }) => {
   );
 };
 
-// Order table component
+// Order card component for mobile view
+const OrderCard = ({ order, onSelectOrder }) => {
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  return (
+    <div className="bg-white rounded-[2px] p-4 mb-4 shadow-sm border border-gray-100">
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <h3 className="font-medium text-gray-900">#{order.orderId || "N/A"}</h3>
+          <p className="text-xs text-gray-500">{formatDate(order.createdAt)}</p>
+        </div>
+        <div className="text-right">
+          <p className="font-medium text-gray-900">${order.totalAmount?.toFixed(2) || "0.00"}</p>
+          <p className="text-xs text-gray-500">
+            {order.items?.reduce((total, item) => total + (item.quantity || 0), 0) || 0} items
+          </p>
+        </div>
+      </div>
+      
+      <div className="mb-3">
+        <div className="font-medium text-sm">
+          {order.shippingAddress?.firstName || "N/A"} {order.shippingAddress?.lastName || ""}
+        </div>
+        <div className="text-xs text-gray-500 truncate">{order.shippingAddress?.email || "N/A"}</div>
+      </div>
+      
+      <div className="flex justify-between items-center mb-3">
+        <div className="flex flex-col gap-1">
+          <StatusBadge status={order.orderStatus} type="order" />
+          <StatusBadge status={order.paymentStatus} type="payment" />
+        </div>
+      </div>
+      
+      <button
+        onClick={() => onSelectOrder(order)}
+        className="w-full py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-[2px] hover:bg-gray-200 transition-colors"
+      >
+        Manage Order
+      </button>
+    </div>
+  );
+};
+
+// Order table component for desktop view
 const OrderTable = ({ orders, onSelectOrder }) => {
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -302,7 +353,7 @@ const OrderTable = ({ orders, onSelectOrder }) => {
   }
 
   return (
-    <div className="bg-white rounded-[2px] overflow-hidden">
+    <div className="bg-white rounded-[2px] overflow-hidden hidden md:block">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -319,7 +370,7 @@ const OrderTable = ({ orders, onSelectOrder }) => {
               ].map((head) => (
                 <th
                   key={head}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider md:px-6"
                 >
                   {head}
                 </th>
@@ -329,10 +380,10 @@ const OrderTable = ({ orders, onSelectOrder }) => {
           <tbody className="bg-white divide-y divide-gray-200">
             {orders.map((order) => (
               <tr key={order._id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                <td className="px-4 py-4 text-sm font-medium text-gray-900 md:px-6">
                   #{order.orderId || "N/A"}
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
+                <td className="px-4 py-4 text-sm text-gray-500 md:px-6">
                   <div>
                     <div className="font-medium">
                       {order.shippingAddress?.firstName || "N/A"}{" "}
@@ -346,26 +397,26 @@ const OrderTable = ({ orders, onSelectOrder }) => {
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
+                <td className="px-4 py-4 text-sm text-gray-500 md:px-6">
                   {formatDate(order.createdAt)}
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
+                <td className="px-4 py-4 text-sm text-gray-500 md:px-6">
                   {order.items?.reduce(
                     (total, item) => total + (item.quantity || 0),
                     0
                   ) || 0}{" "}
                   items
                 </td>
-                <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                <td className="px-4 py-4 text-sm font-medium text-gray-900 md:px-6">
                   ${order.totalAmount?.toFixed(2) || "0.00"}
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-4 md:px-6">
                   <StatusBadge status={order.orderStatus} type="order" />
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-4 md:px-6">
                   <StatusBadge status={order.paymentStatus} type="payment" />
                 </td>
-                <td className="px-6 py-4 text-sm font-medium">
+                <td className="px-4 py-4 text-sm font-medium md:px-6">
                   <button
                     onClick={() => onSelectOrder(order)}
                     className="text-black hover:text-gray-600 transition-colors font-medium"
@@ -448,18 +499,18 @@ const OrderManagement = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 py-4 px-3 sm:px-4 md:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Order Management</h1>
-            <p className="text-gray-600 mt-2">Manage and track customer orders</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Order Management</h1>
+            <p className="text-gray-600 mt-1 text-sm md:text-base">Manage and track customer orders</p>
           </div>
           <button
             onClick={() => setLoading(true)}
-            className="flex items-center px-4 py-2 bg-white text-gray-700 rounded-[2px] border border-gray-300 hover:bg-gray-50 transition-all shadow-sm"
+            className="flex items-center justify-center px-4 py-2 bg-white text-gray-700 rounded-[2px] border border-gray-300 hover:bg-gray-50 transition-all shadow-sm text-sm md:text-base"
           >
-            <svg className="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 md:w-5 md:h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
             Refresh
@@ -471,7 +522,30 @@ const OrderManagement = () => {
         {loading ? (
           <LoadingSpinner />
         ) : (
-          <OrderTable orders={orders} onSelectOrder={handleSelectOrder} />
+          <>
+            <OrderTable orders={orders} onSelectOrder={handleSelectOrder} />
+            
+            {/* Mobile view */}
+            <div className="md:hidden">
+              {orders.length === 0 ? (
+                <div className="bg-white rounded-[2px] p-6 text-center">
+                  <svg className="mx-auto h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  <h3 className="mt-2 text-base font-medium text-gray-900">No orders found</h3>
+                  <p className="mt-1 text-xs text-gray-500">Try changing your filter criteria</p>
+                </div>
+              ) : (
+                orders.map(order => (
+                  <OrderCard 
+                    key={order._id} 
+                    order={order} 
+                    onSelectOrder={handleSelectOrder} 
+                  />
+                ))
+              )}
+            </div>
+          </>
         )}
 
         <StatusModal
