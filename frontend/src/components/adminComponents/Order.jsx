@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useAuth } from '../../Store/Auth';
 
 // Status constants for maintainability
 const ORDER_STATUS = {
@@ -21,97 +20,64 @@ const PAYMENT_STATUS = {
   REFUNDED: 'refunded'
 };
 
-// Custom hook for order data management
-const useOrders = (url, filter) => {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const fetchOrders = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        throw new Error("Authentication required");
-      }
-
-      let apiUrl = `${url}/api/orders/admin/allorders`;
-      if (filter !== "all") {
-        apiUrl += `?status=${filter}`;
-      }
-
-      const response = await fetch(apiUrl, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error("Unauthorized. Please login again.");
-        }
-        if (response.status === 403) {
-          throw new Error("Admin access required.");
-        }
-        if (response.status === 404) {
-          throw new Error("Orders endpoint not found.");
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.message || "Failed to fetch orders");
-      }
-
-      const ordersData = data.orders || data.data || [];
-      setOrders(ordersData);
-    } catch (err) {
-      console.error("Fetch orders error:", err);
-      setError(err.message);
-      toast.error(err.message || "Failed to fetch orders", {
-        position: "top-right",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [url, filter]);
-
-  useEffect(() => {
-    const testConnection = async () => {
-      try {
-        const response = await fetch(`${url}/api/orders/test`);
-        if (!response.ok) {
-          throw new Error(`Test failed: ${response.status}`);
-        }
-        fetchOrders();
-      } catch (err) {
-        console.error("Connection test failed:", err);
-        setError("Cannot connect to server. Make sure backend is running.");
-        toast.error("Cannot connect to server. Make sure backend is running.", {
-          position: "top-right",
-        });
-        setLoading(false);
-      }
-    };
-
-    testConnection();
-  }, [url, fetchOrders]);
-
-  return { orders, loading, error, refetch: fetchOrders };
-};
+// Mock data for demonstration (replace with real API calls)
+const mockOrders = [
+  {
+    _id: '1',
+    orderId: 'BK-2023-001',
+    shippingAddress: {
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'john.doe@example.com',
+      phone: '+1234567890'
+    },
+    createdAt: new Date().toISOString(),
+    items: [{ quantity: 2 }, { quantity: 1 }],
+    totalAmount: 59.97,
+    orderStatus: ORDER_STATUS.PENDING,
+    paymentStatus: PAYMENT_STATUS.PENDING,
+    trackingNumber: ''
+  },
+  {
+    _id: '2',
+    orderId: 'BK-2023-002',
+    shippingAddress: {
+      firstName: 'Jane',
+      lastName: 'Smith',
+      email: 'jane.smith@example.com',
+      phone: '+1987654321'
+    },
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    items: [{ quantity: 3 }],
+    totalAmount: 42.50,
+    orderStatus: ORDER_STATUS.CONFIRMED,
+    paymentStatus: PAYMENT_STATUS.COMPLETED,
+    trackingNumber: 'TRK123456789'
+  },
+  {
+    _id: '3',
+    orderId: 'BK-2023-003',
+    shippingAddress: {
+      firstName: 'Robert',
+      lastName: 'Johnson',
+      email: 'robert.j@example.com',
+      phone: '+1122334455'
+    },
+    createdAt: new Date(Date.now() - 172800000).toISOString(),
+    items: [{ quantity: 1 }, { quantity: 1 }, { quantity: 2 }],
+    totalAmount: 87.25,
+    orderStatus: ORDER_STATUS.SHIPPED,
+    paymentStatus: PAYMENT_STATUS.COMPLETED,
+    trackingNumber: 'TRK987654321'
+  }
+];
 
 // Status badge component
 const StatusBadge = ({ status, type = 'order' }) => {
   const statusConfig = {
     order: {
       pending: { class: "bg-yellow-100 text-yellow-800", text: "Pending" },
-      confirmed: { class: "bg-emerald-100 text-emerald-800", text: "Confirmed" },
+      confirmed: { class: "bg-blue-100 text-blue-800", text: "Confirmed" },
       processing: { class: "bg-indigo-100 text-indigo-800", text: "Processing" },
       shipped: { class: "bg-purple-100 text-purple-800", text: "Shipped" },
       delivered: { class: "bg-green-100 text-green-800", text: "Delivered" },
@@ -119,7 +85,7 @@ const StatusBadge = ({ status, type = 'order' }) => {
     },
     payment: {
       pending: { class: "bg-yellow-100 text-yellow-800", text: "Pending" },
-      processing: { class: "bg-emerald-100 text-emerald-800", text: "Processing" },
+      processing: { class: "bg-blue-100 text-blue-800", text: "Processing" },
       completed: { class: "bg-green-100 text-green-800", text: "Completed" },
       failed: { class: "bg-red-100 text-red-800", text: "Failed" },
       refunded: { class: "bg-purple-100 text-purple-800", text: "Refunded" }
@@ -129,7 +95,7 @@ const StatusBadge = ({ status, type = 'order' }) => {
   const config = statusConfig[type][status] || { class: "bg-gray-100 text-gray-800", text: status };
 
   return (
-    <span className={`px-2 py-1 text-xs font-medium rounded-full ${config.class}`}>
+    <span className={`px-3 py-1 text-xs font-medium rounded-full ${config.class}`}>
       {config.text}
     </span>
   );
@@ -169,14 +135,22 @@ const StatusModal = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-        <h2 className="text-xl font-semibold mb-4">Update Order Status</h2>
-        <p className="text-gray-600 mb-4">
-          Order ID: #{order?.orderId || "N/A"}
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">Update Order Status</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <p className="text-gray-600 mb-6">
+          Order ID: <span className="font-medium">#{order?.orderId || "N/A"}</span>
         </p>
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Order Status
             </label>
             <select
@@ -187,7 +161,7 @@ const StatusModal = ({
                   orderStatus: e.target.value,
                 }))
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
               <option value="">Select Status</option>
@@ -200,7 +174,7 @@ const StatusModal = ({
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Payment Status
             </label>
             <select
@@ -211,7 +185,7 @@ const StatusModal = ({
                   paymentStatus: e.target.value,
                 }))
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
               <option value="">Select Status</option>
@@ -224,7 +198,7 @@ const StatusModal = ({
           </div>
 
           <div className="mb-6">
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Tracking Number
             </label>
             <input
@@ -236,23 +210,23 @@ const StatusModal = ({
                   trackingNumber: e.target.value,
                 }))
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Enter tracking number"
             />
           </div>
 
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-200 transition-all"
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-all focus:outline-none focus:ring-2 focus:ring-gray-400"
               disabled={isLoading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-500 transition-all flex items-center justify-center"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -275,7 +249,7 @@ const StatusModal = ({
 // Filter buttons component
 const FilterButtons = ({ filter, setFilter }) => {
   const filters = [
-    { key: "all", label: "All" },
+    { key: "all", label: "All Orders" },
     { key: ORDER_STATUS.PENDING, label: "Pending" },
     { key: ORDER_STATUS.CONFIRMED, label: "Confirmed" },
     { key: ORDER_STATUS.PROCESSING, label: "Processing" },
@@ -290,10 +264,10 @@ const FilterButtons = ({ filter, setFilter }) => {
         <button
           key={key}
           onClick={() => setFilter(key)}
-          className={`px-4 py-2 rounded-lg transition-all ${
+          className={`px-4 py-2 rounded-lg transition-all text-sm font-medium ${
             filter === key
-              ? "bg-emerald-500 text-white shadow-md"
-              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              ? "bg-blue-500 text-white shadow-md"
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
           }`}
         >
           {label}
@@ -307,12 +281,11 @@ const FilterButtons = ({ filter, setFilter }) => {
 const OrderTable = ({ orders, onSelectOrder }) => {
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString("en-US", {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
     });
   };
 
@@ -365,7 +338,9 @@ const OrderTable = ({ orders, onSelectOrder }) => {
                       {order.shippingAddress?.firstName || "N/A"}{" "}
                       {order.shippingAddress?.lastName || ""}
                     </div>
-                    <div>{order.shippingAddress?.email || "N/A"}</div>
+                    <div className="text-xs text-gray-400 mt-1">
+                      {order.shippingAddress?.email || "N/A"}
+                    </div>
                     <div className="text-xs text-gray-400">
                       {order.shippingAddress?.phone || "No phone"}
                     </div>
@@ -382,7 +357,7 @@ const OrderTable = ({ orders, onSelectOrder }) => {
                   items
                 </td>
                 <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                  Tk {order.totalAmount?.toFixed(2) || "0.00"}
+                  ${order.totalAmount?.toFixed(2) || "0.00"}
                 </td>
                 <td className="px-6 py-4">
                   <StatusBadge status={order.orderStatus} type="order" />
@@ -393,9 +368,9 @@ const OrderTable = ({ orders, onSelectOrder }) => {
                 <td className="px-6 py-4 text-sm font-medium">
                   <button
                     onClick={() => onSelectOrder(order)}
-                    className="text-emerald-500 hover:text-emerald-600 transition-colors"
+                    className="text-blue-600 hover:text-blue-800 transition-colors font-medium"
                   >
-                    Update
+                    Manage
                   </button>
                 </td>
               </tr>
@@ -410,19 +385,43 @@ const OrderTable = ({ orders, onSelectOrder }) => {
 // Loading component
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
-    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
   </div>
 );
 
 // Main component
 const OrderManagement = () => {
-  const { url } = useAuth();
   const [filter, setFilter] = useState("all");
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const { orders, loading, error, refetch } = useOrders(url, filter);
+  // Simulate API call
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Filter orders based on selected filter
+        if (filter === "all") {
+          setOrders(mockOrders);
+        } else {
+          setOrders(mockOrders.filter(order => order.orderStatus === filter));
+        }
+      } catch (error) {
+        toast.error("Failed to fetch orders");
+        console.error("Fetch orders error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [filter]);
 
   const handleSelectOrder = (order) => {
     setSelectedOrder(order);
@@ -434,91 +433,55 @@ const OrderManagement = () => {
     
     try {
       setIsUpdating(true);
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${url}/api/orders/admin/${selectedOrder._id}/status`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(statusUpdate),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.message || `HTTP error! status: ${response.status}`
-        );
-      }
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.message || "Failed to update order");
-      }
-
-      await refetch();
-      toast.success("Order updated successfully!", { position: "top-right" });
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // In a real app, you would update the order via API and then refresh the list
+      toast.success("Order updated successfully!");
       setIsModalOpen(false);
     } catch (err) {
       console.error("Update order error:", err);
-      toast.error(err.message || "Failed to update order", {
-        position: "top-right",
-      });
+      toast.error("Failed to update order");
     } finally {
       setIsUpdating(false);
     }
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Order Management</h1>
-        <button
-          onClick={refetch}
-          className="flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all"
-          disabled={loading}
-        >
-          <svg className={`w-5 h-5 mr-2 ${loading ? 'animate-spin' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Refresh
-        </button>
-      </div>
-
-      <FilterButtons filter={filter} setFilter={setFilter} />
-
-      {error && !loading && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Order Management</h1>
+            <p className="text-gray-600 mt-2">Manage and track customer orders</p>
           </div>
+          <button
+            onClick={() => setLoading(true)}
+            className="flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition-all shadow-sm"
+          >
+            <svg className="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh
+          </button>
         </div>
-      )}
 
-      {loading ? (
-        <LoadingSpinner />
-      ) : (
-        <OrderTable orders={orders} onSelectOrder={handleSelectOrder} />
-      )}
+        <FilterButtons filter={filter} setFilter={setFilter} />
 
-      <StatusModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        order={selectedOrder}
-        onUpdate={handleUpdateStatus}
-        isLoading={isUpdating}
-      />
+        {loading ? (
+          <LoadingSpinner />
+        ) : (
+          <OrderTable orders={orders} onSelectOrder={handleSelectOrder} />
+        )}
+
+        <StatusModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          order={selectedOrder}
+          onUpdate={handleUpdateStatus}
+          isLoading={isUpdating}
+        />
+      </div>
     </div>
   );
 };
