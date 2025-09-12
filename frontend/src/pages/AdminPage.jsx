@@ -2,7 +2,6 @@ import AdminSidebar from "@/components/adminComponents/AdminSidebar";
 import { Outlet } from "react-router";
 
 const AdminPage = () => {
-
   return (
     <>
       <div className="flex min-h-screen bg-gray-50">
