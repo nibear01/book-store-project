@@ -8,7 +8,7 @@ const CartPage = () => {
     <div className="max-w-6xl mx-auto px-4 py-10">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">Your Cart</h1>
       {state.items.length === 0 ? (
-        <div className="mt-6">
+        <div className="mt-6 min-h-[400px]">
           <p className="text-gray-600">Your cart is empty.</p>
           <Link to="/shop" className="text-red-500 hover:text-red-600 transition-colors">
             Continue shopping

@@ -18,7 +18,6 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
     { name: "Users", path: "/admin/users", icon: Users },
     { name: "Books Manuscripts", path: "/admin/books", icon: BookOpen },
     { name: "Orders", path: "/admin/orders", icon: ShoppingCart },
-    { name: "Coupons & Promotions", path: "/admin/coupons", icon: Tag },
     { name: "Settings", path: "/admin/settings", icon: Settings },
     { name: "Logout", path: "/logout", icon: LogOut },
   ];

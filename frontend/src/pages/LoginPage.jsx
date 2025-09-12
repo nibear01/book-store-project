@@ -16,16 +16,16 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="flex justify-center pt-15 pb-1">
+    <div className="flex justify-center pt-15 pb-15">
       <div
-        className="min-h-[450px] h-[470px] w-[400px] min-w-[350px] bg-white
-       shadow-xl flex-col justify-center rounded-[2px]"
+        className="h-auto w-[400px] min-w-[350px] bg-white
+       shadow-xl flex-col justify-center items-center rounded-[2px] py-4"
       >
         <div className="py-6 w-full flex-col justify-center">
           <h1 className="text-[25px] text-center">Login</h1>
           <h3 className="text-center">Sign in to continue</h3>
         </div>
-        <div className="px-5">
+        <div className="px-5 flex-col justify-center items-center">
           <form onSubmit={handleLogin} className="flex-col justify-center">
             {/* Email */}
             <div className="space-y-3 mb-3">
@@ -96,6 +96,12 @@ const LoginPage = () => {
               <span>Login with Google</span>
             </button>
           </div>
+          <p className="text-sm text-center my-4 ">
+            Don't have an account?{" "}
+            <Link to="/signup" className="text-gray-600 hover:text-black">
+              Signup
+            </Link>
+          </p>
         </div>
       </div>
     </div>

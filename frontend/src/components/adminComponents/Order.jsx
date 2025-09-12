@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -95,7 +95,7 @@ const StatusBadge = ({ status, type = 'order' }) => {
   const config = statusConfig[type][status] || { class: "bg-gray-100 text-gray-800", text: status };
 
   return (
-    <span className={`px-3 py-1 text-xs font-medium rounded-full ${config.class}`}>
+    <span className={`px-3 py-1 text-xs font-medium rounded-[2px] ${config.class}`}>
       {config.text}
     </span>
   );
@@ -133,8 +133,8 @@ const StatusModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-[2px] shadow-xl max-w-md w-full p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-800">Update Order Status</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
@@ -161,7 +161,7 @@ const StatusModal = ({
                   orderStatus: e.target.value,
                 }))
               }
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-[2px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
               <option value="">Select Status</option>
@@ -185,7 +185,7 @@ const StatusModal = ({
                   paymentStatus: e.target.value,
                 }))
               }
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-[2px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
               <option value="">Select Status</option>
@@ -210,7 +210,7 @@ const StatusModal = ({
                   trackingNumber: e.target.value,
                 }))
               }
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-[2px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Enter tracking number"
             />
           </div>
@@ -219,14 +219,14 @@ const StatusModal = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-all focus:outline-none focus:ring-2 focus:ring-gray-400"
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-[2px] hover:bg-gray-300 transition-all focus:outline-none focus:ring-2 focus:ring-gray-400"
               disabled={isLoading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2 bg-black text-white rounded-[2px] hover:bg-gray-600 transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -264,9 +264,9 @@ const FilterButtons = ({ filter, setFilter }) => {
         <button
           key={key}
           onClick={() => setFilter(key)}
-          className={`px-4 py-2 rounded-lg transition-all text-sm font-medium ${
+          className={`px-4 py-2 rounded-[2px] transition-all text-sm font-medium ${
             filter === key
-              ? "bg-blue-500 text-white shadow-md"
+              ? "bg-black text-white"
               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
           }`}
         >
@@ -291,7 +291,7 @@ const OrderTable = ({ orders, onSelectOrder }) => {
 
   if (orders.length === 0) {
     return (
-      <div className="bg-white shadow-md rounded-lg p-8 text-center">
+      <div className="bg-white rounded-[2px] p-8 text-center">
         <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
@@ -302,7 +302,7 @@ const OrderTable = ({ orders, onSelectOrder }) => {
   }
 
   return (
-    <div className="bg-white shadow-md rounded-lg overflow-hidden">
+    <div className="bg-white rounded-[2px] overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -368,7 +368,7 @@ const OrderTable = ({ orders, onSelectOrder }) => {
                 <td className="px-6 py-4 text-sm font-medium">
                   <button
                     onClick={() => onSelectOrder(order)}
-                    className="text-blue-600 hover:text-blue-800 transition-colors font-medium"
+                    className="text-black hover:text-gray-600 transition-colors font-medium"
                   >
                     Manage
                   </button>
@@ -385,7 +385,7 @@ const OrderTable = ({ orders, onSelectOrder }) => {
 // Loading component
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
-    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+    <div className="animate-spin rounded-[2px] h-12 w-12 border-t-2 border-b-2 border-black"></div>
   </div>
 );
 
@@ -428,7 +428,7 @@ const OrderManagement = () => {
     setIsModalOpen(true);
   };
 
-  const handleUpdateStatus = async (statusUpdate) => {
+  const handleUpdateStatus = async () => {
     if (!selectedOrder) return;
     
     try {
@@ -457,7 +457,7 @@ const OrderManagement = () => {
           </div>
           <button
             onClick={() => setLoading(true)}
-            className="flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition-all shadow-sm"
+            className="flex items-center px-4 py-2 bg-white text-gray-700 rounded-[2px] border border-gray-300 hover:bg-gray-50 transition-all shadow-sm"
           >
             <svg className="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

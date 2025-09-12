@@ -26,7 +26,6 @@ import Dashboard from "./components/adminComponents/Dashboard";
 import Users from "./components/adminComponents/Users";
 import Books from "./components/adminComponents/Books";
 import Order from "./components/adminComponents/Order";
-import CouponsPromotions from "./components/adminComponents/CouponsPromotions";
 import Settings from "./components/adminComponents/Settings";
 
 function AppContent() {
@@ -54,7 +53,6 @@ function AppContent() {
           <Route path="users" element={<Users />} />
           <Route path="books" element={<Books />} />
           <Route path="orders" element={<Order />} />
-          <Route path="coupons" element={<CouponsPromotions />} />
           <Route path="settings" element={<Settings />} />
         </Route>
 

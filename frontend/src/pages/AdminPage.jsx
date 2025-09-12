@@ -16,7 +16,7 @@ const AdminPage = () => {
           isCollapsed ? "ml-20" : "ml-64"
         }`}
       >
-        <div className="max-w-7xl mx-auto">
+        <div className=" mx-auto">
           {/* Header */}
           <header className="mb-6 border-b border-gray-200 pb-4">
             <h1 className="text-2xl font-bold text-gray-800">Admin Panel</h1>
@@ -26,7 +26,7 @@ const AdminPage = () => {
           </header>
 
           {/* Routed Pages */}
-          <div className="bg-white border border-gray-200 rounded-[2px] p-6 shadow-sm">
+          <div className="bg-white border border-gray-200 rounded-[2px] p-6">
             <Outlet />
           </div>
         </div>

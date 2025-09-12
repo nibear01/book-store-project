@@ -270,7 +270,7 @@ const Books = () => {
             <div className="flex gap-2 pt-2">
               <button
                 type="submit"
-                className="bg-red-500 text-white px-4 py-2 rounded-[2px] hover:bg-red-600"
+                className="bg-black text-white px-4 py-2 rounded-[2px] hover:bg-gray-800"
               >
                 {editingId ? "Save Changes" : "Add Book"}
               </button>

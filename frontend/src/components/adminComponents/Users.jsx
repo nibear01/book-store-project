@@ -79,7 +79,7 @@ const Users = () => {
       {/* Filters + Search */}
       <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
         <select
-          className="border p-2 rounded w-full md:w-auto"
+          className="border p-2 rounded-[2px] w-full md:w-auto"
           value={roleFilter}
           onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
         >
@@ -90,7 +90,7 @@ const Users = () => {
         </select>
 
         <select
-          className="border p-2 rounded w-full md:w-auto"
+          className="border p-2 rounded-[2px] w-full md:w-auto"
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
         >
@@ -103,14 +103,14 @@ const Users = () => {
         <input
           type="text"
           placeholder="Search by name or email"
-          className="border p-2 rounded flex-1"
+          className="border p-2 rounded-[2px] flex-1"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto shadow rounded-lg">
+      <div className="overflow-x-auto shadow rounded-[2px]">
         <table className="min-w-full text-sm text-left">
           <thead className="bg-gray-100 text-gray-600 uppercase">
             <tr>
@@ -131,31 +131,31 @@ const Users = () => {
                 <td className="px-4 py-2 flex gap-2 flex-wrap">
                   <button
                     onClick={() => handleAction(user.id, "Approve")}
-                    className="bg-green-500 text-white px-2 py-1 rounded text-xs"
+                    className="bg-green-500 text-white px-2 py-1 rounded-[2px] text-sm"
                   >
                     Approve
                   </button>
                   <button
                     onClick={() => handleAction(user.id, "Ban")}
-                    className="bg-red-500 text-white px-2 py-1 rounded text-xs"
+                    className="bg-red-500 text-white px-2 py-1 rounded-[2px] text-sm"
                   >
                     Ban
                   </button>
                   <button
                     onClick={() => openEditModal(user)}
-                    className="bg-blue-500 text-white px-2 py-1 rounded text-xs"
+                    className="bg-blue-500 text-white px-2 py-1 rounded-[2px] text-sm"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleResetPassword(user.id)}
-                    className="bg-yellow-500 text-white px-2 py-1 rounded text-xs"
+                    className="bg-yellow-500 text-white px-2 py-1 rounded-[2px] text-sm"
                   >
                     Reset Password
                   </button>
                   <button
                     onClick={() => handleDelete(user.id)}
-                    className="bg-gray-600 text-white px-2 py-1 rounded text-xs"
+                    className="bg-gray-600 text-white px-2 py-1 rounded-[2px] text-sm"
                   >
                     Delete
                   </button>
@@ -180,7 +180,7 @@ const Users = () => {
             <button
               key={p}
               onClick={() => setPage(p)}
-              className={`px-3 py-1 rounded ${
+              className={`px-3 py-1 rounded-[2px] ${
                 p === page ? "bg-blue-500 text-white" : "bg-gray-200"
               }`}
             >
@@ -192,14 +192,14 @@ const Users = () => {
 
       {/* --- Edit Modal --- */}
       {editingUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded shadow-lg w-96">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-[2px] w-96">
             <h3 className="text-lg font-bold mb-4">Edit User</h3>
 
             <label className="block mb-2 text-sm">Name</label>
             <input
               type="text"
-              className="border p-2 rounded w-full mb-3"
+              className="border p-2 rounded-[2px] w-full mb-3"
               value={editingUser.name}
               onChange={(e) =>
                 setEditingUser({ ...editingUser, name: e.target.value })
@@ -209,7 +209,7 @@ const Users = () => {
             <label className="block mb-2 text-sm">Email</label>
             <input
               type="email"
-              className="border p-2 rounded w-full mb-3"
+              className="border p-2 rounded-[2px] w-full mb-3"
               value={editingUser.email}
               onChange={(e) =>
                 setEditingUser({ ...editingUser, email: e.target.value })
@@ -218,7 +218,7 @@ const Users = () => {
 
             <label className="block mb-2 text-sm">Role</label>
             <select
-              className="border p-2 rounded w-full mb-4"
+              className="border p-2 rounded-[2px] w-full mb-4"
               value={editingUser.role}
               onChange={(e) =>
                 setEditingUser({ ...editingUser, role: e.target.value })
@@ -232,13 +232,13 @@ const Users = () => {
             <div className="flex justify-end gap-2">
               <button
                 onClick={closeEditModal}
-                className="px-3 py-1 rounded bg-gray-200"
+                className="px-3 py-2 rounded-[2px] bg-gray-200"
               >
                 Cancel
               </button>
               <button
                 onClick={saveEdit}
-                className="px-3 py-1 rounded bg-blue-500 text-white"
+                className="px-3 py-2 rounded-[2px] bg-black text-white"
               >
                 Save
               </button>
