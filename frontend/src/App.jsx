@@ -16,6 +16,14 @@ import Footer from "./pages/Footer";
 import BookViewPage from "./pages/BookViewPage";
 import dummyBooks from "./data/dummyBooks.json";
 
+// admin components
+import Dashboard from "./components/adminComponents/Dashboard";
+import Users from "./components/adminComponents/Users";
+import Books from "./components/adminComponents/Books";
+import Order from "./components/adminComponents/Order";
+import CouponsPromotions from "./components/adminComponents/CouponsPromotions";
+import Settings from "./components/adminComponents/Settings";
+
 function App() {
   return (
     <Router>
@@ -31,7 +39,12 @@ function App() {
             />
             <Route path="/shop" element={<ShopPage />} />
             <Route path="/admin" element={<AdminPage />}>
-              {/* <Route path="dashboard" element={<BookForm />} /> */}
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="users" element={<Users />} />
+              <Route path="books" element={<Books />} />
+              <Route path="orders" element={<Order />} />
+              <Route path="coupons" element={<CouponsPromotions />} />
+              <Route path="settings" element={<Settings />} />
             </Route>
             <Route path="/cart" element={<CartPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
