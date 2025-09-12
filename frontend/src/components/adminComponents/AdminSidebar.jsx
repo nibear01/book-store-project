@@ -22,7 +22,8 @@ const AdminSidebar = () => {
     { name: "Books Manuscripts", path: "/admin/books", icon: BookOpen },
     { name: "Orders", path: "/admin/orders", icon: ShoppingCart },
     { name: "Coupons & Promotions", path: "/admin/coupons", icon: Tag },
-    { name: "Settings/Profile", path: "/admin/settings", icon: Settings },
+    { name: "Settings", path: "/admin/settings", icon: Settings },
+    { name: "Logout", path: "/logout", icon: Settings },
   ];
 
   return (
