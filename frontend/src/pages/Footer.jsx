@@ -5,6 +5,7 @@ import {
   FaInstagram,
   FaLinkedinIn,
 } from "react-icons/fa";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
@@ -62,45 +63,49 @@ const Footer = () => {
         <div>
           <h3 className="font-semibold mb-3">Follow Us</h3>
           <div className="flex gap-4">
-            <a
+            <Link
+              to="/"
               href="https://facebook.com"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-blue-500 transition-colors text-xl"
             >
               <FaFacebookF />
-            </a>
-            <a
+            </Link>
+            <Link
+              to="/"
               href="https://twitter.com"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-blue-400 transition-colors text-xl"
             >
               <FaTwitter />
-            </a>
-            <a
+            </Link>
+            <Link
+              to="/"
               href="https://instagram.com"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-pink-400 transition-colors text-xl"
             >
               <FaInstagram />
-            </a>
-            <a
+            </Link>
+            <Link
+              to="/"
               href="https://linkedin.com"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-blue-600 transition-colors text-xl"
             >
               <FaLinkedinIn />
-            </a>
+            </Link>
           </div>
         </div>
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-gray-700 mt-8 pt-4 text-center pb-5 text-gray-400 text-sm">
-        © {new Date().getFullYear()} BookStore. All rights reserved.
+      <div className="border-t border-gray-700 mt-8 pt-4 text-center pb-5 text-gray-400 text-[12px]">
+        © {new Date().getFullYear()} BookStop. All rights reserved.
       </div>
     </footer>
   );

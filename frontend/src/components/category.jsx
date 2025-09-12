@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FaCameraRetro, FaGlassMartiniAlt, FaHeart, FaNotesMedical, FaUserTie } from 'react-icons/fa';
 import { BsArrowRight } from 'react-icons/bs';
+import { Link } from 'react-router-dom';
 
 const iconMap = {
   "Arts & Photography": FaCameraRetro,
@@ -59,16 +60,16 @@ function Category() {
   ];
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
-      <div className="bg-white shadow-lg rounded-xl p-8 max-w-6xl w-full">
+    <div className="flex justify-center items-center p-4">
+      <div className="bg-white rounded-[2px] p-8 max-w-10xl w-full">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-3xl font-bold text-gray-800">Featured Categories</h2>
-          <a
-            href="/all-categories"
-            className="flex items-center text-blue-600 font-medium hover:text-blue-800 transition-colors"
+          <Link
+            to="/categories"
+            className="flex items-center text-red-600 font-medium hover:text-red-800 transition-colors"
           >
             All Categories <BsArrowRight className="ml-2" />
-          </a>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
@@ -80,7 +81,7 @@ function Category() {
               <a
                 key={index}
                 href={category.action_link}
-                className={`flex flex-col items-start p-6 rounded-lg shadow-sm transition-transform duration-300 transform hover:scale-105 ${colorSet.bg}`}
+                className={`flex flex-col items-start p-6 rounded-[2px] shadow-sm transition-transform duration-300 transform hover:scale-105 ${colorSet.bg}`}
               >
                 {IconComponent && <IconComponent className={`text-5xl mb-4 ${colorSet.icon}`} />}
                 <h3 className="text-xl font-semibold text-gray-800 mb-1">{category.name}</h3>

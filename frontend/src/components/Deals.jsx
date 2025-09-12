@@ -35,7 +35,7 @@ export default function Deals() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[200px] bg-gray-100 p-8">
+      <div className="flex justify-center items-center min-h-[200px] bg-white p-8">
         Loading deals...
       </div>
     );
@@ -43,7 +43,7 @@ export default function Deals() {
 
   if (error) {
     return (
-      <div className="flex justify-center items-center min-h-[200px] bg-gray-100 p-8 text-red-500">
+      <div className="flex justify-center items-center min-h-[200px] bg-white p-8 text-red-500">
         Error: {error}
       </div>
     );
@@ -55,12 +55,12 @@ export default function Deals() {
   const isPrevButtonDisabled = activeIndex === 0;
 
   return (
-    <div className="bg-white shadow-lg rounded-xl p-8 max-w-6xl w-full mx-auto relative overflow-hidden">
+    <div className="bg-white rounded-[2px] p-8 max-w-8xl w-full mt-10 mx-auto relative overflow-hidden">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold text-gray-800">Deals of the Week</h2>
         <a 
           href="/all-deals" 
-          className="flex items-center text-blue-600 font-medium hover:text-blue-800 transition-colors"
+          className="flex items-center text-gray-600 font-medium hover:text-black transition-colors"
         >
           View All 
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4 ml-2">
@@ -72,17 +72,17 @@ export default function Deals() {
       <div className="relative">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 transition-transform duration-300 ease-in-out">
           {visibleDeals.map((deal, index) => (
-            <div key={index} className="flex flex-col sm:flex-row items-center p-4 rounded-lg border border-gray-200 min-h-[250px] sm:min-h-[200px]">
+            <div key={index} className="flex flex-col sm:flex-row items-center p-4 rounded-[2px] border border-gray-200 min-h-[250px] sm:min-h-[200px] hover:shadow-md transition-all">
               <img 
                 src={deal.cover_image} 
                 alt={deal.title} 
-                className="w-full sm:w-1/2 max-w-[150px] h-auto object-contain rounded-md mb-4 sm:mb-0 sm:mr-4 flex-shrink-0" 
+                className="w-full sm:w-1/2 max-w-[150px] h-auto object-contain rounded-[2px] mb-4 sm:mb-0 sm:mr-4 flex-shrink-0" 
               />
               <div className="text-center sm:text-left flex-grow">
                 <p className="text-sm text-red-600 font-semibold uppercase mb-1">{deal.format}</p>
                 <h3 className="text-xl font-bold text-gray-800 mb-1">{deal.title}</h3>
                 <p className="text-md text-gray-600 mb-2">{deal.author}</p>
-                <span className="font-bold text-2xl text-gray-900 mr-2">{deal.price}</span>
+                <span className="font-bold text-2xl text-black mr-2">{deal.price}</span>
                 {deal.original_price && <span className="text-gray-500 line-through">{deal.original_price}</span>}
               </div>
             </div>
@@ -93,7 +93,7 @@ export default function Deals() {
         <button
           onClick={prevSlide}
           disabled={isPrevButtonDisabled}
-          className={`absolute top-1/2 -left-8 transform -translate-y-1/2 bg-white p-3 rounded-full shadow-md z-10 hidden sm:block transition-opacity duration-300 ${isPrevButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+          className={`absolute top-1/2 -left-8 transform -translate-y-1/2 bg-white p-3 rounded-[2px] border border-gray-300 z-10 hidden sm:block transition-opacity duration-300 ${isPrevButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5 text-gray-600">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -102,7 +102,7 @@ export default function Deals() {
         <button
           onClick={nextSlide}
           disabled={isNextButtonDisabled}
-          className={`absolute top-1/2 -right-8 transform -translate-y-1/2 bg-white p-3 rounded-full shadow-md z-10 hidden sm:block transition-opacity duration-300 ${isNextButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+          className={`absolute top-1/2 -right-8 transform -translate-y-1/2 bg-white p-3 rounded-[2px] border border-gray-300 z-10 hidden sm:block transition-opacity duration-300 ${isNextButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5 text-gray-600">
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -116,7 +116,7 @@ export default function Deals() {
           <button
             key={i}
             onClick={() => setActiveIndex(Math.floor(i / 2) * 2)}
-            className={`w-3 h-3 rounded-full transition-colors duration-300 ${Math.floor(activeIndex / 2) === Math.floor(i / 2) ? 'bg-blue-600' : 'bg-gray-300'}`}
+            className={`w-3 h-3 rounded-full transition-colors duration-300 ${Math.floor(activeIndex / 2) === Math.floor(i / 2) ? 'bg-black' : 'bg-gray-300'}`}
           ></button>
         ))}
       </div>
