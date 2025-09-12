@@ -1,20 +1,17 @@
 import { Link, useLocation } from "react-router-dom";
-import { useState } from "react";
 import {
   LayoutDashboard,
   Users,
   BookOpen,
   ShoppingCart,
-  ClipboardList,
-  RefreshCcw,
   Tag,
   Settings,
   ChevronDown,
+  LogOut,
 } from "lucide-react";
 
-const AdminSidebar = () => {
+const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const menuItems = [
     { name: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
@@ -23,28 +20,23 @@ const AdminSidebar = () => {
     { name: "Orders", path: "/admin/orders", icon: ShoppingCart },
     { name: "Coupons & Promotions", path: "/admin/coupons", icon: Tag },
     { name: "Settings", path: "/admin/settings", icon: Settings },
-    { name: "Logout", path: "/logout", icon: Settings },
+    { name: "Logout", path: "/logout", icon: LogOut },
   ];
 
   return (
     <div
-      className={`h-screen bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ${
-        isCollapsed ? "w-20" : "w-64"
-      }`}
+      className={`h-screen fixed top-0 left-0 bg-white border-r border-gray-200 flex flex-col transition-all duration-300 z-50
+        ${isCollapsed ? "w-20" : "w-64"}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         {!isCollapsed && (
           <div className="flex-col">
-            <div className="flex-shrink-0">
-              <Link to="/" className="flex items-center">
-                <span className="text-2xl font-bold text-gray-900 tracking-tight">
-                  BOOK
-                  <span className="text-red-500">S</span>
-                  TOP
-                </span>
-              </Link>
-            </div>
+            <Link to="/" className="flex items-center">
+              <span className="text-2xl font-bold text-gray-900 tracking-tight">
+                BOOK<span className="text-red-500">S</span>TOP
+              </span>
+            </Link>
             <h1 className="text-xl font-bold text-gray-800">Admin Panel</h1>
           </div>
         )}
