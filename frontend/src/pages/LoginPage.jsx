@@ -1,31 +1,64 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { useAuth } from "../context/AuthContext";
 
 const LoginPage = () => {
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
 
-    const data = { email, password };
-    console.log(data);
+    if (!email || !password) {
+      setError("Please fill in all fields");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await login({
+        email,
+        password,
+      });
+
+      console.log("Login successful:", response);
+      // Navigate to home page or dashboard after successful login
+      navigate("/");
+    } catch (error) {
+      console.error("Login failed:", error);
+      setError(error.message || "Login failed. Please check your credentials.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="flex justify-center pt-15 pb-1">
+    <div className="flex justify-center pt-15 pb-15">
       <div
-        className="min-h-[450px] h-[470px] w-[400px] min-w-[350px] bg-white
-       shadow-xl flex-col justify-center rounded-[2px]"
+        className="h-auto w-[400px] min-w-[350px] bg-white
+       shadow-xl flex-col justify-center items-center rounded-[2px] py-4"
       >
         <div className="py-6 w-full flex-col justify-center">
           <h1 className="text-[25px] text-center">Login</h1>
           <h3 className="text-center">Sign in to continue</h3>
         </div>
-        <div className="px-5">
+        <div className="px-5 flex-col justify-center items-center">
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="flex-col justify-center">
             {/* Email */}
             <div className="space-y-3 mb-3">
@@ -76,9 +109,14 @@ const LoginPage = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              className="text-center w-full bg-black text-white p-2 my-6 cursor-pointer rounded-[2px]"
+              disabled={isLoading}
+              className={`text-center w-full p-2 my-6 cursor-pointer rounded-[2px] ${
+                isLoading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-black hover:bg-gray-800"
+              } text-white transition-colors`}
             >
-              Login
+              {isLoading ? "Signing In..." : "Login"}
             </button>
           </form>
 
@@ -96,6 +134,12 @@ const LoginPage = () => {
               <span>Login with Google</span>
             </button>
           </div>
+          <p className="text-sm text-center my-4 ">
+            Don't have an account?{" "}
+            <Link to="/signup" className="text-gray-600 hover:text-black">
+              Signup
+            </Link>
+          </p>
         </div>
       </div>
     </div>

@@ -37,7 +37,7 @@ function Feature() {
     <div className="bg-white rounded-[2px] p-8 max-w-8xl w-full mx-auto mt-8">
       <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">Featured Books</h2>
 
-      <div className="flex justify-center space-x-4 mb-8">
+      <div className="flex flex-col justify-center space-x-4 mb-8">
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -57,7 +57,7 @@ function Feature() {
       {error && <div className="text-center text-red-500">Error: {error}</div>}
       
       {!loading && !error && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
           {books.map((book, index) => (
             <div key={index} className="flex flex-col items-start text-center p-4 bg-white border border-gray-200 rounded-[2px] hover:shadow-md transition-all">
               <img src={book.cover_image} alt={book.title} className="w-full h-auto mb-4 rounded-[2px]" />
