@@ -24,6 +24,31 @@
       "name": "Biography",
       "icon": "✍️",
       "action_link": "/shop/biography"
+    },
+    {
+      "name": "Literature",
+      "icon": "📖",
+      "action_link": "/shop/literature"
+    },
+    {
+      "name": "Technology",
+      "icon": "💻",
+      "action_link": "/shop/technology"
+    },
+    {
+      "name": "Travel",
+      "icon": "🌍",
+      "action_link": "/shop/travel"
+    },
+    {
+      "name": "Music",
+      "icon": "🎵",
+      "action_link": "/shop/music"
+    },
+    {
+      "name": "History",
+      "icon": "🏛️",
+      "action_link": "/shop/history"
     }
   ]
 }

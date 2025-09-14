@@ -1,3 +1,4 @@
+import Join from "@/components/Join";
 import React from "react";
 import {
   FaFacebookF,
@@ -9,6 +10,10 @@ import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
+    <div>
+    <Join></Join>
+
+  
     <footer className="bg-black text-white pt-10">
       <div className="max-w-6xl mx-auto px-5 grid grid-cols-1 md:grid-cols-5 gap-6 text-sm">
         {/* Explore */}
@@ -108,6 +113,7 @@ const Footer = () => {
         © {new Date().getFullYear()} BookStop. All rights reserved.
       </div>
     </footer>
+      </div>
   );
 };
 
