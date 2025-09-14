@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const bookSchema = new mongoose.Schema({
   title: { type: String, required: true },
@@ -7,7 +7,7 @@ const bookSchema = new mongoose.Schema({
   genre: String,
   language: String,
   isbn: String,
-  cover_image: [{ type: String }], // Array of image paths
+  cover_image: [{ type: String }],
   file_url: { type: String, default: null },
   price: { type: Number, required: true },
   stock: { type: Number, default: 0 },
@@ -19,4 +19,5 @@ const bookSchema = new mongoose.Schema({
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
 
-module.exports = mongoose.model('Book', bookSchema);
+const Book = mongoose.model("Book", bookSchema);
+export default Book;
