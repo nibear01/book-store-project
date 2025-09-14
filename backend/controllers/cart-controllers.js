@@ -28,7 +28,7 @@ export const getCart = async (req, res) => {
         const book = await Book.findById(item.book._id);
         const availableStock = book?.stock || 0;
         const actualQuantity = Math.min(item.quantity, availableStock);
-        
+
         return {
           ...item,
           quantity: actualQuantity,
@@ -119,7 +119,7 @@ export const addToCart = async (req, res) => {
     if (existingItemIndex > -1) {
       // Update existing item
       const newQuantity = cart.items[existingItemIndex].quantity + quantityNum;
-      
+
       if (newQuantity > book.stock) {
         return res.status(400).json({
           success: false,
@@ -194,8 +194,9 @@ export const updateCartItem = async (req, res) => {
       });
     }
 
+    // Find item by book ID instead of item ID
     const itemIndex = cart.items.findIndex(
-      item => item._id.toString() === itemId
+      item => item.book.toString() === itemId
     );
 
     if (itemIndex === -1) {
@@ -258,7 +259,8 @@ export const removeFromCart = async (req, res) => {
     }
 
     const initialLength = cart.items.length;
-    cart.items = cart.items.filter(item => item._id.toString() !== itemId);
+    // Remove item by book ID instead of item ID
+    cart.items = cart.items.filter(item => item.book.toString() !== itemId);
 
     if (cart.items.length === initialLength) {
       return res.status(404).json({
