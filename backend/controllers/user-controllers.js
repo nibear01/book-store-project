@@ -6,14 +6,23 @@ import { generateToken } from "../middlewares/auth-middleware.js";
 // @access  Public
 export const registerUser = async (req, res) => {
     try {
-        const { name, email, password, address } = req.body;
+        const { name, email, password, phone, address } = req.body;
 
-        // Check if user already exists
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
+        // Check if user already exists by email
+        const existingUserByEmail = await User.findOne({ email });
+        if (existingUserByEmail) {
             return res.status(400).json({
                 success: false,
                 message: "User with this email already exists"
+            });
+        }
+
+        // Check if user already exists by phone
+        const existingUserByPhone = await User.findOne({ phone });
+        if (existingUserByPhone) {
+            return res.status(400).json({
+                success: false,
+                message: "User with this phone number already exists"
             });
         }
 
@@ -22,6 +31,7 @@ export const registerUser = async (req, res) => {
             name,
             email,
             password,
+            phone,
             address,
             isAdmin: false // Default to customer
         });

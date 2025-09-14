@@ -32,6 +32,16 @@ const userSchema = new mongoose.Schema(
       enum: ["active", "inactive", "suspended"],
       default: "active",
     },
+    phone: {
+      type: String,
+      required: [true, "Phone number is required"],
+      unique: true,
+      trim: true,
+      match: [
+        /^[\+]?[1-9][\d]{0,15}$/,
+        "Please enter a valid phone number",
+      ],
+    },
     address: {
       type: String,
       trim: true,
