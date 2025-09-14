@@ -1,51 +1,56 @@
 import mongoose from "mongoose";
-const userSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema(
+  {
     name: {
-        type: String,
-        required: [true, "Name is required"],
-        trim: true,
-        maxlength: [100, "Name cannot exceed 100 characters"]
+      type: String,
+      required: [true, "Name is required"],
+      trim: true,
+      maxlength: [100, "Name cannot exceed 100 characters"],
     },
     email: {
-        type: String,
-        required: [true, "Email is required"],
-        unique: true,
-        lowercase: true,
-        trim: true,
-        match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, "Please enter a valid email"]
+      type: String,
+      required: [true, "Email is required"],
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: [
+        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+        "Please enter a valid email",
+      ],
     },
     password: {
-        type: String,
-        required: [true, "Password is required"],
-        minlength: [6, "Password must be at least 6 characters"]
+      type: String,
+      required: [true, "Password is required"],
+      minlength: [6, "Password must be at least 6 characters"],
     },
     isAdmin: {
-        type: Boolean,
-        default: false
+      type: Boolean,
+      default: false,
     },
     status: {
-        type: String,
-        enum: ["active", "inactive", "suspended"],
-        default: "active"
+      type: String,
+      enum: ["active", "inactive", "suspended"],
+      default: "active",
     },
     address: {
-        type: String,
-        trim: true,
-        maxlength: [500, "Address cannot exceed 500 characters"]
+      type: String,
+      trim: true,
+      maxlength: [500, "Address cannot exceed 500 characters"],
     },
     created_at: {
-        type: Date,
-        default: Date.now
+      type: Date,
+      default: Date.now,
     },
     updated_at: {
-        type: Date,
-        default: Date.now
-    }
-}, {
-    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
-});
+      type: Date,
+      default: Date.now,
+    },
+  },
+  {
+    timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
+  }
+);
 
-
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model("User", userSchema);
 
 export default User;
