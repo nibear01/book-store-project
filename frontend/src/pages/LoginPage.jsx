@@ -45,7 +45,7 @@ const LoginPage = () => {
     <div className="flex justify-center pt-15 pb-15">
       <div
         className="h-auto w-[400px] min-w-[350px] bg-white
-       shadow-xl flex-col justify-center items-center rounded-[2px] py-4"
+       shadow-md flex-col justify-center items-center rounded-[2px] py-4"
       >
         <div className="py-6 w-full flex-col justify-center">
           <h1 className="text-[25px] text-center">Login</h1>

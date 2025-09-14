@@ -950,7 +950,7 @@ const CategoriesPage = ({ book }) => {
                     id={category.id}
                     title={category.title}
                     item={category.item}
-                    img={category.img}
+                    // img={category.img}
                     isSelected={selectedCategory === category.title}
                     onClick={() => handleCategorySelect(category.title)}
                   />

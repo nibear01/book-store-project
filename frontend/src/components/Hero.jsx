@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import img1 from "../assets/images/img1-12 (4).png";
 import img2 from "../assets/pexels-pixabay-159866.jpg";
@@ -25,7 +26,7 @@ const Hero = () => {
   };
 
   return (
-    <section className="w-full bg-white py-16 border-b border-gray-200">
+    <section className="w-full bg-white py-16">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12 px-6">
         {/* Left Text Section */}
         <div className="w-full md:w-1/2 text-center md:text-left">
@@ -41,7 +42,7 @@ const Hero = () => {
             educates, and entertains. Dive in and explore the story everyone’s
             talking about this month.
           </p>
-          <button className="mt-8 bg-indigo-600 text-white px-8 py-3 rounded-md hover:bg-indigo-500 transition-colors shadow-sm">
+          <button className="mt-8 bg-indigo-600 text-white px-8 py-3 rounded-md hover:bg-indigo-500 transition-colors">
             See More
           </button>
         </div>
@@ -51,7 +52,7 @@ const Hero = () => {
           <img
             src={images[activeIndex]}
             alt={`Featured Book ${activeIndex + 1}`}
-            className="w-full h-auto max-w-xs sm:max-w-sm md:max-w-md rounded-md shadow-md object-cover transition-all duration-700 ease-in-out"
+            className="w-full h-auto max-w-xs sm:max-w-sm md:max-w-md rounded-[2px] object-cover transition-all duration-700 ease-in-out"
           />
 
           {/* Prev Button */}
