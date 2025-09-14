@@ -16,6 +16,7 @@ import Navbar from "./components/Navbar";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import { CartProvider } from "./context/CartContext";
+import { AuthProvider } from "./context/AuthContext";
 import AdminPage from "./pages/AdminPage";
 import Footer from "./pages/Footer";
 import BookViewPage from "./pages/BookViewPage";
@@ -73,11 +74,13 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      <CartProvider>
-        <div className="min-h-screen bg-gray-50">
-          <AppContent />
-        </div>
-      </CartProvider>
+      <AuthProvider>
+        <CartProvider>
+          <div className="min-h-screen bg-gray-50">
+            <AppContent />
+          </div>
+        </CartProvider>
+      </AuthProvider>
     </Router>
   );
 }

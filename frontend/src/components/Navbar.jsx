@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
-import { FaShoppingCart } from "react-icons/fa";
+import { FaShoppingCart, FaUser, FaSignOutAlt } from "react-icons/fa";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, isAuthenticated, logout } = useAuth();
 
   const navigationLinks = [
     { name: "Home", path: "/" },
@@ -23,6 +25,11 @@ const Navbar = () => {
 
   const { state } = useCart();
   const cartCount = state?.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
+
+  const handleLogout = () => {
+    logout();
+    setIsMenuOpen(false);
+  };
 
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50">
@@ -67,20 +74,42 @@ const Navbar = () => {
               )}
             </Link>
 
-            {/* Auth Links */}
-            {authLinks.map((link) => (
-              <Link
-                key={link.name}
-                to={link.path}
-                className={`px-4 py-2 text-sm font-medium rounded-[2px] transition ${
-                  link.name === "Sign Up"
-                    ? "bg-red-500 text-white hover:bg-red-600 shadow-sm"
-                    : "text-gray-700 hover:text-[var(--hover-color)]"
-                }`}
-              >
-                {link.name}
-              </Link>
-            ))}
+            {/* Auth Section */}
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-3">
+                {/* User Info */}
+                <div className="flex items-center space-x-2 text-gray-700">
+                  <FaUser className="h-4 w-4" />
+                  <span className="text-sm font-medium">
+                    {user?.name || user?.email}
+                  </span>
+                </div>
+
+                {/* Logout Button */}
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center space-x-1 px-3 py-2 text-sm font-medium text-gray-700 hover:text-red-600 transition-colors"
+                >
+                  <FaSignOutAlt className="h-4 w-4" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            ) : (
+              /* Auth Links */
+              authLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  to={link.path}
+                  className={`px-4 py-2 text-sm font-medium rounded-[2px] transition ${
+                    link.name === "Sign Up"
+                      ? "bg-red-500 text-white hover:bg-red-600 shadow-sm"
+                      : "text-gray-700 hover:text-[var(--hover-color)]"
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              ))
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -124,20 +153,41 @@ const Navbar = () => {
             </Link>
 
             <div className="border-t border-gray-200 pt-3">
-              {authLinks.map((link) => (
-                <Link
-                  key={link.name}
-                  to={link.path}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`block px-3 py-2 rounded-[2px] text-sm font-medium transition ${
-                    link.name === "Sign Up"
-                      ? "bg-red-500 text-white hover:bg-red-600 shadow-sm"
-                      : "text-gray-700 hover:text-[var(--hover-color)]"
-                  }`}
-                >
-                  {link.name}
-                </Link>
-              ))}
+              {isAuthenticated ? (
+                <div className="space-y-2">
+                  {/* User Info */}
+                  <div className="flex items-center space-x-2 text-gray-700 px-3 py-2">
+                    <FaUser className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      {user?.name || user?.email}
+                    </span>
+                  </div>
+
+                  {/* Logout Button */}
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center space-x-2 w-full px-3 py-2 text-sm font-medium text-gray-700 hover:text-red-600 transition-colors"
+                  >
+                    <FaSignOutAlt className="h-4 w-4" />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              ) : (
+                authLinks.map((link) => (
+                  <Link
+                    key={link.name}
+                    to={link.path}
+                    onClick={() => setIsMenuOpen(false)}
+                    className={`block px-3 py-2 rounded-[2px] text-sm font-medium transition ${
+                      link.name === "Sign Up"
+                        ? "bg-red-500 text-white hover:bg-red-600 shadow-sm"
+                        : "text-gray-700 hover:text-[var(--hover-color)]"
+                    }`}
+                  >
+                    {link.name}
+                  </Link>
+                ))
+              )}
             </div>
           </div>
         </div>

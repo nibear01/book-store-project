@@ -14,7 +14,8 @@ const bookSchema = new mongoose.Schema({
   published_date: Date,
   rating: { type: Number, default: 0 },
   num_reviews: { type: Number, default: 0 },
-  is_active: { type: Boolean, default: true }
+  is_active: { type: Boolean, default: true },
+  is_featured: { type: Boolean, default: false }
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });

@@ -1,18 +1,24 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { useAuth } from "../context/AuthContext";
 
 const SignupPage = () => {
+  const navigate = useNavigate();
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
+    address: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // handle input change
   const handleChange = (e) => {
@@ -24,16 +30,39 @@ const SignupPage = () => {
   };
 
   // handle form submit
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
+    setError("");
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
+      setError("Passwords do not match!");
       return;
     }
 
-    console.log("Register data:", formData);
-    // TODO: connect with Firebase or backend API
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long!");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        address: formData.address,
+      });
+
+      console.log("Registration successful:", response);
+      // Navigate to home page or dashboard after successful registration
+      navigate("/");
+    } catch (error) {
+      console.error("Registration failed:", error);
+      setError(error.message || "Registration failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -44,6 +73,13 @@ const SignupPage = () => {
           <h3 className="text-center">Create a new account</h3>
         </div>
         <div className="px-5">
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleRegister} className="flex-col justify-center">
             {/* Name */}
             <div className="space-y-3 mb-3">
@@ -101,7 +137,7 @@ const SignupPage = () => {
             </div>
 
             {/* Confirm Password */}
-            <div className="space-y-1 relative">
+            <div className="space-y-1 relative mb-3">
               <label className="text-sm font-medium text-gray-700">
                 Confirm Password
               </label>
@@ -117,9 +153,7 @@ const SignupPage = () => {
                 />
                 <button
                   type="button"
-                  onClick={() =>
-                    setShowConfirmPassword(!showConfirmPassword)
-                  }
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
@@ -127,12 +161,33 @@ const SignupPage = () => {
               </div>
             </div>
 
+            {/* Address */}
+            <div className="space-y-3 mb-3">
+              <label className="text-sm font-medium text-gray-700">
+                Address
+              </label>
+              <input
+                type="text"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="Enter your address"
+                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-grey-500 outline-none transition-all duration-200 text-sm rounded-[2px]"
+                required
+              />
+            </div>
+
             {/* Submit Button */}
             <button
               type="submit"
-              className="text-center w-full bg-black text-white p-2 my-6 cursor-pointer rounded-[2px]"
+              disabled={isLoading}
+              className={`text-center w-full p-2 my-6 cursor-pointer rounded-[2px] ${
+                isLoading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-black hover:bg-gray-800"
+              } text-white transition-colors`}
             >
-              Register
+              {isLoading ? "Creating Account..." : "Register"}
             </button>
           </form>
 
