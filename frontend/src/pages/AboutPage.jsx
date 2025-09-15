@@ -12,7 +12,7 @@ const AboutPage = () => {
       </div>
 
       <div className="relative max-w-6xl mx-auto px-4">
-        <div className="bg-white rounded-[2px] border border-gray-200 -mt-12 md:-mt-16 px-6 md:px-10 py-8 md:py-12">
+        <div className="bg-white rounded-[2px] mt-12 md:-mt-16 px-6 md:px-10 py-8 md:py-12">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-800 text-center">
             Welcome to Bookstop
           </h1>

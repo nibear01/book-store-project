@@ -1,84 +1,35 @@
-// models/Order.js
 import mongoose from "mongoose";
 
-const orderSchema = new mongoose.Schema(
-  {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Reference to User model
-      required: true,
-    },
-    orderItems: [
-      {
-        product: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Product", // Reference to Product model
-          required: true,
-        },
-        name: { type: String, required: true },
-        qty: { type: Number, required: true },
-        price: { type: Number, required: true },
-        image: { type: String },
-      },
-    ],
-    shippingAddress: {
-      address: { type: String, required: true },
-      city: { type: String, required: true },
-      postalCode: { type: String, required: true },
-      country: { type: String, required: true },
-    },
-    paymentMethod: {
-      type: String,
-      required: true,
-    },
-    paymentResult: {
-      id: { type: String },
-      status: { type: String },
-      update_time: { type: String },
-      email_address: { type: String },
-    },
-    itemsPrice: {
-      type: Number,
-      required: true,
-      default: 0.0,
-    },
-    taxPrice: {
-      type: Number,
-      required: true,
-      default: 0.0,
-    },
-    shippingPrice: {
-      type: Number,
-      required: true,
-      default: 0.0,
-    },
-    totalPrice: {
-      type: Number,
-      required: true,
-      default: 0.0,
-    },
-    isPaid: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
-    paidAt: {
-      type: Date,
-    },
-    isDelivered: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
-    deliveredAt: {
-      type: Date,
-    },
+const orderSchema = new mongoose.Schema({
+  order_number: {
+    type: String,
+    required: true,
+    unique: true,
+    default: () => `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`
   },
-  {
-    timestamps: true,
-  }
-);
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  items: [
+    {
+      book: { type: mongoose.Schema.Types.ObjectId, ref: "Book", required: true },
+      title: String,
+      quantity: Number,
+      price: Number,
+      cover_image: String
+    }
+  ],
+  subtotal: Number,
+  tax: Number,
+  shipping_cost: Number,
+  total_amount: Number,
+  shipping_address: { type: Object, required: true },
+  payment_method: { type: String, required: true },
+  payment_status: { type: String, enum: ["pending", "completed", "failed", "refunded"], default: "pending" },
+  order_status: { type: String, enum: ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"], default: "pending" },
+  tracking_number: String,
+  carrier: String,
+  cancellation_reason: String,
+  cancelled_at: Date,
+  delivered_at: Date
+}, { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } });
 
-const Order = mongoose.model("Order", orderSchema);
-
-export default Order;
+export default mongoose.model("Order", orderSchema);

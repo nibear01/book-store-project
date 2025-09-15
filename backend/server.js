@@ -6,6 +6,7 @@ import connectDb from "./config/db.js";
 import userRoutes from "./routes/user-routes.js";
 import bookRoutes from "./routes/book-routes.js";
 import cartRoutes from "./routes/cart-routes.js";
+import orderRoutes from "./routes/order-routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -17,6 +18,7 @@ app.use(cors());
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
 
 const startServer = async () => {
   await connectDb();

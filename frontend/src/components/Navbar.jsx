@@ -16,6 +16,7 @@ const Navbar = () => {
     { name: "Shop", path: "/shop" },
     { name: "Terms", path: "/terms" },
     { name: "Contact", path: "/contact" },
+    { name: "Cart", path: "/cart" },
   ];
 
   const authLinks = [
@@ -78,12 +79,15 @@ const Navbar = () => {
             {isAuthenticated ? (
               <div className="flex items-center space-x-3">
                 {/* User Info */}
-                <div className="flex items-center space-x-2 text-gray-700">
+                <Link
+                  to="/account"
+                  className="flex items-center space-x-2 text-gray-700 hover:text-[var(--hover-color)]"
+                >
                   <FaUser className="h-4 w-4" />
                   <span className="text-sm font-medium">
                     {user?.name || user?.email}
                   </span>
-                </div>
+                </Link>
 
                 {/* Logout Button */}
                 <button
@@ -116,7 +120,7 @@ const Navbar = () => {
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 rounded-md text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300"
+              className="p-2 rounded-[2px] text-gray-700 hover:text-gray-900 focus:outline-none"
             >
               {isMenuOpen ? (
                 <XMarkIcon className="h-6 w-6" />
@@ -137,31 +141,26 @@ const Navbar = () => {
                 key={link.name}
                 to={link.path}
                 onClick={() => setIsMenuOpen(false)}
-                className="block text-gray-700 hover:text-[var(--hover-color)] transition-colors text-sm font-medium"
+                className="block text-gray-700 p-3 hover:text-[var(--hover-color)] transition-colors text-sm font-medium"
               >
                 {link.name}
               </Link>
             ))}
 
-            <Link
-              to="/cart"
-              onClick={() => setIsMenuOpen(false)}
-              className="flex items-center gap-2 text-gray-700 hover:text-[var(--hover-color)] text-sm font-medium"
-            >
-              <FaShoppingCart className="h-5 w-5" />
-              Cart{cartCount > 0 ? ` (${cartCount})` : ""}
-            </Link>
-
             <div className="border-t border-gray-200 pt-3">
               {isAuthenticated ? (
                 <div className="space-y-2">
                   {/* User Info */}
-                  <div className="flex items-center space-x-2 text-gray-700 px-3 py-2">
+                  <Link
+                    to="/account"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center space-x-2 text-gray-700 px-3 py-2 hover:text-[var(--hover-color)]"
+                  >
                     <FaUser className="h-4 w-4" />
                     <span className="text-sm font-medium">
                       {user?.name || user?.email}
                     </span>
-                  </div>
+                  </Link>
 
                   {/* Logout Button */}
                   <button
@@ -178,7 +177,7 @@ const Navbar = () => {
                     key={link.name}
                     to={link.path}
                     onClick={() => setIsMenuOpen(false)}
-                    className={`block px-3 py-2 rounded-[2px] text-sm font-medium transition ${
+                    className={`block px-3 py-3 rounded-[2px] text-sm font-medium transition ${
                       link.name === "Sign Up"
                         ? "bg-red-500 text-white hover:bg-red-600 shadow-sm"
                         : "text-gray-700 hover:text-[var(--hover-color)]"

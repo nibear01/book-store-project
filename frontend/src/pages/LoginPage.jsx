@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -6,12 +6,23 @@ import { useAuth } from "../context/AuthContext";
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // If already authenticated, prevent access to login page
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (user?.isAdmin) {
+        navigate("/admin/dashboard", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -25,14 +36,17 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await login({
+      const loggedInUser = await login({
         email,
         password,
       });
 
-      console.log("Login successful:", response);
-      // Navigate to home page or dashboard after successful login
-      navigate("/");
+      console.log("Login successful:", loggedInUser);
+      if (loggedInUser?.isAdmin) {
+        navigate("/admin/dashboard", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
     } catch (error) {
       console.error("Login failed:", error);
       setError(error.message || "Login failed. Please check your credentials.");
@@ -45,7 +59,7 @@ const LoginPage = () => {
     <div className="flex justify-center pt-15 pb-15">
       <div
         className="h-auto w-[400px] min-w-[350px] bg-white
-       shadow-xl flex-col justify-center items-center rounded-[2px] py-4"
+       shadow-md flex-col justify-center items-center rounded-[2px] py-4"
       >
         <div className="py-6 w-full flex-col justify-center">
           <h1 className="text-[25px] text-center">Login</h1>

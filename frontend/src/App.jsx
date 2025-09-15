@@ -28,6 +28,7 @@ import Users from "./components/adminComponents/Users";
 import Books from "./components/adminComponents/Books";
 import Order from "./components/adminComponents/Order";
 import Settings from "./components/adminComponents/Settings";
+import UserDashboard from "./pages/UserDashboard";
 
 function AppContent() {
   const location = useLocation();
@@ -64,6 +65,7 @@ function AppContent() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/bookview" element={<BookViewPage />} />
+        <Route path="/account" element={<UserDashboard />} />
       </Routes>
 
       {!hideNavbarFooter && <Footer />}

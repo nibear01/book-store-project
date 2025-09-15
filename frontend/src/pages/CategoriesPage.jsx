@@ -921,7 +921,33 @@ const CategoriesPage = ({ book }) => {
           {/* Right content - categories and books */}
           <main className="lg:w-3/4">
             {/* Categories grid */}
+<<<<<<< HEAD
          
+=======
+            <div className="mb-8">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-800">
+                  Browse Categories
+                </h2>
+                <a href="#" className="text-sm text-gray-600 hover:text-black">
+                  View all
+                </a>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {categories.map((category) => (
+                  <CategoryCard
+                    key={category.id}
+                    id={category.id}
+                    title={category.title}
+                    item={category.item}
+                    // img={category.img}
+                    isSelected={selectedCategory === category.title}
+                    onClick={() => handleCategorySelect(category.title)}
+                  />
+                ))}
+              </div>
+            </div>
+>>>>>>> 1f9f227838bf88dfe6007bf911abeb29c4763fb5
 
             {/* Book results section */}
             <div className="mt-8">

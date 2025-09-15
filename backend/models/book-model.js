@@ -5,7 +5,7 @@ const bookSchema = new mongoose.Schema(
     title: { type: String, required: true },
     author: { type: String, required: true },
     description: String,
-    genre: String,
+    genre: String,       // [] can be different genre
     language: String,
     isbn: String,
     cover_image: [{ type: String }],

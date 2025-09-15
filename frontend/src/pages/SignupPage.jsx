@@ -67,7 +67,7 @@ const SignupPage = () => {
 
   return (
     <div className="flex justify-center py-15">
-      <div className="h-auto w-[400px] min-w-[350px] bg-white shadow-xl pb-10 flex-col justify-center items-center rounded-[2px]">
+      <div className="h-auto w-[400px] min-w-[350px] bg-white shadow-md pb-10 flex-col justify-center items-center rounded-[2px]">
         <div className="py-6 w-full flex-col justify-center">
           <h1 className="text-[25px] text-center">Register</h1>
           <h3 className="text-center">Create a new account</h3>
