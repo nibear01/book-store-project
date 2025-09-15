@@ -38,7 +38,7 @@ const apiRequest = async (endpoint, options = {}) => {
 export const userAPI = {
     // Register a new user
     register: async (userData) => {
-        const { name, email, password, address } = userData;
+        const { name, email, password, address, phone } = userData;
 
         const response = await apiRequest('/users/register', {
             method: 'POST',
@@ -47,6 +47,7 @@ export const userAPI = {
                 email,
                 password,
                 address,
+                phone,
             }),
         });
 

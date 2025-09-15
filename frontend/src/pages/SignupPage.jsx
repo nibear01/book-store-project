@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -6,10 +6,11 @@ import { useAuth } from "../context/AuthContext";
 
 const SignupPage = () => {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, isAuthenticated, user } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
     password: "",
     confirmPassword: "",
     address: "",
@@ -19,6 +20,17 @@ const SignupPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (user?.isAdmin) {
+        navigate("/admin/dashboard", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
 
   // handle input change
   const handleChange = (e) => {
@@ -44,19 +56,29 @@ const SignupPage = () => {
       return;
     }
 
+    if (!/^[0-9+()\-\s]{7,20}$/.test(formData.phone)) {
+      setError("Please enter a valid phone number.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const response = await register({
         name: formData.name,
         email: formData.email,
+        phone: formData.phone,
         password: formData.password,
         address: formData.address,
       });
 
       console.log("Registration successful:", response);
-      // Navigate to home page or dashboard after successful registration
-      navigate("/");
+      // Navigate appropriately after successful registration
+      if (response?.isAdmin) {
+        navigate("/admin/dashboard", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
     } catch (error) {
       console.error("Registration failed:", error);
       setError(error.message || "Registration failed. Please try again.");
@@ -106,6 +128,20 @@ const SignupPage = () => {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="Enter your email"
+                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-grey-500 outline-none transition-all duration-200 text-sm rounded-[2px]"
+                required
+              />
+            </div>
+
+            {/* Phone */}
+            <div className="space-y-3 mb-3">
+              <label className="text-sm font-medium text-gray-700">Phone</label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="Enter your phone number"
                 className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-grey-500 outline-none transition-all duration-200 text-sm rounded-[2px]"
                 required
               />
