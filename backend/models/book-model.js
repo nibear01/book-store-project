@@ -5,8 +5,12 @@ const bookSchema = new mongoose.Schema(
     title: { type: String, required: true },
     author: { type: String, required: true },
     description: String,
-    genre: String,       // [] can be different genre
+    genre: [{ type: String, trim: true }], // was: String
     language: String,
+    slug: { type: String, trim: true, lowercase: true, unique: true, sparse: true },
+    meta_title: { type: String, trim: true },
+    meta_description: { type: String, trim: true },
+    meta_keywords: [{ type: String, trim: true }],
     isbn: String,
     cover_image: [{ type: String }],
     file_url: { type: String, default: null },

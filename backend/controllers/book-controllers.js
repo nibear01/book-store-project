@@ -1,10 +1,43 @@
 import mongoose from "mongoose";
+import path from "path";
 import Book from "../models/book-model.js";
 
 // Helper: safely parse number with default
 const toNumber = (val, def) => {
   const n = Number(val);
   return Number.isFinite(n) ? n : def;
+};
+
+// Slug helpers
+const slugify = (s = "") =>
+  String(s)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+
+const ensureUniqueSlug = async (baseSlug, excludeId) => {
+  if (!baseSlug) return undefined;
+  let slug = baseSlug;
+  let i = 1;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const query = { slug };
+    if (excludeId) query._id = { $ne: excludeId };
+    const exists = await Book.exists(query);
+    if (!exists) return slug;
+    i += 1;
+    slug = `${baseSlug}-${i}`;
+  }
+};
+
+// Map Multer file.path to a web-friendly relative path
+const toPublicPath = (file) => {
+  if (!file?.path) return undefined;
+  const rel = path.relative(process.cwd(), file.path).split(path.sep).join("/");
+  return rel.startsWith("/") ? rel : `/${rel}`;
 };
 
 // Helper: sanitize updatable fields
@@ -25,21 +58,65 @@ const pickUpdatableFields = (payload = {}) => {
     "rating",
     "num_reviews",
     "is_featured",
+    "slug",
+    "meta_title",
+    "meta_description",
+    "meta_keywords",
   ];
   const out = {};
   for (const k of allowed) {
     if (payload[k] !== undefined) out[k] = payload[k];
   }
+
+  // Normalize genre -> array of strings
+  if (out.genre !== undefined) {
+    if (Array.isArray(out.genre)) {
+      out.genre = out.genre
+        .map((v) => (typeof v === "string" ? v.trim() : ""))
+        .filter(Boolean);
+    } else if (typeof out.genre === "string") {
+      // support comma-separated or single
+      const parts = out.genre.includes(",") ? out.genre.split(",") : [out.genre];
+      out.genre = parts.map((v) => v.trim()).filter(Boolean);
+    } else {
+      out.genre = [];
+    }
+  }
+
+  // Normalize meta_keywords -> array of strings
+  if (out.meta_keywords !== undefined) {
+    if (Array.isArray(out.meta_keywords)) {
+      out.meta_keywords = out.meta_keywords
+        .map((v) => (typeof v === "string" ? v.trim() : ""))
+        .filter(Boolean);
+    } else if (typeof out.meta_keywords === "string") {
+      const parts = out.meta_keywords.includes(",")
+        ? out.meta_keywords.split(",")
+        : [out.meta_keywords];
+      out.meta_keywords = parts.map((v) => v.trim()).filter(Boolean);
+    } else {
+      out.meta_keywords = [];
+    }
+  }
+
   // Normalize cover_image to array of strings
   if (out.cover_image !== undefined) {
     if (Array.isArray(out.cover_image)) {
-      out.cover_image = out.cover_image.filter((v) => typeof v === "string");
+      out.cover_image = out.cover_image
+        .map((v) => (typeof v === "string" ? v : null))
+        .filter((v) => typeof v === "string");
     } else if (typeof out.cover_image === "string") {
       out.cover_image = [out.cover_image];
     } else {
       out.cover_image = [];
     }
   }
+
+  // Normalize slug
+  if (out.slug !== undefined && typeof out.slug === "string") {
+    out.slug = slugify(out.slug);
+  }
+
   // Normalize published_date
   if (out.published_date !== undefined) {
     const d = new Date(out.published_date);
@@ -48,6 +125,7 @@ const pickUpdatableFields = (payload = {}) => {
     }
     out.published_date = d;
   }
+
   // Validate numeric fields
   if (out.price !== undefined) {
     const p = Number(out.price);
@@ -100,6 +178,7 @@ export const getBooks = async (req, res) => {
         { description: { $regex: term, $options: "i" } },
       ];
     }
+    // Works with array-field as well (matches any element)
     if (genre) filter.genre = { $regex: String(genre), $options: "i" };
     if (author) filter.author = { $regex: String(author), $options: "i" };
     if (language) filter.language = { $regex: String(language), $options: "i" };
@@ -111,7 +190,6 @@ export const getBooks = async (req, res) => {
     if (Number.isFinite(maxP)) priceFilter.$lte = maxP;
     if (Object.keys(priceFilter).length) filter.price = priceFilter;
 
-    // Sorting whitelist
     const sortable = new Set([
       "created_at",
       "updated_at",
@@ -121,6 +199,7 @@ export const getBooks = async (req, res) => {
       "stock",
       "published_date",
       "title",
+      // "slug", // optionally sortable
     ]);
     let sortSpec = { created_at: -1 };
     if (sort && typeof sort === "string") {
@@ -154,16 +233,16 @@ export const getBooks = async (req, res) => {
   }
 };
 
-// GET /api/books/:id
+// GET /api/books/:slug
 export const getBookById = async (req, res) => {
   try {
-    const { id } = req.params;
-    if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ success: false, message: "Invalid book id" });
+    const { slug } = req.params;
+    if (!slug || typeof slug !== "string") {
+      return res.status(400).json({ success: false, message: "Invalid book slug" });
     }
 
-    const book = await Book.findById(id).lean();
-    if (!book || !book.is_active) {
+    const book = await Book.findOne({ slug, is_active: true }).lean();
+    if (!book) {
       return res.status(404).json({ success: false, message: "Book not found" });
     }
 
@@ -186,6 +265,24 @@ export const createBook = async (req, res) => {
 
     const payload = pickUpdatableFields(req.body);
 
+    // Derive slug if missing
+    if (!payload.slug && payload.title) {
+      payload.slug = slugify(payload.title);
+    }
+    payload.slug = await ensureUniqueSlug(payload.slug);
+
+    // Merge uploaded files
+    const uploadedImages = Array.isArray(req.files?.cover_image) ? req.files.cover_image : [];
+    const uploadedBookFile = Array.isArray(req.files?.file_url) ? req.files.file_url[0] : undefined;
+
+    if (uploadedImages.length) {
+      const files = uploadedImages.map((f) => toPublicPath(f)).filter(Boolean);
+      payload.cover_image = [...(payload.cover_image || []), ...files];
+    }
+    if (uploadedBookFile) {
+      payload.file_url = toPublicPath(uploadedBookFile);
+    }
+
     const book = await Book.create({
       ...payload,
     });
@@ -206,6 +303,23 @@ export const updateBook = async (req, res) => {
     }
 
     const payload = pickUpdatableFields(req.body);
+
+    // If slug provided, ensure uniqueness (do not auto-update slug on title change)
+    if (payload.slug) {
+      payload.slug = await ensureUniqueSlug(payload.slug, id);
+    }
+
+    // Merge uploaded files
+    const uploadedImages = Array.isArray(req.files?.cover_image) ? req.files.cover_image : [];
+    const uploadedBookFile = Array.isArray(req.files?.file_url) ? req.files.file_url[0] : undefined;
+
+    if (uploadedImages.length) {
+      const files = uploadedImages.map((f) => toPublicPath(f)).filter(Boolean);
+      payload.cover_image = [...(payload.cover_image || []), ...files];
+    }
+    if (uploadedBookFile) {
+      payload.file_url = toPublicPath(uploadedBookFile);
+    }
 
     const updated = await Book.findByIdAndUpdate(id, { $set: payload }, { new: true });
     if (!updated) {
