@@ -39,28 +39,20 @@ export const AuthProvider = ({ children }) => {
 
   // Login function
   const login = async (credentials) => {
-    try {
-      const response = await userAPI.login(credentials);
-      const userData = await userAPI.getMe();
-      setUser(userData.data);
-      setIsAuthenticated(true);
-      return response;
-    } catch (error) {
-      throw error;
-    }
+    await userAPI.login(credentials);
+    const userData = await userAPI.getMe();
+    setUser(userData.data);
+    setIsAuthenticated(true);
+    return userData.data;
   };
 
   // Register function
   const register = async (userData) => {
-    try {
-      const response = await userAPI.register(userData);
-      const userProfile = await userAPI.getMe();
-      setUser(userProfile.data);
-      setIsAuthenticated(true);
-      return response;
-    } catch (error) {
-      throw error;
-    }
+    await userAPI.register(userData);
+    const userProfile = await userAPI.getMe();
+    setUser(userProfile.data);
+    setIsAuthenticated(true);
+    return userProfile.data;
   };
 
   // Logout function
@@ -87,5 +79,3 @@ export const AuthProvider = ({ children }) => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-
-export default AuthContext;
