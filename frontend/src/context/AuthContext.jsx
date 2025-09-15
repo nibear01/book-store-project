@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  const url = ""
   // Check if user is logged in on app load
   useEffect(() => {
     const checkAuth = async () => {
