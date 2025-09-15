@@ -2,11 +2,14 @@ import AdminSidebar from "@/components/adminComponents/AdminSidebar";
 import { Outlet } from "react-router";
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const AdminPage = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const { isAuthenticated, user, isLoading } = useAuth();
 
   // Check if the screen is mobile size
   useEffect(() => {
@@ -21,7 +24,7 @@ const AdminPage = () => {
 
     checkIsMobile();
     window.addEventListener("resize", checkIsMobile);
-    
+
     return () => {
       window.removeEventListener("resize", checkIsMobile);
     };
@@ -41,24 +44,36 @@ const AdminPage = () => {
     }
   };
 
+  // Avoid flashing admin UI while auth is loading
+  if (isLoading) {
+    return null;
+  }
+
+  // Redirect non-admins or unauthenticated users
+  if (!isAuthenticated || !user?.isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Mobile overlay */}
       {isMobile && isMobileOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <div className={`
-        ${isMobile && !isMobileOpen ? '-translate-x-full' : 'translate-x-0'}
+      <div
+        className={`
+        ${isMobile && !isMobileOpen ? "-translate-x-full" : "translate-x-0"}
         transition-transform duration-300
-      `}>
-        <AdminSidebar 
-          isCollapsed={isCollapsed} 
-          setIsCollapsed={setIsCollapsed} 
+      `}
+      >
+        <AdminSidebar
+          isCollapsed={isCollapsed}
+          setIsCollapsed={setIsCollapsed}
         />
       </div>
 
@@ -79,10 +94,16 @@ const AdminPage = () => {
                     className="p-2 rounded-md bg-black text-white mr-2 md:hidden"
                     onClick={() => setIsMobileOpen(!isMobileOpen)}
                   >
-                    {isMobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                    {isMobileOpen ? (
+                      <X className="w-5 h-5" />
+                    ) : (
+                      <Menu className="w-5 h-5" />
+                    )}
                   </button>
                 )}
-                <h1 className="text-xl md:text-2xl font-bold text-gray-800">Admin Panel</h1>
+                <h1 className="text-xl md:text-2xl font-bold text-gray-800">
+                  Admin Panel
+                </h1>
               </div>
               <p className="text-sm text-gray-600 mt-1">
                 Manage your bookstore from here.

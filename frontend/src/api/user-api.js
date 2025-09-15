@@ -98,19 +98,11 @@ export const userAPI = {
         return localStorage.getItem('token');
     },
 
-    // Update user profile
-    updateProfile: async (userData) => {
-        return await apiRequest('/users/me', {
+    // Update user profile by ID (aligns with backend PUT /users/:id)
+    updateProfileById: async (userId, userData) => {
+        return await apiRequest(`/users/${userId}`, {
             method: 'PUT',
             body: JSON.stringify(userData),
-        });
-    },
-
-    // Change password
-    changePassword: async (passwordData) => {
-        return await apiRequest('/users/change-password', {
-            method: 'PUT',
-            body: JSON.stringify(passwordData),
         });
     },
 };
