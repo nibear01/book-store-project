@@ -352,68 +352,67 @@ const CategoriesPage = ({ book }) => {
 
   // BookCard component for displaying individual books
   const BookCard = ({ book }) => (
-   <div className="bg-white rounded-[2px] shadow-sm overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-100 flex flex-col">
-  {/* Book cover image */}
-  <Link to={`/bookview`}>
-    <div className="relative pt-[150%] sm:pt-[130%] md:pt-[140%] lg:pt-[150%] w-full">
-      <img
-        src={book.cover_image}
-        alt={book.title}
-        className="absolute top-0 left-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-      />
-    </div>
-  </Link>
+    <div className="bg-white rounded-[2px] shadow-sm overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-100 flex flex-col">
+      {/* Book cover image */}
+      <Link to={`/bookview`}>
+        <div className="relative pt-[150%] sm:pt-[130%] md:pt-[140%] lg:pt-[150%] w-full">
+          <img
+            src={book.cover_image}
+            alt={book.title}
+            className="absolute top-0 left-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+          />
+        </div>
+      </Link>
 
-  {/* Book details */}
-  <div className="p-4 flex flex-col flex-grow">
-    {/* Top section (genre, title, author, rating) */}
-    <div>
-      {/* Genre tag */}
-      <span className="inline-block px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-[2px] w-fit mb-2">
-        {book.genre}
-      </span>
+      {/* Book details */}
+      <div className="p-4 flex flex-col flex-grow">
+        {/* Top section (genre, title, author, rating) */}
+        <div>
+          {/* Genre tag */}
+          <span className="inline-block px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-[2px] w-fit mb-2">
+            {book.genre}
+          </span>
 
-      {/* Title and author */}
-      <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
-        {book.title}
-      </h3>
-      <p className="text-gray-600 text-[12px] mb-3">by {book.author}</p>
+          {/* Title and author */}
+          <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
+            {book.title}
+          </h3>
+          <p className="text-gray-600 text-[12px] mb-3">by {book.author}</p>
 
-      {/* Rating */}
-      <div className="flex items-center mb-2">
-        <div className="flex mr-2">{renderStars(book.rating)}</div>
-        <span className="text-sm text-gray-600">({book.num_reviews})</span>
+          {/* Rating */}
+          <div className="flex items-center mb-2">
+            <div className="flex mr-2">{renderStars(book.rating)}</div>
+            <span className="text-sm text-gray-600">({book.num_reviews})</span>
+          </div>
+        </div>
+
+        {/* Bottom section (price, stock, button) */}
+        <div className="mt-auto">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-black font-bold text-lg">
+              ${book.price.toFixed(2)}
+            </p>
+            <span
+              className={`text-xs px-2 py-1 rounded-[2px] ${
+                book.stock > 0
+                  ? "bg-green-100 text-green-800"
+                  : "bg-red-100 text-red-800"
+              }`}
+            >
+              {book.stock > 0 ? "In Stock" : "Out of Stock"}
+            </span>
+          </div>
+
+          {/* Add to cart button */}
+          <button
+            className="w-full bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-[2px] transition-all duration-200 shadow-sm hover:shadow-md"
+            aria-label={`Add ${book.title} to cart`}
+          >
+            Add to Cart
+          </button>
+        </div>
       </div>
     </div>
-
-    {/* Bottom section (price, stock, button) */}
-    <div className="mt-auto">
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-black font-bold text-lg">
-          ${book.price.toFixed(2)}
-        </p>
-        <span
-          className={`text-xs px-2 py-1 rounded-[2px] ${
-            book.stock > 0
-              ? "bg-green-100 text-green-800"
-              : "bg-red-100 text-red-800"
-          }`}
-        >
-          {book.stock > 0 ? "In Stock" : "Out of Stock"}
-        </span>
-      </div>
-
-      {/* Add to cart button */}
-      <button
-        className="w-full bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-[2px] transition-all duration-200 shadow-sm hover:shadow-md"
-        aria-label={`Add ${book.title} to cart`}
-      >
-        Add to Cart
-      </button>
-    </div>
-  </div>
-</div>
-
   );
 
   // ViewToggle component for switching between grid and list views
@@ -831,34 +830,32 @@ const CategoriesPage = ({ book }) => {
               </FilterSection>
 
               {/* Rating Filter */}
-         
+
               {/* Language Filter */}
               <FilterSection title="Language" sectionId="language">
                 <div className="space-y-2">
-                  {["All", "English", "Bangla"].map(
-                    (lang) => (
-                      <div
-                        key={lang}
-                        className="flex items-center"
-                        onClick={() => setLanguageFilter(lang)}
+                  {["All", "English", "Bangla"].map((lang) => (
+                    <div
+                      key={lang}
+                      className="flex items-center"
+                      onClick={() => setLanguageFilter(lang)}
+                    >
+                      <input
+                        type="radio"
+                        id={`language-${lang}`}
+                        name="language"
+                        checked={languageFilter === lang}
+                        onChange={() => setLanguageFilter(lang)}
+                        className="h-4 w-4 text-black focus:ring-black border-gray-300"
+                      />
+                      <label
+                        htmlFor={`language-${lang}`}
+                        className="ml-3 text-sm text-gray-700 cursor-pointer"
                       >
-                        <input
-                          type="radio"
-                          id={`language-${lang}`}
-                          name="language"
-                          checked={languageFilter === lang}
-                          onChange={() => setLanguageFilter(lang)}
-                          className="h-4 w-4 text-black focus:ring-black border-gray-300"
-                        />
-                        <label
-                          htmlFor={`language-${lang}`}
-                          className="ml-3 text-sm text-gray-700 cursor-pointer"
-                        >
-                          {lang}
-                        </label>
-                      </div>
-                    )
-                  )}
+                        {lang}
+                      </label>
+                    </div>
+                  ))}
                 </div>
               </FilterSection>
 
@@ -921,9 +918,7 @@ const CategoriesPage = ({ book }) => {
           {/* Right content - categories and books */}
           <main className="lg:w-3/4">
             {/* Categories grid */}
-<<<<<<< HEAD
-         
-=======
+
             <div className="mb-8">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-800">
@@ -947,7 +942,6 @@ const CategoriesPage = ({ book }) => {
                 ))}
               </div>
             </div>
->>>>>>> 1f9f227838bf88dfe6007bf911abeb29c4763fb5
 
             {/* Book results section */}
             <div className="mt-8">
