@@ -352,64 +352,68 @@ const CategoriesPage = ({ book }) => {
 
   // BookCard component for displaying individual books
   const BookCard = ({ book }) => (
-    <div className="bg-white rounded-[2px] shadow-sm overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-100">
-      {/* Book cover image */}
-      <Link to={`/bookview`}>
-        <div className="relative pt-[150%] sm:pt-[130%] md:pt-[140%] lg:pt-[150%] w-full h-[40%]">
-          <img
-            src={book.cover_image}
-            alt={book.title}
-            className="absolute top-0 left-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-          />
-        </div>
-      </Link>
-      {/* {console.log(book)} */}
-      {/* Book details */}
-      <div className="p-4">
-        <div className="flex flex-col h-full">
-          {/* Genre tag */}
-          <span className="inline-block px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-[2px] w-fit mb-2">
-            {book.genre}
-          </span>
+   <div className="bg-white rounded-[2px] shadow-sm overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-100 flex flex-col">
+  {/* Book cover image */}
+  <Link to={`/bookview`}>
+    <div className="relative pt-[150%] sm:pt-[130%] md:pt-[140%] lg:pt-[150%] w-full">
+      <img
+        src={book.cover_image}
+        alt={book.title}
+        className="absolute top-0 left-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+      />
+    </div>
+  </Link>
 
-          {/* Title and author */}
-          <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
-            {book.title}
-          </h3>
-          <p className="text-gray-600 text-[12px] mb-3">by {book.author}</p>
+  {/* Book details */}
+  <div className="p-4 flex flex-col flex-grow">
+    {/* Top section (genre, title, author, rating) */}
+    <div>
+      {/* Genre tag */}
+      <span className="inline-block px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-[2px] w-fit mb-2">
+        {book.genre}
+      </span>
 
-          {/* Rating */}
-          <div className="flex items-center mb-2">
-            <div className="flex mr-2">{renderStars(book.rating)}</div>
-            <span className="text-sm text-gray-600">({book.num_reviews})</span>
-          </div>
+      {/* Title and author */}
+      <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
+        {book.title}
+      </h3>
+      <p className="text-gray-600 text-[12px] mb-3">by {book.author}</p>
 
-          {/* Price and stock status */}
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-black font-bold text-lg">
-              ${book.price.toFixed(2)}
-            </p>
-            <span
-              className={`text-xs px-2 py-1 rounded-[2px] ${
-                book.stock > 0
-                  ? "bg-green-100 text-green-800"
-                  : "bg-red-100 text-red-800"
-              }`}
-            >
-              {book.stock > 0 ? "In Stock" : "Out of Stock"}
-            </span>
-          </div>
-
-          {/* Add to cart button */}
-          <button
-            className="w-full bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-[2px] transition-all duration-200 shadow-sm hover:shadow-md"
-            aria-label={`Add ${book.title} to cart`}
-          >
-            Add to Cart
-          </button>
-        </div>
+      {/* Rating */}
+      <div className="flex items-center mb-2">
+        <div className="flex mr-2">{renderStars(book.rating)}</div>
+        <span className="text-sm text-gray-600">({book.num_reviews})</span>
       </div>
     </div>
+
+    {/* Bottom section (price, stock, button) */}
+    <div className="mt-auto">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-black font-bold text-lg">
+          ${book.price.toFixed(2)}
+        </p>
+        <span
+          className={`text-xs px-2 py-1 rounded-[2px] ${
+            book.stock > 0
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800"
+          }`}
+        >
+          {book.stock > 0 ? "In Stock" : "Out of Stock"}
+        </span>
+      </div>
+
+      {/* Add to cart button */}
+      <button
+        className="w-full bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-[2px] transition-all duration-200 shadow-sm hover:shadow-md"
+        aria-label={`Add ${book.title} to cart`}
+      >
+        Add to Cart
+      </button>
+    </div>
+  </div>
+</div>
+
   );
 
   // ViewToggle component for switching between grid and list views
@@ -827,28 +831,11 @@ const CategoriesPage = ({ book }) => {
               </FilterSection>
 
               {/* Rating Filter */}
-              <FilterSection title="Rating" sectionId="rating">
-                <div className="space-y-3">
-                  {[5, 4, 3, 2, 1].map((stars) => (
-                    <div
-                      key={stars}
-                      className="flex items-center cursor-pointer"
-                      onClick={() => setRatingFilter(stars)}
-                    >
-                      <div className="flex mr-2">{renderStars(stars)}</div>
-                      <span className="text-sm text-gray-700">&amp; up</span>
-                      {ratingFilter === stars && (
-                        <div className="ml-auto w-2 h-2 bg-black rounded-[2px]"></div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </FilterSection>
-
+         
               {/* Language Filter */}
               <FilterSection title="Language" sectionId="language">
                 <div className="space-y-2">
-                  {["All", "English", "Spanish", "French", "German"].map(
+                  {["All", "English", "Bangla"].map(
                     (lang) => (
                       <div
                         key={lang}
@@ -934,29 +921,7 @@ const CategoriesPage = ({ book }) => {
           {/* Right content - categories and books */}
           <main className="lg:w-3/4">
             {/* Categories grid */}
-            <div className="mb-8">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">
-                  Browse Categories
-                </h2>
-                <a href="#" className="text-sm text-gray-600 hover:text-black">
-                  View all
-                </a>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {categories.map((category) => (
-                  <CategoryCard
-                    key={category.id}
-                    id={category.id}
-                    title={category.title}
-                    item={category.item}
-                    img={category.img}
-                    isSelected={selectedCategory === category.title}
-                    onClick={() => handleCategorySelect(category.title)}
-                  />
-                ))}
-              </div>
-            </div>
+         
 
             {/* Book results section */}
             <div className="mt-8">
