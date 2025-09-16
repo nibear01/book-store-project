@@ -13,8 +13,8 @@ const CategoriesPage = () => {
   const categories = [
     {
       id: 1,
-      title: "Fiction",
-      item: `${book.filter((b) => b.genre === "Fiction").length} books`,
+      title: "Programming",
+      item: `${book.filter((b) => b.genre === "Programming").length} books`,
       img: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     },
     {

@@ -2,7 +2,15 @@ import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 
 const CartPage = () => {
-  const { state, dispatch, subtotal, shipping, total } = useCart();
+  const { state, subtotal, shipping, total, removeItem, updateQuantity } = useCart();
+
+  const handleQuantityChange = (id, newQuantity) => {
+    if (newQuantity < 1) {
+      removeItem({ id });
+    } else {
+      updateQuantity({ id, quantity: newQuantity });
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
@@ -30,17 +38,11 @@ const CartPage = () => {
                   type="number"
                   min={1}
                   value={item.quantity}
-                  onChange={(e) =>
-                    dispatch({
-                      type: "UPDATE_QTY",
-                      id: item.id,
-                      quantity: Number(e.target.value),
-                    })
-                  }
+                  onChange={(e) => handleQuantityChange(item.id, Number(e.target.value))}
                   className="w-20 border border-gray-300 rounded-[2px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-black"
                 />
                 <button
-                  onClick={() => dispatch({ type: "REMOVE_ITEM", id: item.id })}
+                  onClick={() => removeItem({ id: item.id })}
                   className="text-gray-600 hover:text-black transition-colors"
                 >
                   Remove

@@ -44,10 +44,7 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<Homepage />} />
         <Route path="/about" element={<AboutPage />} />
-        <Route
-          path="/categories"
-          element={<CategoriesPage />}
-        />
+        <Route path="/categories" element={<CategoriesPage />} />
         <Route path="/shop" element={<ShopPage />} />
 
         <Route path="/admin" element={<AdminPage />}>
@@ -78,15 +75,15 @@ function App() {
   return (
     <Router>
       {/* <HelmetProvider> */}
-        <AuthProvider>
-          <BooksContextProvider>
-            <CartProvider>
-              <div className="min-h-screen bg-gray-50">
-                <AppContent />
-              </div>
-            </CartProvider>
-          </BooksContextProvider>
-        </AuthProvider>
+      <AuthProvider>
+        <BooksContextProvider>
+          <CartProvider>
+            <div className="min-h-screen bg-gray-50">
+              <AppContent />
+            </div>
+          </CartProvider>
+        </BooksContextProvider>
+      </AuthProvider>
       {/* </HelmetProvider> */}
     </Router>
   );

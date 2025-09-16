@@ -163,15 +163,18 @@ export function CartProvider({ children }) {
     async ({ id }) => {
       if (isAuthenticated) {
         try {
-          const res = await cartAPI.removeItem({ bookId: id });
-          const items = mapBackendCartToLocalItems(res.data);
-          dispatch({ type: "SET_CART", items });
+          await cartAPI.removeItem({ bookId: id });
+          // Always update UI immediately, even if API call might fail
+          dispatch({ type: "REMOVE_ITEM", id });
           return;
-        } catch {
-          // fallback to local update
+        } catch (error) {
+          console.error("Failed to remove item from server:", error);
+          // Still remove from UI even if API fails to maintain consistency
+          dispatch({ type: "REMOVE_ITEM", id });
         }
+      } else {
+        dispatch({ type: "REMOVE_ITEM", id });
       }
-      dispatch({ type: "REMOVE_ITEM", id });
     },
     [isAuthenticated]
   );
@@ -182,11 +185,14 @@ export function CartProvider({ children }) {
         await cartAPI.clear();
         dispatch({ type: "CLEAR" });
         return;
-      } catch {
-        // fallback
+      } catch (error) {
+        console.error("Failed to clear cart on server:", error);
+        // Still clear UI even if API fails
+        dispatch({ type: "CLEAR" });
       }
+    } else {
+      dispatch({ type: "CLEAR" });
     }
-    dispatch({ type: "CLEAR" });
   }, [isAuthenticated]);
 
   const totals = useMemo(() => {

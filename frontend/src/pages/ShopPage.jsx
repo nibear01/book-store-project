@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useCart } from "../context/CartContext";
 import { booksAPI } from "../api/book-api.js";
+import { useAuth } from "../context/AuthContext"; // ✅ import auth
 
 const ShopPage = () => {
   const { addToCart } = useCart();
+  const { isAuthenticated } = useAuth(); // ✅ check login
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -43,7 +45,7 @@ const ShopPage = () => {
           <div key={b._id} className="border rounded-[2px] p-4">
             {Array.isArray(b.cover_image) && b.cover_image[0] && (
               <img
-                src={b.cover_image[0]}
+                src={`http://localhost:5000${b.cover_image[0]}`}
                 alt={b.title}
                 className="w-full h-48 object-cover rounded mb-3"
               />
@@ -53,21 +55,27 @@ const ShopPage = () => {
             <p className="text-gray-700 mb-3 mt-1">
               ${Number(b.price || 0).toFixed(2)}
             </p>
-            <button
-              onClick={() =>
-                addToCart({
-                  item: {
-                    id: b._id,
-                    title: b.title,
-                    price: Number(b.price || 0),
-                  },
-                  quantity: 1,
-                })
-              }
-              className="bg-red-500 text-white px-3 py-2 rounded-[2px] hover:bg-red-600"
-            >
-              Add to Cart
-            </button>
+            {isAuthenticated ? (
+              <button
+                onClick={() =>
+                  addToCart({
+                    item: {
+                      id: b._id,
+                      title: b.title,
+                      price: Number(b.price || 0),
+                    },
+                    quantity: 1,
+                  })
+                }
+                className="bg-red-500 text-white px-3 py-2 rounded-[2px] hover:bg-red-600"
+              >
+                Add to Cart
+              </button>
+            ) : (
+              <p className="text-sm text-gray-500 mt-2">
+                🔒 Please <a href="/login" className="text-red-500 underline">login</a> to add items to cart.
+              </p>
+            )}
           </div>
         ))}
       </div>

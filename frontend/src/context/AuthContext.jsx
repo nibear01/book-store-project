@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect } from "react";
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { userAPI } from "../api/user-api";
 
 const AuthContext = createContext();
@@ -13,48 +14,67 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const url = ""
-  // Check if user is logged in on app load
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        if (userAPI.isAuthenticated()) {
-          const userData = await userAPI.getMe();
-          setUser(userData.data);
-          setIsAuthenticated(true);
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error);
-        // Clear invalid token
-        userAPI.logout();
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const [loading, setLoading] = useState(false); // renamed for consistency
+  const [error, setError] = useState(null);
 
-    checkAuth();
+  // Generic fetch wrapper
+  const fetchData = useCallback(async (apiCall, onSuccess) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiCall();
+      if (onSuccess) onSuccess(data);
+      return data;
+    } catch (err) {
+      setError(err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  // Check if user is logged in on app load
+  useEffect(() => {
+    fetchData(async () => {
+      if (userAPI.isAuthenticated()) {
+        return await userAPI.getMe();
+      }
+      return null;
+    }, (userData) => {
+      if (userData) {
+        setUser(userData.data);
+        setIsAuthenticated(true);
+      }
+    });
+  }, [fetchData]);
+
   // Login function
-  const login = async (credentials) => {
-    await userAPI.login(credentials);
-    const userData = await userAPI.getMe();
-    setUser(userData.data);
-    setIsAuthenticated(true);
-    return userData.data;
-  };
+  const login = (credentials) =>
+    fetchData(
+      async () => {
+        await userAPI.login(credentials);
+        return await userAPI.getMe();
+      },
+      (userData) => {
+        setUser(userData.data);
+        setIsAuthenticated(true);
+      }
+    );
 
   // Register function
-  const register = async (userData) => {
-    await userAPI.register(userData);
-    const userProfile = await userAPI.getMe();
-    setUser(userProfile.data);
-    setIsAuthenticated(true);
-    return userProfile.data;
-  };
+  const register = (userData) =>
+    fetchData(
+      async () => {
+        await userAPI.register(userData);
+        return await userAPI.getMe();
+      },
+      (profile) => {
+        setUser(profile.data);
+        setIsAuthenticated(true);
+      }
+    );
 
   // Logout function
   const logout = () => {
@@ -71,7 +91,8 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     isAuthenticated,
-    isLoading,
+    loading,
+    error,
     login,
     register,
     logout,
