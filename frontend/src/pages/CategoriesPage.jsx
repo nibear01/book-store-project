@@ -1,10 +1,15 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import { useState, useEffect, useRef } from "react";
+import { BooksContext } from "@/context/BooksContext";
+import { useState, useEffect, useRef, useContext } from "react";
 import { FaStar, FaStarHalfAlt, FaRegStar } from "react-icons/fa";
 import { Link } from "react-router";
 
-const CategoriesPage = ({ book }) => {
+const CategoriesPage = () => {
+
+  const { books } = useContext(BooksContext);
+  const book = books.data || [];
+
   const categories = [
     {
       id: 1,
@@ -186,6 +191,7 @@ const CategoriesPage = ({ book }) => {
     languageFilter,
     availabilityFilter,
     searchQuery,
+    book // <-- add this dependency
   ]);
 
   /**
@@ -351,69 +357,77 @@ const CategoriesPage = ({ book }) => {
   );
 
   // BookCard component for displaying individual books
-  const BookCard = ({ book }) => (
-    <div className="bg-white rounded-[2px] shadow-sm overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-100 flex flex-col">
-      {/* Book cover image */}
-      <Link to={`/bookview`}>
-        <div className="relative pt-[150%] sm:pt-[130%] md:pt-[140%] lg:pt-[150%] w-full">
-          <img
-            src={book.cover_image}
-            alt={book.title}
-            className="absolute top-0 left-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-          />
-        </div>
-      </Link>
+  const BookCard = ({ book }) => {
+    // Select only the first cover image if it's an array
+    const coverImage =
+      Array.isArray(book.cover_image) && book.cover_image.length > 0
+        ? book.cover_image[0]
+        : book.cover_image;
 
-      {/* Book details */}
-      <div className="p-4 flex flex-col flex-grow">
-        {/* Top section (genre, title, author, rating) */}
-        <div>
-          {/* Genre tag */}
-          <span className="inline-block px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-[2px] w-fit mb-2">
-            {book.genre}
-          </span>
-
-          {/* Title and author */}
-          <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
-            {book.title}
-          </h3>
-          <p className="text-gray-600 text-[12px] mb-3">by {book.author}</p>
-
-          {/* Rating */}
-          <div className="flex items-center mb-2">
-            <div className="flex mr-2">{renderStars(book.rating)}</div>
-            <span className="text-sm text-gray-600">({book.num_reviews})</span>
+    return (
+      <div className="bg-white rounded-[2px] shadow-sm overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-100 flex flex-col">
+        {/* Book cover image */}
+        <Link to={`/bookview/${book.slug}`}>
+          <div className="relative pt-[150%] sm:pt-[130%] md:pt-[140%] lg:pt-[150%] w-full">
+            <img
+              src={`http://localhost:5000${coverImage}`}
+              alt={book.title}
+              className="absolute top-0 left-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+            />
           </div>
-        </div>
+        </Link>
 
-        {/* Bottom section (price, stock, button) */}
-        <div className="mt-auto">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-black font-bold text-lg">
-              ${book.price.toFixed(2)}
-            </p>
-            <span
-              className={`text-xs px-2 py-1 rounded-[2px] ${
-                book.stock > 0
-                  ? "bg-green-100 text-green-800"
-                  : "bg-red-100 text-red-800"
-              }`}
-            >
-              {book.stock > 0 ? "In Stock" : "Out of Stock"}
+        {/* Book details */}
+        <div className="p-4 flex flex-col flex-grow">
+          {/* Top section (genre, title, author, rating) */}
+          <div>
+            {/* Genre tag */}
+            <span className="inline-block px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-[2px] w-fit mb-2">
+              {book.genre}
             </span>
+
+            {/* Title and author */}
+            <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
+              {book.title}
+            </h3>
+            <p className="text-gray-600 text-[12px] mb-3">by {book.author}</p>
+
+            {/* Rating */}
+            <div className="flex items-center mb-2">
+              <div className="flex mr-2">{renderStars(book.rating)}</div>
+              <span className="text-sm text-gray-600">({book.num_reviews})</span>
+            </div>
           </div>
 
-          {/* Add to cart button */}
-          <button
-            className="w-full bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-[2px] transition-all duration-200 shadow-sm hover:shadow-md"
-            aria-label={`Add ${book.title} to cart`}
-          >
-            Add to Cart
-          </button>
+          {/* Bottom section (price, stock, button) */}
+          <div className="mt-auto">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-black font-bold text-lg">
+                ${book.price.toFixed(2)}
+              </p>
+              <span
+                className={`text-xs px-2 py-1 rounded-[2px] ${
+                  book.stock > 0
+                    ? "bg-green-100 text-green-800"
+                    : "bg-red-100 text-red-800"
+                }`}
+              >
+                {book.stock > 0 ? "In Stock" : "Out of Stock"}
+              </span>
+            </div>
+
+            {/* Add to cart button */}
+            <button
+              className="w-full bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-[2px] transition-all duration-200 shadow-sm hover:shadow-md"
+              aria-label={`Add ${book.title} to cart`}
+            >
+              Add to Cart
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // ViewToggle component for switching between grid and list views
   const ViewToggle = ({ currentView, onViewChange }) => (
@@ -1053,7 +1067,7 @@ const CategoriesPage = ({ book }) => {
                   // Desktop/Tablet Implementation
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {filteredBooks.map((book) => (
-                      <BookCard key={book.id} book={book} />
+                      <BookCard key={book._id} book={book} />
                     ))}
                   </div>
                 )}

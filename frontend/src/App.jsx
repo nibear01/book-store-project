@@ -21,7 +21,7 @@ import { BooksContextProvider } from "./context/BooksContext";
 import AdminPage from "./pages/AdminPage";
 import Footer from "./pages/Footer";
 import BookViewPage from "./pages/BookViewPage";
-import dummyBooks from "./data/dummyBooks.json";
+// import { HelmetProvider } from 'react-helmet-async';
 
 // Admin components
 import Dashboard from "./components/adminComponents/Dashboard";
@@ -46,7 +46,7 @@ function AppContent() {
         <Route path="/about" element={<AboutPage />} />
         <Route
           path="/categories"
-          element={<CategoriesPage book={dummyBooks} />}
+          element={<CategoriesPage />}
         />
         <Route path="/shop" element={<ShopPage />} />
 
@@ -65,7 +65,7 @@ function AppContent() {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
-        <Route path="/bookview" element={<BookViewPage />} />
+        <Route path="/bookview/:slug" element={<BookViewPage />} />
         <Route path="/account" element={<UserDashboard />} />
       </Routes>
 
@@ -77,15 +77,17 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <BooksContextProvider>
-          <CartProvider>
-            <div className="min-h-screen bg-gray-50">
-              <AppContent />
-            </div>
-          </CartProvider>
-        </BooksContextProvider>
-      </AuthProvider>
+      {/* <HelmetProvider> */}
+        <AuthProvider>
+          <BooksContextProvider>
+            <CartProvider>
+              <div className="min-h-screen bg-gray-50">
+                <AppContent />
+              </div>
+            </CartProvider>
+          </BooksContextProvider>
+        </AuthProvider>
+      {/* </HelmetProvider> */}
     </Router>
   );
 }
