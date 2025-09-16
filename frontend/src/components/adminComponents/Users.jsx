@@ -1,4 +1,6 @@
+/* eslint-disable no-unused-vars */
 import React, { useEffect, useState } from "react";
+import { adminUsersAPI } from "../../api/admin-api";
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -7,68 +9,95 @@ const Users = () => {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [editingUser, setEditingUser] = useState(null);
-  const pageSize = 5;
+  const [loading, setLoading] = useState(false);
+  const pageSize = 10;
 
-  useEffect(() => {
-    // Fetch from dummy JSON file
-    fetch("/users.json")
-      .then((res) => res.json())
-      .then((data) => setUsers(data))
-      .catch((err) => console.error("Error loading users:", err));
-  }, []);
-
-  // --- Filtered & paginated users ---
-  const filteredUsers = users.filter((user) => {
-    const roleMatch = roleFilter === "All" || user.role.trim() === roleFilter;
-    const statusMatch =
-      statusFilter === "All" || user.status.trim() === statusFilter;
-    const searchMatch =
-      user.name.toLowerCase().includes(search.toLowerCase()) ||
-      user.email.toLowerCase().includes(search.toLowerCase());
-    return roleMatch && statusMatch && searchMatch;
-  });
-
-  const totalPages = Math.ceil(filteredUsers.length / pageSize);
-  const paginatedUsers = filteredUsers.slice(
-    (page - 1) * pageSize,
-    page * pageSize
-  );
-
-  // --- Action handlers ---
-  const handleAction = (id, action) => {
-    setUsers((prevUsers) =>
-      prevUsers.map((user) => {
-        if (user.id === id) {
-          if (action === "Approve") return { ...user, status: "Active" };
-          if (action === "Ban") return { ...user, status: "Banned" };
-        }
-        return user;
-      })
-    );
-    alert(`✅ ${action} successful for user ID ${id}`);
-  };
-
-  const handleResetPassword = (id) => {
-    const user = users.find((u) => u.id === id);
-    alert(`🔑 Password reset link sent to ${user.email}`);
-  };
-
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
-      setUsers((prev) => prev.filter((u) => u.id !== id));
-      alert(`🗑️ User ${id} deleted`);
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const params = { page, limit: pageSize };
+      if (statusFilter !== "All") params.status = statusFilter.toLowerCase();
+      if (roleFilter !== "All") params.isAdmin = roleFilter === "Admin";
+      const res = await adminUsersAPI.list(params);
+      const list = res.data || [];
+      // Apply client-side search for now
+      const filtered = list.filter(
+        (u) =>
+          (u.name || "").toLowerCase().includes(search.toLowerCase()) ||
+          (u.email || "").toLowerCase().includes(search.toLowerCase())
+      );
+      setUsers(filtered);
+    } catch (err) {
+      console.error("Error loading users:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // --- Edit modal handlers ---
+  useEffect(() => {
+    fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, roleFilter, statusFilter]);
+
+  useEffect(() => {
+    const t = setTimeout(() => fetchUsers(), 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
+  const totalPages = 1; // backend returns pagination; keeping simple view
+  const paginatedUsers = users;
+
+  const handleAction = async (id, action) => {
+    try {
+      if (action === "Approve") {
+        await adminUsersAPI.changeStatus(id, "active");
+      } else if (action === "Ban") {
+        await adminUsersAPI.changeStatus(id, "suspended");
+      }
+      await fetchUsers();
+      alert(`✅ ${action} successful for user ID ${id}`);
+    } catch (e) {
+      alert(`Failed to ${action.toLowerCase()} user`);
+    }
+  };
+
+  const handleResetPassword = (id) => {
+    alert("Password reset endpoint not implemented");
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this user?")) {
+      try {
+        await adminUsersAPI.delete(id);
+        await fetchUsers();
+        alert(`🗑️ User ${id} deleted`);
+      } catch (e) {
+        alert("Failed to delete user");
+      }
+    }
+  };
+
   const openEditModal = (user) => setEditingUser(user);
   const closeEditModal = () => setEditingUser(null);
-  const saveEdit = () => {
-    setUsers((prev) =>
-      prev.map((user) => (user.id === editingUser.id ? editingUser : user))
-    );
-    closeEditModal();
-    alert(`✏️ User ${editingUser.id} updated`);
+  const saveEdit = async () => {
+    try {
+      await adminUsersAPI.update(editingUser._id, {
+        name: editingUser.name,
+        email: editingUser.email,
+        address: editingUser.address,
+        status: editingUser.status,
+      });
+      // Also update role if changed
+      if (typeof editingUser.isAdmin === "boolean") {
+        await adminUsersAPI.changeRole(editingUser._id, editingUser.isAdmin);
+      }
+      await fetchUsers();
+      closeEditModal();
+      alert(`✏️ User updated`);
+    } catch (e) {
+      alert("Failed to update user");
+    }
   };
 
   return (
@@ -87,7 +116,6 @@ const Users = () => {
         >
           <option value="All">All Roles</option>
           <option value="User">User</option>
-          <option value="Author">Author</option>
           <option value="Admin">Admin</option>
         </select>
 
@@ -100,9 +128,9 @@ const Users = () => {
           }}
         >
           <option value="All">All Status</option>
-          <option value="Active">Active</option>
-          <option value="Pending">Pending</option>
-          <option value="Banned">Banned</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="suspended">Suspended</option>
         </select>
 
         <input
@@ -114,194 +142,140 @@ const Users = () => {
         />
       </div>
 
-      {/* Table for desktop */}
-      <div className="overflow-x-auto shadow rounded-[2px] hidden md:block">
-        <table className="min-w-full text-sm text-left">
-          <thead className="bg-gray-100 text-gray-600 uppercase">
-            <tr>
-              <th className="px-4 py-2">Name</th>
-              <th className="px-4 py-2">Email</th>
-              <th className="px-4 py-2">Role</th>
-              <th className="px-4 py-2">Status</th>
-              <th className="px-4 py-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedUsers.map((user) => (
-              <tr key={user.id} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-2">{user.name}</td>
-                <td className="px-4 py-2">{user.email}</td>
-                <td className="px-4 py-2">{user.role}</td>
-                <td className="px-4 py-2">{user.status}</td>
-                <td className="px-4 py-2 flex gap-2 flex-wrap">
-                  <button
-                    onClick={() => handleAction(user.id, "Approve")}
-                    className="bg-green-500 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => handleAction(user.id, "Ban")}
-                    className="bg-red-500 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
-                  >
-                    Ban
-                  </button>
-                  <button
-                    onClick={() => openEditModal(user)}
-                    className="bg-blue-500 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleResetPassword(user.id)}
-                    className="bg-yellow-500 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
-                  >
-                    Reset PW
-                  </button>
-                  <button
-                    onClick={() => handleDelete(user.id)}
-                    className="bg-gray-600 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {paginatedUsers.length === 0 && (
-              <tr>
-                <td
-                  colSpan="5"
-                  className="text-center p-4 text-gray-500 italic"
-                >
-                  No users found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mobile Cards View */}
-      <div className="md:hidden space-y-3">
-        {paginatedUsers.length === 0 ? (
-          <div className="text-center p-4 text-gray-500 italic bg-white rounded-[2px] shadow">
-            No users found
+      {loading ? (
+        <div className="text-gray-500">Loading...</div>
+      ) : (
+        <>
+          {/* Table for desktop */}
+          <div className="overflow-x-auto shadow rounded-[2px] hidden md:block">
+            <table className="min-w-full text-sm text-left">
+              <thead className="bg-gray-100 text-gray-600 uppercase">
+                <tr>
+                  <th className="px-4 py-2">Name</th>
+                  <th className="px-4 py-2">Email</th>
+                  <th className="px-4 py-2">Role</th>
+                  <th className="px-4 py-2">Status</th>
+                  <th className="px-4 py-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedUsers.map((user) => (
+                  <tr key={user._id} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-2">{user.name}</td>
+                    <td className="px-4 py-2">{user.email}</td>
+                    <td className="px-4 py-2">
+                      {user.isAdmin ? "Admin" : "User"}
+                    </td>
+                    <td className="px-4 py-2 capitalize">{user.status}</td>
+                    <td className="px-4 py-2 flex gap-2 flex-wrap">
+                      <button
+                        onClick={() =>
+                          handleAction(
+                            user._id,
+                            user.status !== "active" ? "Approve" : "Ban"
+                          )
+                        }
+                        className="bg-green-500 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
+                      >
+                        {user.status !== "active" ? "Approve" : "Ban"}
+                      </button>
+                      <button
+                        onClick={() => openEditModal(user)}
+                        className="bg-blue-500 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleResetPassword(user._id)}
+                        className="bg-yellow-500 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
+                      >
+                        Reset PW
+                      </button>
+                      <button
+                        onClick={() => handleDelete(user._id)}
+                        className="bg-gray-600 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {paginatedUsers.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan="5"
+                      className="text-center p-4 text-gray-500 italic"
+                    >
+                      No users found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          paginatedUsers.map((user) => (
-            <div
-              key={user.id}
-              className="bg-white p-4 rounded-[2px] shadow border border-gray-100"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-medium text-gray-900">{user.name}</h3>
-                  <p className="text-sm text-gray-600">{user.email}</p>
-                </div>
-                <div className="text-right">
-                  <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-[2px]">
-                    {user.role}
-                  </span>
-                  <span
-                    className={`block mt-1 text-xs ${
-                      user.status === "Active"
-                        ? "text-green-600"
-                        : user.status === "Pending"
-                        ? "text-yellow-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {user.status}
-                  </span>
-                </div>
+
+          {/* Mobile Cards View */}
+          <div className="md:hidden space-y-3">
+            {paginatedUsers.length === 0 ? (
+              <div className="text-center p-4 text-gray-500 italic bg-white rounded-[2px] shadow">
+                No users found
               </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => handleAction(user.id, "Approve")}
-                  className="bg-green-500 text-white p-2 rounded-[2px] text-xs"
+            ) : (
+              paginatedUsers.map((user) => (
+                <div
+                  key={user._id}
+                  className="bg-white p-4 rounded-[2px] shadow border border-gray-100"
                 >
-                  Approve
-                </button>
-                <button
-                  onClick={() => handleAction(user.id, "Ban")}
-                  className="bg-red-500 text-white p-2 rounded-[2px] text-xs"
-                >
-                  Ban
-                </button>
-                <button
-                  onClick={() => openEditModal(user)}
-                  className="bg-blue-500 text-white p-2 rounded-[2px] text-xs"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleResetPassword(user.id)}
-                  className="bg-yellow-500 text-white p-2 rounded-[2px] text-xs"
-                >
-                  Reset PW
-                </button>
-                <button
-                  onClick={() => handleDelete(user.id)}
-                  className="bg-gray-600 text-white p-2 rounded-[2px] text-xs col-span-2"
-                >
-                  Delete User
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center mt-4 gap-1 sm:gap-2 flex-wrap">
-          <button
-            onClick={() => setPage(Math.max(1, page - 1))}
-            disabled={page === 1}
-            className="px-2 sm:px-3 py-1 rounded-[2px] bg-gray-200 disabled:opacity-50 text-xs sm:text-sm"
-          >
-            Previous
-          </button>
-
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            // Show limited page numbers on mobile
-            let pageNum;
-            if (totalPages <= 5) {
-              pageNum = i + 1;
-            } else if (page <= 3) {
-              pageNum = i + 1;
-            } else if (page >= totalPages - 2) {
-              pageNum = totalPages - 4 + i;
-            } else {
-              pageNum = page - 2 + i;
-            }
-
-            return (
-              <button
-                key={pageNum}
-                onClick={() => setPage(pageNum)}
-                className={`px-2 sm:px-3 py-1 rounded-[2px] text-xs sm:text-sm ${
-                  pageNum === page ? "bg-blue-500 text-white" : "bg-gray-200"
-                }`}
-              >
-                {pageNum}
-              </button>
-            );
-          })}
-
-          {totalPages > 5 && (
-            <span className="px-2 py-1 text-gray-500">...</span>
-          )}
-
-          <button
-            onClick={() => setPage(Math.min(totalPages, page + 1))}
-            disabled={page === totalPages}
-            className="px-2 sm:px-3 py-1 rounded-[2px] bg-gray-200 disabled:opacity-50 text-xs sm:text-sm"
-          >
-            Next
-          </button>
-        </div>
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="font-medium text-gray-900">{user.name}</h3>
+                      <p className="text-sm text-gray-600">{user.email}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-[2px]">
+                        {user.isAdmin ? "Admin" : "User"}
+                      </span>
+                      <span className={`block mt-1 text-xs capitalize`}>
+                        {user.status}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() =>
+                        handleAction(
+                          user._id,
+                          user.status !== "active" ? "Approve" : "Ban"
+                        )
+                      }
+                      className="bg-green-500 text-white p-2 rounded-[2px] text-xs"
+                    >
+                      {user.status !== "active" ? "Approve" : "Ban"}
+                    </button>
+                    <button
+                      onClick={() => openEditModal(user)}
+                      className="bg-blue-500 text-white p-2 rounded-[2px] text-xs"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleResetPassword(user._id)}
+                      className="bg-yellow-500 text-white p-2 rounded-[2px] text-xs"
+                    >
+                      Reset PW
+                    </button>
+                    <button
+                      onClick={() => handleDelete(user._id)}
+                      className="bg-gray-600 text-white p-2 rounded-[2px] text-xs col-span-2"
+                    >
+                      Delete User
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </>
       )}
 
       {/* --- Edit Modal --- */}
@@ -314,7 +288,7 @@ const Users = () => {
             <input
               type="text"
               className="border p-2 rounded-[2px] w-full mb-3"
-              value={editingUser.name}
+              value={editingUser.name || ""}
               onChange={(e) =>
                 setEditingUser({ ...editingUser, name: e.target.value })
               }
@@ -324,7 +298,7 @@ const Users = () => {
             <input
               type="email"
               className="border p-2 rounded-[2px] w-full mb-3"
-              value={editingUser.email}
+              value={editingUser.email || ""}
               onChange={(e) =>
                 setEditingUser({ ...editingUser, email: e.target.value })
               }
@@ -333,14 +307,29 @@ const Users = () => {
             <label className="block mb-2 text-sm">Role</label>
             <select
               className="border p-2 rounded-[2px] w-full mb-4"
-              value={editingUser.role}
+              value={editingUser.isAdmin ? "Admin" : "User"}
               onChange={(e) =>
-                setEditingUser({ ...editingUser, role: e.target.value })
+                setEditingUser({
+                  ...editingUser,
+                  isAdmin: e.target.value === "Admin",
+                })
               }
             >
               <option value="User">User</option>
-              <option value="Author">Author</option>
               <option value="Admin">Admin</option>
+            </select>
+
+            <label className="block mb-2 text-sm">Status</label>
+            <select
+              className="border p-2 rounded-[2px] w-full mb-4"
+              value={editingUser.status || "active"}
+              onChange={(e) =>
+                setEditingUser({ ...editingUser, status: e.target.value })
+              }
+            >
+              <option value="active">active</option>
+              <option value="inactive">inactive</option>
+              <option value="suspended">suspended</option>
             </select>
 
             <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
