@@ -17,6 +17,7 @@ import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import { CartProvider } from "./context/CartContext";
 import { AuthProvider } from "./context/AuthContext";
+import { BooksContextProvider } from "./context/BooksContext";
 import AdminPage from "./pages/AdminPage";
 import Footer from "./pages/Footer";
 import BookViewPage from "./pages/BookViewPage";
@@ -77,11 +78,13 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <CartProvider>
-          <div className="min-h-screen bg-gray-50">
-            <AppContent />
-          </div>
-        </CartProvider>
+        <BooksContextProvider>
+          <CartProvider>
+            <div className="min-h-screen bg-gray-50">
+              <AppContent />
+            </div>
+          </CartProvider>
+        </BooksContextProvider>
       </AuthProvider>
     </Router>
   );
