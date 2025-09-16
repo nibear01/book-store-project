@@ -1,15 +1,10 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import { BooksContext } from "@/context/BooksContext";
-import { useState, useEffect, useRef, useContext } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FaStar, FaStarHalfAlt, FaRegStar } from "react-icons/fa";
 import { Link } from "react-router";
 
-const CategoriesPage = () => {
-
-  const { books } = useContext(BooksContext);
-  const book = books.data || [];
-
+const CategoriesPage = ({ book }) => {
   const categories = [
     {
       id: 1,
@@ -51,135 +46,31 @@ const CategoriesPage = () => {
 
   // State management
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [sortOption, setSortOption] = useState("featured");
-  const [priceRange, setPriceRange] = useState([0, 50]);
-  const [ratingFilter, setRatingFilter] = useState(0);
-  const [languageFilter, setLanguageFilter] = useState("All");
-  const [availabilityFilter, setAvailabilityFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState("grid");
-  const [mobileViewStrategy, setMobileViewStrategy] = useState("adaptive");
-  const [activeGroupIndex, setActiveGroupIndex] = useState(0);
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [filteredBooks, setFilteredBooks] = useState([]);
 
-  // Ref for mobile viewport handling
-  const viewportRef = useRef(null);
-  const touchStartX = useRef(0);
-  const touchEndX = useRef(0);
+  // ---------- Categories ----------
+  const categories = [
+    { id: 1, title: "Fiction" },
+    { id: 2, title: "Science Fiction" },
+    { id: 3, title: "Romance" },
+    { id: 4, title: "Fantasy" },
+    { id: 5, title: "Classic" },
+    { id: 6, title: "Mystery" },
+  ];
 
-  // Track open/closed state of filter sections
-  const [filterSections, setFilterSections] = useState({
-    price: true,
-    rating: true,
-    language: true,
-    availability: true,
-  });
-
-  /**
-   * Calculate number of groups needed for current viewport
-   */
-  const calculateGroupCount = () => {
-    return Math.ceil(filteredBooks.length / 4);
-  };
-
-  /**
-   * Render star ratings with half-star precision using react-icons
-   */
-  const renderStars = (rating) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const halfStar = rating % 1 >= 0.5;
-
-    // Add full stars
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(<FaStar key={i} className="text-yellow-500" />);
-    }
-
-    // Add half star if needed
-    if (halfStar) {
-      stars.push(<FaStarHalfAlt key="half" className="text-yellow-500" />);
-    }
-
-    // Add empty stars
-    const emptyStars = 5 - stars.length;
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push(<FaRegStar key={`empty-${i}`} className="text-yellow-500" />);
-    }
-
-    return (
-      <div className="flex" aria-label={`${rating} out of 5 stars`}>
-        {stars}
-      </div>
-    );
-  };
-
-  /**
-   * Filter and sort books based on current filter settings
-   */
+  // ---------- Filter Books ----------
   useEffect(() => {
     let result = [...book];
 
-    // 1. Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (book) =>
-          book.title.toLowerCase().includes(query) ||
-          book.author.toLowerCase().includes(query) ||
-          book.genre.toLowerCase().includes(query)
-      );
-    }
-
-    // 2. Category filter
     if (selectedCategory !== "All") {
-      result = result.filter((book) => book.genre === selectedCategory);
+      result = result.filter((b) => b.genre === selectedCategory);
     }
 
-    // 3. Price filter
-    result = result.filter(
-      (book) => book.price >= priceRange[0] && book.price <= priceRange[1]
-    );
-
-    // 4. Rating filter
-    if (ratingFilter > 0) {
-      result = result.filter((book) => book.rating >= ratingFilter);
-    }
-
-    // 5. Language filter
-    if (languageFilter !== "All") {
-      result = result.filter((book) => book.language === languageFilter);
-    }
-
-    // 6. Availability filter
-    if (availabilityFilter === "inStock") {
-      result = result.filter((book) => book.stock > 0);
-    } else if (availabilityFilter === "outOfStock") {
-      result = result.filter((book) => book.stock === 0);
-    }
-
-    // 7. Sorting
-    switch (sortOption) {
-      case "priceLowHigh":
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case "priceHighLow":
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case "rating":
-        result.sort((a, b) => b.rating - a.rating);
-        break;
-      case "newest":
-        result.sort(
-          (a, b) => new Date(b.published_date) - new Date(a.published_date)
-        );
-        break;
-      default: // featured/bestselling
-        result.sort(
-          (a, b) =>
-            b.is_featured - a.is_featured || b.num_reviews - a.num_reviews
-        );
+    if (searchQuery.trim()) {
+      result = result.filter((b) =>
+        b.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     }
 
     setFilteredBooks(result);
@@ -191,7 +82,6 @@ const CategoriesPage = () => {
     languageFilter,
     availabilityFilter,
     searchQuery,
-    book // <-- add this dependency
   ]);
 
   /**
@@ -357,77 +247,70 @@ const CategoriesPage = () => {
   );
 
   // BookCard component for displaying individual books
-  const BookCard = ({ book }) => {
-    // Select only the first cover image if it's an array
-    const coverImage =
-      Array.isArray(book.cover_image) && book.cover_image.length > 0
-        ? book.cover_image[0]
-        : book.cover_image;
+  const BookCard = ({ book }) => (
+   <div className="bg-white rounded-[2px] shadow-sm overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-100 flex flex-col">
+  {/* Book cover image */}
+  <Link to={`/bookview`}>
+    <div className="relative pt-[150%] sm:pt-[130%] md:pt-[140%] lg:pt-[150%] w-full">
+      <img
+        src={book.cover_image}
+        alt={book.title}
+        className="absolute top-0 left-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+      />
+    </div>
+  </Link>
 
-    return (
-      <div className="bg-white rounded-[2px] shadow-sm overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-100 flex flex-col">
-        {/* Book cover image */}
-        <Link to={`/bookview/${book.slug}`}>
-          <div className="relative pt-[150%] sm:pt-[130%] md:pt-[140%] lg:pt-[150%] w-full">
-            <img
-              src={`http://localhost:5000${coverImage}`}
-              alt={book.title}
-              className="absolute top-0 left-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-            />
-          </div>
-        </Link>
+  {/* Book details */}
+  <div className="p-4 flex flex-col flex-grow">
+    {/* Top section (genre, title, author, rating) */}
+    <div>
+      {/* Genre tag */}
+      <span className="inline-block px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-[2px] w-fit mb-2">
+        {book.genre}
+      </span>
 
-        {/* Book details */}
-        <div className="p-4 flex flex-col flex-grow">
-          {/* Top section (genre, title, author, rating) */}
-          <div>
-            {/* Genre tag */}
-            <span className="inline-block px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-[2px] w-fit mb-2">
-              {book.genre}
-            </span>
+      {/* Title and author */}
+      <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
+        {book.title}
+      </h3>
+      <p className="text-gray-600 text-[12px] mb-3">by {book.author}</p>
 
-            {/* Title and author */}
-            <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
-              {book.title}
-            </h3>
-            <p className="text-gray-600 text-[12px] mb-3">by {book.author}</p>
-
-            {/* Rating */}
-            <div className="flex items-center mb-2">
-              <div className="flex mr-2">{renderStars(book.rating)}</div>
-              <span className="text-sm text-gray-600">({book.num_reviews})</span>
-            </div>
-          </div>
-
-          {/* Bottom section (price, stock, button) */}
-          <div className="mt-auto">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-black font-bold text-lg">
-                ${book.price.toFixed(2)}
-              </p>
-              <span
-                className={`text-xs px-2 py-1 rounded-[2px] ${
-                  book.stock > 0
-                    ? "bg-green-100 text-green-800"
-                    : "bg-red-100 text-red-800"
-                }`}
-              >
-                {book.stock > 0 ? "In Stock" : "Out of Stock"}
-              </span>
-            </div>
-
-            {/* Add to cart button */}
-            <button
-              className="w-full bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-[2px] transition-all duration-200 shadow-sm hover:shadow-md"
-              aria-label={`Add ${book.title} to cart`}
-            >
-              Add to Cart
-            </button>
-          </div>
-        </div>
+      {/* Rating */}
+      <div className="flex items-center mb-2">
+        <div className="flex mr-2">{renderStars(book.rating)}</div>
+        <span className="text-sm text-gray-600">({book.num_reviews})</span>
       </div>
-    );
-  };
+    </div>
+
+    {/* Bottom section (price, stock, button) */}
+    <div className="mt-auto">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-black font-bold text-lg">
+          ${book.price.toFixed(2)}
+        </p>
+        <span
+          className={`text-xs px-2 py-1 rounded-[2px] ${
+            book.stock > 0
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800"
+          }`}
+        >
+          {book.stock > 0 ? "In Stock" : "Out of Stock"}
+        </span>
+      </div>
+
+      {/* Add to cart button */}
+      <button
+        className="w-full bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-[2px] transition-all duration-200 shadow-sm hover:shadow-md"
+        aria-label={`Add ${book.title} to cart`}
+      >
+        Add to Cart
+      </button>
+    </div>
+  </div>
+</div>
+
+  );
 
   // ViewToggle component for switching between grid and list views
   const ViewToggle = ({ currentView, onViewChange }) => (
@@ -584,7 +467,7 @@ const CategoriesPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="max-w-6xl mx-auto p-6">
       {/* Breadcrumb */}
       <div className="max-w-6xl mx-auto pt-6 px-5">
         <nav className="flex items-center text-[12px] text-gray-600 space-x-2">
@@ -844,32 +727,34 @@ const CategoriesPage = () => {
               </FilterSection>
 
               {/* Rating Filter */}
-
+         
               {/* Language Filter */}
               <FilterSection title="Language" sectionId="language">
                 <div className="space-y-2">
-                  {["All", "English", "Bangla"].map((lang) => (
-                    <div
-                      key={lang}
-                      className="flex items-center"
-                      onClick={() => setLanguageFilter(lang)}
-                    >
-                      <input
-                        type="radio"
-                        id={`language-${lang}`}
-                        name="language"
-                        checked={languageFilter === lang}
-                        onChange={() => setLanguageFilter(lang)}
-                        className="h-4 w-4 text-black focus:ring-black border-gray-300"
-                      />
-                      <label
-                        htmlFor={`language-${lang}`}
-                        className="ml-3 text-sm text-gray-700 cursor-pointer"
+                  {["All", "English", "Bangla"].map(
+                    (lang) => (
+                      <div
+                        key={lang}
+                        className="flex items-center"
+                        onClick={() => setLanguageFilter(lang)}
                       >
-                        {lang}
-                      </label>
-                    </div>
-                  ))}
+                        <input
+                          type="radio"
+                          id={`language-${lang}`}
+                          name="language"
+                          checked={languageFilter === lang}
+                          onChange={() => setLanguageFilter(lang)}
+                          className="h-4 w-4 text-black focus:ring-black border-gray-300"
+                        />
+                        <label
+                          htmlFor={`language-${lang}`}
+                          className="ml-3 text-sm text-gray-700 cursor-pointer"
+                        >
+                          {lang}
+                        </label>
+                      </div>
+                    )
+                  )}
                 </div>
               </FilterSection>
 
@@ -932,7 +817,33 @@ const CategoriesPage = () => {
           {/* Right content - categories and books */}
           <main className="lg:w-3/4">
             {/* Categories grid */}
+<<<<<<< HEAD
          
+=======
+            <div className="mb-8">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-800">
+                  Browse Categories
+                </h2>
+                <a href="#" className="text-sm text-gray-600 hover:text-black">
+                  View all
+                </a>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {categories.map((category) => (
+                  <CategoryCard
+                    key={category.id}
+                    id={category.id}
+                    title={category.title}
+                    item={category.item}
+                    // img={category.img}
+                    isSelected={selectedCategory === category.title}
+                    onClick={() => handleCategorySelect(category.title)}
+                  />
+                ))}
+              </div>
+            </div>
+>>>>>>> 1f9f227838bf88dfe6007bf911abeb29c4763fb5
 
             {/* Book results section */}
             <div className="mt-8">
@@ -1067,14 +978,14 @@ const CategoriesPage = () => {
                   // Desktop/Tablet Implementation
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {filteredBooks.map((book) => (
-                      <BookCard key={book._id} book={book} />
+                      <BookCard key={book.id} book={book} />
                     ))}
                   </div>
                 )}
               </div>
-            </div>
-          </main>
-        </div>
+            ))
+          )}
+        </main>
       </div>
     </div>
   );
