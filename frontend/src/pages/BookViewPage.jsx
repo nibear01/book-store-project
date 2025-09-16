@@ -98,7 +98,7 @@ const SingleBookPage = ({ book }) => {
                 </button>
               </div>
               <button className="bg-black text-white px-6 py-2 hover:bg-gray-800 transition">
-                Add {quantity} to Cart
+                Add to Cart
               </button>
               <button className="bg-red-500 text-white hover:bg-red-600 px-6 py-2 transition">
                 Buy Now
