@@ -1,35 +1,10 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useState } from "react";
 import dummyBooks from "../data/dummyBooks.json";
 import { FaStar, FaStarHalfAlt, FaRegStar } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { useParams } from "react-router";
-import { BooksContext } from "@/context/BooksContext";
-// import { Helmet } from "react-helmet-async";
 
-const SingleBookPage = () => {
-  const [book, setBook] = useState({});
-  const { getBookBySlug } = useContext(BooksContext);
-  const { slug } = useParams();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchBook = async () => {
-      try {
-        setLoading(true);
-        const data = await getBookBySlug(slug);
-        setBook(data);
-        // console.log(book);
-      } catch (err) {
-        setError(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchBook();
-  }, [slug, getBookBySlug]);
-
+const SingleBookPage = ({ book }) => {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("description");
   const { addToCart } = useCart();
@@ -57,22 +32,6 @@ const SingleBookPage = () => {
 
   return (
     <div className="flex-col justify-center items-center">
-      {/* <Helmet>
-        <title>{book.meta_title || book.title}</title>
-        {book.meta_description && (
-          <meta name="description" content={book.meta_description} />
-        )}
-        {book.meta_keywords && (
-          <meta
-            name="keywords"
-            content={
-              Array.isArray(book.meta_keywords)
-                ? book.meta_keywords.join(", ")
-                : book.meta_keywords
-            }
-          />
-        )}
-      </Helmet> */}
       <div className="max-w-6xl mx-auto mt-6 px-5">
         <nav className="flex items-center text-[12px] text-gray-600 space-x-2">
           <Link
@@ -101,7 +60,7 @@ const SingleBookPage = () => {
           {/* Cover */}
           <div className="md:w-1/3 flex justify-center items-start">
             <img
-              src={`http://localhost:5000${book.cover_image}`}
+              src={book.cover_image}
               alt={book.title}
               className="w-64 h-auto object-cover rounded-[2px] shadow-md"
             />
