@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import dummyBooks from "../data/dummyBooks.json";
 import { FaStar, FaStarHalfAlt, FaRegStar } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { useCart } from "../context/CartContext";
 
 const SingleBookPage = ({ book }) => {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("description");
+  const { addToCart } = useCart();
 
   const handleIncrement = () => {
     if (quantity < book.stock) setQuantity(quantity + 1);
@@ -97,7 +99,15 @@ const SingleBookPage = ({ book }) => {
                   +
                 </button>
               </div>
-              <button className="bg-black text-white px-6 py-2 hover:bg-gray-800 transition">
+              <button
+                className="bg-black text-white px-6 py-2 hover:bg-gray-800 transition"
+                onClick={() =>
+                  addToCart({
+                    item: { id: book.id, title: book.title, price: book.price },
+                    quantity,
+                  })
+                }
+              >
                 Add to Cart
               </button>
               <button className="bg-red-500 text-white hover:bg-red-600 px-6 py-2 transition">
