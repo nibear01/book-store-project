@@ -30,12 +30,26 @@ import Books from "./components/adminComponents/Books";
 import Order from "./components/adminComponents/Order";
 import Settings from "./components/adminComponents/Settings";
 import UserDashboard from "./pages/UserDashboard";
+import { useAuth } from "./context/AuthContext";
+import { Navigate } from "react-router-dom";
 
 function AppContent() {
   const location = useLocation();
+  const { isAuthenticated, user, isLoading } = useAuth();
 
   // Hide Navbar and Footer for /admin and all nested routes
   const hideNavbarFooter = location.pathname.startsWith("/admin");
+
+  // If the user is an authenticated admin and tries to access any non-admin route,
+  // redirect them to the admin dashboard (covers refreshes and direct navigation)
+  if (
+    !isLoading &&
+    isAuthenticated &&
+    user?.isAdmin &&
+    !location.pathname.startsWith("/admin")
+  ) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
 
   return (
     <>

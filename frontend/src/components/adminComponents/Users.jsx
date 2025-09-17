@@ -9,6 +9,9 @@ const Users = () => {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [editingUser, setEditingUser] = useState(null);
+  const [changingPwUser, setChangingPwUser] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const pageSize = 10;
 
@@ -63,7 +66,10 @@ const Users = () => {
   };
 
   const handleResetPassword = (id) => {
-    alert("Password reset endpoint not implemented");
+    const user = users.find((u) => u._id === id);
+    setChangingPwUser(user || { _id: id });
+    setNewPassword("");
+    setConfirmPassword("");
   };
 
   const handleDelete = async (id) => {
@@ -189,7 +195,7 @@ const Users = () => {
                         onClick={() => handleResetPassword(user._id)}
                         className="bg-yellow-500 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
                       >
-                        Reset PW
+                        Change PW
                       </button>
                       <button
                         onClick={() => handleDelete(user._id)}
@@ -262,7 +268,7 @@ const Users = () => {
                       onClick={() => handleResetPassword(user._id)}
                       className="bg-yellow-500 text-white p-2 rounded-[2px] text-xs"
                     >
-                      Reset PW
+                      Change PW
                     </button>
                     <button
                       onClick={() => handleDelete(user._id)}
@@ -344,6 +350,71 @@ const Users = () => {
                 className="px-3 py-2 rounded-[2px] bg-black text-white"
               >
                 Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- Change Password Modal --- */}
+      {changingPwUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-4 sm:p-6 rounded-[2px] w-full max-w-md">
+            <h3 className="text-lg font-bold mb-4">Change Password</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              User: {changingPwUser?.email || changingPwUser?._id}
+            </p>
+
+            <label className="block mb-2 text-sm">New Password</label>
+            <input
+              type="password"
+              className="border p-2 rounded-[2px] w-full mb-3"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="At least 6 characters"
+            />
+
+            <label className="block mb-2 text-sm">Confirm Password</label>
+            <input
+              type="password"
+              className="border p-2 rounded-[2px] w-full mb-4"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+              <button
+                onClick={() => setChangingPwUser(null)}
+                className="px-3 py-2 rounded-[2px] bg-gray-200 mt-2 sm:mt-0"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    if (!newPassword || newPassword.length < 6) {
+                      alert("Password must be at least 6 characters");
+                      return;
+                    }
+                    if (newPassword !== confirmPassword) {
+                      alert("Passwords do not match");
+                      return;
+                    }
+                    await adminUsersAPI.changePassword(
+                      changingPwUser._id,
+                      newPassword
+                    );
+                    setChangingPwUser(null);
+                    setNewPassword("");
+                    setConfirmPassword("");
+                    alert("✅ Password updated");
+                  } catch (e) {
+                    alert(e.message || "Failed to update password");
+                  }
+                }}
+                className="px-3 py-2 rounded-[2px] bg-black text-white"
+              >
+                Update
               </button>
             </div>
           </div>

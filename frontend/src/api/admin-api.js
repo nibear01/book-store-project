@@ -31,6 +31,7 @@ export const adminUsersAPI = {
     delete: (id) => request(`/users/${id}`, { method: 'DELETE' }),
     changeRole: (id, isAdmin) => request(`/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ isAdmin }) }),
     changeStatus: (id, status) => request(`/users/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+    changePassword: (id, password) => request(`/users/${id}/password`, { method: 'PUT', body: JSON.stringify({ password }) }),
 };
 
 export const adminBooksAPI = {

@@ -8,7 +8,8 @@ import {
     updateUser,
     deleteUser,
     changeUserRole,
-    changeUserStatus
+    changeUserStatus,
+    changeUserPasswordAdmin
 } from "../controllers/user-controllers.js";
 import { protect, authorize } from "../middlewares/auth-middleware.js";
 import {
@@ -36,5 +37,6 @@ router.delete("/:id", protect, canDeleteUser, deleteUser);            // DELETE 
 // Admin only routes
 router.put("/:id/role", protect, canChangeRole, validateAdminAction, changeUserRole);     // PUT /api/users/:id/role
 router.put("/:id/status", protect, canChangeStatus, validateAdminAction, changeUserStatus); // PUT /api/users/:id/status
+router.put("/:id/password", protect, isAdmin, changeUserPasswordAdmin); // PUT /api/users/:id/password
 
 export default router;
