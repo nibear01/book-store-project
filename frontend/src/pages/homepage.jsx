@@ -8,10 +8,10 @@ const homepage = () => {
   return (
     <div className="min-h-screen bg-gray-50 mx-20 ">
       <Hero />
-      <Category />
-      <Feature />
-      <Deals />
-      <Book />
+       <Category />
+       <Feature />
+       <Deals />
+      <Book />   
   
     </div>                                                                                                                                                                                                                                                                                                                                  
   );

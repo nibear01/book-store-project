@@ -7,6 +7,9 @@
 * {
   font-family: "Outfit";
 }
+body {
+  overflow-x: hidden;
+}
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
