@@ -4,29 +4,41 @@ const API_BASE_URL = 'http://localhost:5000/api';
 // Helper function to make API requests
 const apiRequest = async (endpoint, options = {}) => {
     const url = `${API_BASE_URL}${endpoint}`;
+    // Detect FormData
+    const isFormData = options.body instanceof FormData;
 
-    const config = {
-        headers: {
-            'Content-Type': 'application/json',
-            ...options.headers,
-        },
-        ...options,
+    // Build headers without forcing JSON for FormData
+    const headers = {
+        ...(options.headers || {}),
     };
+    if (!isFormData && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+    }
 
     // Add authorization header if token exists
     const token = localStorage.getItem('token');
     if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        headers.Authorization = `Bearer ${token}`;
     }
+
+    // Prepare body
+    let body = options.body;
+    if (!isFormData && body && typeof body !== 'string') {
+        body = JSON.stringify(body);
+    }
+
+    const config = {
+        method: options.method || 'GET',
+        headers,
+        body,
+    };
 
     try {
         const response = await fetch(url, config);
         const data = await response.json();
-
         if (!response.ok) {
             throw new Error(data.message || 'Something went wrong');
         }
-
         return data;
     } catch (error) {
         console.error('API Error:', error);
@@ -100,10 +112,12 @@ export const userAPI = {
     },
 
     // Update user profile by ID (aligns with backend PUT /users/:id)
-    updateProfileById: async (userId, userData) => {
+    updateProfileById: async (userId, userData, options = {}) => {
+        // userData can be a plain object or FormData
         return await apiRequest(`/users/${userId}`, {
             method: 'PUT',
-            body: JSON.stringify(userData),
+            body: userData,
+            headers: options.headers, // optional passthrough
         });
     },
 };

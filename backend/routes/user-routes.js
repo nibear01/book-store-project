@@ -19,6 +19,7 @@ import {
     canChangeStatus,
     validateAdminAction
 } from "../middlewares/admin-middleware.js";
+import { upload } from "../middlewares/upload-middleware.js"; // added
 
 const router = express.Router();
 
@@ -30,7 +31,7 @@ router.post("/login", loginUser);
 router.get("/me", protect, getMe);                                    // GET /api/users/me
 router.get("/", protect, isAdmin, getAllUsers);                       // GET /api/users (Admin only)
 router.get("/:id", protect, canManageUser, getUserById);              // GET /api/users/:id
-router.put("/:id", protect, canManageUser, updateUser);               // PUT /api/users/:id
+router.put("/:id", protect, canManageUser, upload.single("profile_image"), updateUser); // PUT /api/users/:id (with image) - modified
 router.delete("/:id", protect, canDeleteUser, deleteUser);            // DELETE /api/users/:id (Admin only)
 
 // Admin only routes

@@ -9,20 +9,41 @@ const UserDashboard = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [profileFile, setProfileFile] = useState(null); // added
+  const [preview, setPreview] = useState(null); // added
+  const baseUrl = import.meta.env.VITE_BACKEND_URL || "";
+
+  // helper to get correct profile image path from various shapes
+  const getProfileImageUrl = (u) => {
+    const img = u?.profile_image ?? u?.data?.profile_image ?? null;
+    return img ? `${baseUrl}${img}` : null;
+  };
 
   useEffect(() => {
     if (user) {
       setForm({
-        name: user.name || "",
-        email: user.email || "",
-        address: user.address || "",
+        name: (user?.name ?? user?.data?.name) || "",
+        email: (user?.email ?? user?.data?.email) || "",
+        address: (user?.address ?? user?.data?.address) || "",
       });
+      setPreview(getProfileImageUrl(user));
+      setProfileFile(null);
     }
-  }, [user]);
+  }, [user, baseUrl]);
 
   const onChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const onPickImage = (e) => {
+    const file = e.target.files?.[0];
+    setProfileFile(file || null);
+    if (file) {
+      setPreview(URL.createObjectURL(file));
+    } else {
+      setPreview(user?.profile_image ? `${baseUrl}${user.profile_image}` : null);
+    }
   };
 
   const onSubmit = async (e) => {
@@ -31,16 +52,25 @@ const UserDashboard = () => {
     setSuccess("");
     setSaving(true);
     try {
-      const updated = await userAPI.updateProfileById(user._id, {
-        name: form.name,
-        email: form.email,
-        address: form.address,
-      });
-      updateUser(updated.data);
+      const fd = new FormData();
+      fd.append("name", form.name);
+      fd.append("email", form.email);
+      fd.append("address", form.address);
+      if (profileFile) fd.append("profile_image", profileFile);
+
+      const updated = await userAPI.updateProfileById(user._id, fd); // removed manual headers
+
+      // Normalize response: axios => { data: { success, message, data: user } }
+      const resData = updated?.data ?? updated;
+      const updatedUser = resData?.data ?? resData;
+
+      updateUser(updatedUser);
       setSuccess("Profile updated successfully.");
       setIsEditing(false);
+      setPreview(getProfileImageUrl(updatedUser));
+      setProfileFile(null);
     } catch (err) {
-      setError(err.message || "Failed to update profile.");
+      setError(err?.response?.data?.message || err.message || "Failed to update profile.");
     } finally {
       setSaving(false);
     }
@@ -67,6 +97,21 @@ const UserDashboard = () => {
 
       {!isEditing ? (
         <div className="bg-white border border-gray-200 rounded-[2px] p-4 space-y-3">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-full overflow-hidden bg-gray-100 border">
+              {preview ? (
+                <img src={preview} alt="Profile" className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center text-gray-400">
+                  <span className="text-sm">No Image</span>
+                </div>
+              )}
+            </div>
+            <div>
+              <span className="text-sm text-gray-600">Profile Picture</span>
+              <p className="text-gray-900">{preview ? "Set" : "Not set"}</p>
+            </div>
+          </div>
           <div>
             <span className="text-sm text-gray-600">Name</span>
             <p className="text-gray-900">{user.name}</p>
@@ -87,10 +132,29 @@ const UserDashboard = () => {
           </button>
         </div>
       ) : (
-        <form
-          onSubmit={onSubmit}
-          className="bg-white border border-gray-200 rounded-[2px] p-4 space-y-4"
-        >
+        <form onSubmit={onSubmit} className="bg-white border border-gray-200 rounded-[2px] p-4 space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-full overflow-hidden bg-gray-100 border">
+              {preview ? (
+                <img src={preview} alt="Preview" className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center text-gray-400">
+                  <span className="text-sm">No Image</span>
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm text-gray-700 mb-1">Profile Picture</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={onPickImage}
+                className="block w-full text-sm text-gray-900 border border-gray-300 rounded-[2px] cursor-pointer focus:outline-none"
+              />
+              <p className="text-xs text-gray-500 mt-1">PNG/JPG up to ~5MB.</p>
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm text-gray-700 mb-1">Name</label>
             <input

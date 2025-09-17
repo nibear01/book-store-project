@@ -1,5 +1,6 @@
 import User from "../models/user-model.js";
 import { generateToken } from "../middlewares/auth-middleware.js";
+import path from "path"; // added
 
 // @desc    Register a new user
 // @route   POST /api/users/register
@@ -189,53 +190,72 @@ export const getUserById = async (req, res) => {
     }
 };
 
+// helper to map absolute file path -> public relative path
+const toPublicPath = (file) => {
+  if (!file?.path) return undefined;
+  const rel = path.relative(process.cwd(), file.path).split(path.sep).join("/");
+  return rel.startsWith("/") ? rel : `/${rel}`;
+};
+
 // @desc    Update user profile
 // @route   PUT /api/users/:id
 // @access  Private
 export const updateUser = async (req, res) => {
-    try {
-        const { name, email, address, status } = req.body;
-        const userId = req.params.id;
+  try {
+    const { name, email, address, status } = req.body;
+    const userId = req.params.id;
 
-        // Check if user exists
-        const user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
-        }
-
-        // Check if email is being changed and if it's already taken
-        if (email && email !== user.email) {
-            const existingUser = await User.findOne({ email });
-            if (existingUser) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Email already in use"
-                });
-            }
-        }
-
-        // Update user
-        const updatedUser = await User.findByIdAndUpdate(
-            userId,
-            { name, email, address, status },
-            { new: true, runValidators: true }
-        ).select('-password');
-
-        res.status(200).json({
-            success: true,
-            message: "User updated successfully",
-            data: updatedUser
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error updating user",
-            error: error.message
-        });
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
     }
+
+    // Check if email is being changed and if it's already taken
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: "Email already in use"
+        });
+      }
+    }
+
+    // Build update payload only with provided fields
+    const update = {};
+    if (name !== undefined) update.name = name;
+    if (email !== undefined) update.email = email;
+    if (address !== undefined) update.address = address;
+    if (status !== undefined) update.status = status;
+
+    // Handle uploaded profile image
+    if (req.file) {
+      const publicPath = toPublicPath(req.file);
+      if (publicPath) update.profile_image = publicPath;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      update,
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      data: updatedUser
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error updating user",
+      error: error.message
+    });
+  }
 };
 
 // @desc    Delete user
