@@ -120,6 +120,20 @@ export const userAPI = {
             headers: options.headers, // optional passthrough
         });
     },
+
+    // Forgot / Reset password
+    forgotPassword: async (email) => {
+        return await apiRequest('/users/forgot-password', {
+            method: 'POST',
+            body: { email },
+        });
+    },
+    resetPassword: async ({ email, token, password }) => {
+        return await apiRequest('/users/reset-password', {
+            method: 'POST',
+            body: { email, token, password },
+        });
+    },
 };
 
 export default userAPI;

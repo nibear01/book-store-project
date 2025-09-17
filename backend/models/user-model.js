@@ -47,6 +47,16 @@ const userSchema = new mongoose.Schema(
       trim: true,
       maxlength: [500, "Address cannot exceed 500 characters"],
     },
+    resetPasswordToken: {
+      type: String,
+      default: null,
+      index: true,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      default: null,
+      index: true,
+    },
     profile_image: {
       type: String,
       default: null,

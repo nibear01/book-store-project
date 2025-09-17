@@ -1,5 +1,7 @@
 import User from "../models/user-model.js";
 import { generateToken } from "../middlewares/auth-middleware.js";
+import crypto from "crypto";
+import nodemailer from "nodemailer";
 import path from "path"; // added
 
 // @desc    Register a new user
@@ -192,70 +194,70 @@ export const getUserById = async (req, res) => {
 
 // helper to map absolute file path -> public relative path
 const toPublicPath = (file) => {
-  if (!file?.path) return undefined;
-  const rel = path.relative(process.cwd(), file.path).split(path.sep).join("/");
-  return rel.startsWith("/") ? rel : `/${rel}`;
+    if (!file?.path) return undefined;
+    const rel = path.relative(process.cwd(), file.path).split(path.sep).join("/");
+    return rel.startsWith("/") ? rel : `/${rel}`;
 };
 
 // @desc    Update user profile
 // @route   PUT /api/users/:id
 // @access  Private
 export const updateUser = async (req, res) => {
-  try {
-    const { name, email, address, status } = req.body;
-    const userId = req.params.id;
+    try {
+        const { name, email, address, status } = req.body;
+        const userId = req.params.id;
 
-    // Check if user exists
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found"
-      });
-    }
+        // Check if user exists
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
 
-    // Check if email is being changed and if it's already taken
-    if (email && email !== user.email) {
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        return res.status(400).json({
-          success: false,
-          message: "Email already in use"
+        // Check if email is being changed and if it's already taken
+        if (email && email !== user.email) {
+            const existingUser = await User.findOne({ email });
+            if (existingUser) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Email already in use"
+                });
+            }
+        }
+
+        // Build update payload only with provided fields
+        const update = {};
+        if (name !== undefined) update.name = name;
+        if (email !== undefined) update.email = email;
+        if (address !== undefined) update.address = address;
+        if (status !== undefined) update.status = status;
+
+        // Handle uploaded profile image
+        if (req.file) {
+            const publicPath = toPublicPath(req.file);
+            if (publicPath) update.profile_image = publicPath;
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            update,
+            { new: true, runValidators: true }
+        ).select("-password");
+
+        res.status(200).json({
+            success: true,
+            message: "User updated successfully",
+            data: updatedUser
         });
-      }
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error updating user",
+            error: error.message
+        });
     }
-
-    // Build update payload only with provided fields
-    const update = {};
-    if (name !== undefined) update.name = name;
-    if (email !== undefined) update.email = email;
-    if (address !== undefined) update.address = address;
-    if (status !== undefined) update.status = status;
-
-    // Handle uploaded profile image
-    if (req.file) {
-      const publicPath = toPublicPath(req.file);
-      if (publicPath) update.profile_image = publicPath;
-    }
-
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      update,
-      { new: true, runValidators: true }
-    ).select("-password");
-
-    res.status(200).json({
-      success: true,
-      message: "User updated successfully",
-      data: updatedUser
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error updating user",
-      error: error.message
-    });
-  }
 };
 
 // @desc    Delete user
@@ -399,5 +401,75 @@ export const changeUserPasswordAdmin = async (req, res) => {
             message: "Error updating user password",
             error: error.message
         });
+    }
+};
+
+// @desc    Request password reset (send email via Nodemailer)
+// @route   POST /api/users/forgot-password
+// @access  Public
+export const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ success: false, message: "Email is required" });
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            // Do not reveal if user exists
+            return res.status(200).json({ success: true, message: "If an account exists, an email has been sent" });
+        }
+
+        const token = crypto.randomBytes(32).toString("hex");
+        user.resetPasswordToken = token;
+        user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        await user.save();
+
+        const resetUrl = `${process.env.CLIENT_URL || "http://localhost:5173"}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
+
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: Number(process.env.SMTP_PORT) || 587,
+            secure: false,
+            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+        });
+
+        await transporter.sendMail({
+            from: process.env.SMTP_FROM || "BookStore <no-reply@bookstore.local>",
+            to: email,
+            subject: "Password Reset Request",
+            html: `<p>You requested a password reset.</p>
+             <p>Click the link below to reset your password (valid for 1 hour):</p>
+             <p><a href="${resetUrl}">${resetUrl}</a></p>
+             <p>If you did not request this, please ignore this email.</p>`
+        });
+
+        return res.status(200).json({ success: true, message: "Password reset email sent" });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Error sending reset email", error: error.message });
+    }
+};
+
+// @desc    Reset password
+// @route   POST /api/users/reset-password
+// @access  Public
+export const resetPassword = async (req, res) => {
+    try {
+        const { email, token, password } = req.body;
+        if (!email || !token || !password) {
+            return res.status(400).json({ success: false, message: "Email, token, and new password are required" });
+        }
+
+        const user = await User.findOne({ email, resetPasswordToken: token, resetPasswordExpires: { $gt: new Date() } });
+        if (!user) {
+            return res.status(400).json({ success: false, message: "Invalid or expired reset token" });
+        }
+
+        user.password = password; // Note: plain text in current app
+        user.resetPasswordToken = null;
+        user.resetPasswordExpires = null;
+        await user.save();
+
+        return res.status(200).json({ success: true, message: "Password has been reset" });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Error resetting password", error: error.message });
     }
 };

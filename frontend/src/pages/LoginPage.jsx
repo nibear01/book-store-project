@@ -112,7 +112,7 @@ const LoginPage = () => {
               </div>
               <div className="flex justify-end">
                 <Link
-                  to="#"
+                  to="/forgot-password"
                   className="text-xs text-black hover:text-gray-600 transition-colors"
                 >
                   Forgot password?
