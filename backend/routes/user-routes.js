@@ -9,7 +9,9 @@ import {
     deleteUser,
     changeUserRole,
     changeUserStatus,
-    changeUserPasswordAdmin
+    changeUserPasswordAdmin,
+    forgotPassword,
+    resetPassword
 } from "../controllers/user-controllers.js";
 import { protect, authorize } from "../middlewares/auth-middleware.js";
 import {
@@ -27,6 +29,10 @@ const router = express.Router();
 // Public routes
 router.post("/register", registerUser);
 router.post("/login", loginUser);
+
+// Public password reset routes
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 
 // Protected routes
 router.get("/me", protect, getMe);                                    // GET /api/users/me

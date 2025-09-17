@@ -32,6 +32,8 @@ import Settings from "./components/adminComponents/Settings";
 import UserDashboard from "./pages/UserDashboard";
 import { useAuth } from "./context/AuthContext";
 import { Navigate } from "react-router-dom";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 function AppContent() {
   const location = useLocation();
@@ -76,6 +78,8 @@ function AppContent() {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/bookview/:slug" element={<BookViewPage />} />
         <Route path="/account" element={<UserDashboard />} />
       </Routes>

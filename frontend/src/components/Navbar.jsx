@@ -83,7 +83,26 @@ const Navbar = () => {
                   to="/account"
                   className="flex items-center space-x-2 text-gray-700 hover:text-[var(--hover-color)]"
                 >
-                  <FaUser className="h-4 w-4" />
+                  {user?.profile_image ? (
+                    // Ensure absolute URL if backend returns a relative path
+                    (() => {
+                      const src = String(user.profile_image || "");
+                      const absolute = /^https?:\/\//i.test(src)
+                        ? src
+                        : `http://localhost:5000${
+                            src.startsWith("/") ? src : `/${src}`
+                          }`;
+                      return (
+                        <img
+                          src={absolute}
+                          alt="Profile"
+                          className="h-6 w-6 rounded-full object-cover"
+                        />
+                      );
+                    })()
+                  ) : (
+                    <FaUser className="h-4 w-4" />
+                  )}
                   <span className="text-sm font-medium">
                     {user?.name || user?.email}
                   </span>
@@ -156,7 +175,25 @@ const Navbar = () => {
                     onClick={() => setIsMenuOpen(false)}
                     className="flex items-center space-x-2 text-gray-700 px-3 py-2 hover:text-[var(--hover-color)]"
                   >
-                    <FaUser className="h-4 w-4" />
+                    {user?.profile_image ? (
+                      (() => {
+                        const src = String(user.profile_image || "");
+                        const absolute = /^https?:\/\//i.test(src)
+                          ? src
+                          : `http://localhost:5000${
+                              src.startsWith("/") ? src : `/${src}`
+                            }`;
+                        return (
+                          <img
+                            src={absolute}
+                            alt="Profile"
+                            className="h-6 w-6 rounded-full object-cover"
+                          />
+                        );
+                      })()
+                    ) : (
+                      <FaUser className="h-4 w-4" />
+                    )}
                     <span className="text-sm font-medium">
                       {user?.name || user?.email}
                     </span>
