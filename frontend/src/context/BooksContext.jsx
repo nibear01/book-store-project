@@ -69,37 +69,52 @@ const BooksContextProvider = ({ children }) => {
   );
 
   // Admin: Add book
-  const addBook = useCallback(
-    async (formData) => {
-      const { data } = await axios.post(`${url}/api/books`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      return data;
-    },
-    [url]
-  );
+    const addBook = async (formData) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.post(`${url}/api/books`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                }
+            });
+            return response.data;
+        } catch (err) {
+            throw err;
+        }
+    };
 
-  // Admin: Update book
-  const updateBook = useCallback(
-    async (id, formData) => {
-      const { data } = await axios.put(`${url}/api/books/${id}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      return data;
-    },
-    [url]
-  );
+    // Admin: Update book
+    const updateBook = async (id, formData) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.put(`${url}/api/books/${id}`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                }
+            });
+            return response.data;
+        } catch (err) {
+            throw err;
+        }
+    };
 
-  // Admin: Delete book
-  const deleteBook = useCallback(
-    async (id, hard = false) => {
-      const { data } = await axios.delete(`${url}/api/books/${id}`, {
-        params: { hard },
-      });
-      return data;
-    },
-    [url]
-  );
+    // Admin: Delete book
+    const deleteBook = async (id, hard = false) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.delete(`${url}/api/books/${id}`, {
+                params: { hard },
+                headers: {
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                }
+            });
+            return response.data;
+        } catch (err) {
+            throw err;
+        }
+    };
 
   // Initial load
   useEffect(() => {
