@@ -8,7 +8,7 @@ const bookSchema = new mongoose.Schema(
     genre: [{ type: String, trim: true }], // was: String
     language: String,
     slug: { type: String, trim: true, lowercase: true, unique: true, sparse: true },
-    meta_title: { type: String, trim: true },
+    meta_title: { type: String, trim: true, required: true },
     meta_description: { type: String, trim: true },
     meta_keywords: [{ type: String, trim: true }],
     isbn: String,
@@ -21,6 +21,8 @@ const bookSchema = new mongoose.Schema(
     num_reviews: { type: Number, default: 0 },
     is_active: { type: Boolean, default: true },
     is_featured: { type: Boolean, default: false },
+    publisher: { type: String, trim: true }, // added
+    pages: { type: Number, default: 0 }, // added
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },

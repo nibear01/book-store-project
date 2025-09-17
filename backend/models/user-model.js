@@ -47,6 +47,11 @@ const userSchema = new mongoose.Schema(
       trim: true,
       maxlength: [500, "Address cannot exceed 500 characters"],
     },
+    profile_image: {
+      type: String,
+      default: null,
+      trim: true,
+    },
     created_at: {
       type: Date,
       default: Date.now,

@@ -62,6 +62,8 @@ const pickUpdatableFields = (payload = {}) => {
     "meta_title",
     "meta_description",
     "meta_keywords",
+    "publisher",   // added
+    "pages",       // added
   ];
   const out = {};
   for (const k of allowed) {
@@ -147,6 +149,12 @@ const pickUpdatableFields = (payload = {}) => {
     if (!Number.isInteger(nr) || nr < 0) throw new Error("Invalid num_reviews");
     out.num_reviews = nr;
   }
+  if (out.pages !== undefined) {
+    const pg = Number(out.pages);
+    if (!Number.isInteger(pg) || pg < 0) throw new Error("Invalid pages");
+    out.pages = pg;
+  }
+
   return out;
 };
 
@@ -255,19 +263,22 @@ export const getBookById = async (req, res) => {
 // POST /api/books
 export const createBook = async (req, res) => {
   try {
-    const { title, author, price } = req.body || {};
+    const { title, author, price, meta_title } = req.body || {};
     if (!title || !author) {
       return res.status(400).json({ success: false, message: "Title and author are required" });
     }
     if (price === undefined) {
       return res.status(400).json({ success: false, message: "Price is required" });
     }
+    if (!meta_title) {
+      return res.status(400).json({ success: false, message: "Meta title is required" });
+    }
 
     const payload = pickUpdatableFields(req.body);
 
     // Derive slug if missing
-    if (!payload.slug && payload.title) {
-      payload.slug = slugify(payload.title);
+    if (!payload.slug && payload.meta_title) {
+      payload.slug = slugify(payload.meta_title);
     }
     payload.slug = await ensureUniqueSlug(payload.slug);
 
