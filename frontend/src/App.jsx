@@ -39,6 +39,32 @@ function AppContent() {
   const location = useLocation();
   const { isAuthenticated, user, isLoading } = useAuth();
 
+  // Route guards
+  const RequireAuth = ({ children }) => {
+    if (isLoading) return null;
+    if (!isAuthenticated) {
+      return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+    return children;
+  };
+
+  const RequireAdmin = ({ children }) => {
+    if (isLoading) return null;
+    if (!isAuthenticated || !user?.isAdmin) {
+      return <Navigate to="/" replace />;
+    }
+    return children;
+  };
+
+  const RequireGuest = ({ children }) => {
+    if (isLoading) return null;
+    if (isAuthenticated) {
+      // Admins go to dashboard, users go home/account
+      return <Navigate to={user?.isAdmin ? "/admin/dashboard" : "/"} replace />;
+    }
+    return children;
+  };
+
   // Hide Navbar and Footer for /admin and all nested routes
   const hideNavbarFooter = location.pathname.startsWith("/admin");
 
@@ -63,7 +89,14 @@ function AppContent() {
         <Route path="/categories" element={<CategoriesPage />} />
         <Route path="/shop" element={<ShopPage />} />
 
-        <Route path="/admin" element={<AdminPage />}>
+        <Route
+          path="/admin"
+          element={
+            <RequireAdmin>
+              <AdminPage />
+            </RequireAdmin>
+          }
+        >
           <Route index element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="users" element={<Users />} />
@@ -73,15 +106,57 @@ function AppContent() {
         </Route>
 
         <Route path="/cart" element={<CartPage />} />
-        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route
+          path="/checkout"
+          element={
+            <RequireAuth>
+              <CheckoutPage />
+            </RequireAuth>
+          }
+        />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/contact" element={<ContactPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route
+          path="/login"
+          element={
+            <RequireGuest>
+              <LoginPage />
+            </RequireGuest>
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            <RequireGuest>
+              <SignupPage />
+            </RequireGuest>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <RequireGuest>
+              <ForgotPassword />
+            </RequireGuest>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <RequireGuest>
+              <ResetPassword />
+            </RequireGuest>
+          }
+        />
         <Route path="/bookview/:slug" element={<BookViewPage />} />
-        <Route path="/account" element={<UserDashboard />} />
+        <Route
+          path="/account"
+          element={
+            <RequireAuth>
+              <UserDashboard />
+            </RequireAuth>
+          }
+        />
       </Routes>
 
       {!hideNavbarFooter && <Footer />}
