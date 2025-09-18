@@ -1,30 +1,44 @@
-import express from "express";
+// server/routes/orderRoutes.js
+import express from 'express';
 import {
   createOrder,
   getUserOrders,
-  getOrderById,
   getAllOrders,
+  getOrderById,
   updateOrderStatus,
-  updatePaymentStatus,
-  getSalesStats
-} from "../controllers/order-controllers.js";
-import { protect } from "../middlewares/auth-middleware.js";
-import { isAdmin } from "../middlewares/admin-middleware.js";
+  importOrdersFromCSV
+} from '../controllers/orderController.js';
+import { auth, adminAuth } from '../middleware/auth.js'; // Import middleware
+import multer from 'multer';
+import path from 'path';
 
 const router = express.Router();
 
-// All routes are protected
-router.use(protect);
+// Configure Multer for CSV upload (adjust destination as needed)
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'server/uploads/'); // Ensure this directory exists
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname)); // Unique filename
+  }
+});
+const upload = multer({ storage: storage, fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.mimetype === 'application/vnd.ms-excel') {
+        cb(null, true);
+    } else {
+        cb(new Error('Only CSV files are allowed!'), false);
+    }
+}});
 
-// Customer routes
-router.post("/", createOrder);                    // POST /api/orders - Create new order
-router.get("/", getUserOrders);                   // GET /api/orders - Get user's orders
-router.get("/:id", getOrderById);                 // GET /api/orders/:id - Get order by ID
+// User Routes
+router.post('/', auth, createOrder); // Create new order
+router.get('/my-orders', auth, getUserOrders); // Get user's orders
+router.get('/:id', auth, getOrderById); // Get specific order (user or admin)
 
-// Admin routes
-router.get("/admin/all", isAdmin, getAllOrders);              // GET /api/orders/admin/all - Get all orders (admin)
-router.get("/admin/stats", isAdmin, getSalesStats);           // GET /api/orders/admin/stats - Get sales stats (admin)
-router.put("/:id/status", isAdmin, updateOrderStatus);        // PUT /api/orders/:id/status - Update order status (admin)
-router.put("/:id/payment", isAdmin, updatePaymentStatus);     // PUT /api/orders/:id/payment - Update payment status (admin)
+// Admin Routes
+router.get('/', adminAuth, getAllOrders); // Get all orders with filters
+router.put('/:id/status', adminAuth, updateOrderStatus); // Update order status
+router.post('/import', adminAuth, upload.single('csvFile'), importOrdersFromCSV); // Import from CSV
 
 export default router;
