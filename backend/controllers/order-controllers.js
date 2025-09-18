@@ -5,8 +5,12 @@ import fs from 'fs';
 // Create new order
 export const createOrder = async (req, res) => {
     try {
+        // Generate unique order number
+        const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
         const order = await Order.create({
             ...req.body,
+            order_number: orderNumber,
             user: req.user._id
         });
         res.status(201).json({
@@ -80,7 +84,7 @@ export const updateOrderStatus = async (req, res) => {
     try {
         const order = await Order.findByIdAndUpdate(
             req.params.id,
-            { status: req.body.status },
+            { order_status: req.body.status },
             { new: true }
         );
         if (!order) {

@@ -2,6 +2,11 @@
 import mongoose from 'mongoose';
 
 const orderSchema = new mongoose.Schema({
+    order_number: {
+        type: String,
+        unique: true,
+        required: true
+    },
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
@@ -23,23 +28,25 @@ const orderSchema = new mongoose.Schema({
             required: true
         }
     }],
-    totalAmount: {
+    total_amount: {
         type: Number,
         required: true
     },
-    status: {
+    order_status: {
         type: String,
         enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
         default: 'pending'
     },
-    shippingAddress: {
+    shipping_address: {
+        fullName: String,
+        email: String,
         street: String,
         city: String,
         state: String,
         country: String,
         zipCode: String
     },
-    paymentInfo: {
+    payment_info: {
         method: {
             type: String,
             required: true

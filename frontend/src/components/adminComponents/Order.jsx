@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getAllOrders, updateOrderStatus } from "../../api/order-api";
 
 export default function OrderManagement() {
   const [orders, setOrders] = useState([]);
@@ -18,10 +19,7 @@ export default function OrderManagement() {
     const fetchOrders = async () => {
       setLoading(true);
       try {
-        const res = await fetch("http://localhost:5000/api/orders/admin/all", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
+        const data = await getAllOrders();
         if (data.success) setOrders(data.data || []);
         else {
           alert(data.message || "Failed to fetch orders");
@@ -35,25 +33,40 @@ export default function OrderManagement() {
       setLoading(false);
     };
     fetchOrders();
-  }, [token]);
+  }, []);
 
-  // Update order status locally (for demo; you can call API later)
-  const handleUpdateStatus = (id, newStatus) => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order._id === id ? { ...order, order_status: newStatus } : order
-      )
-    );
-    alert("Order status updated locally!");
+  // Update order status via API
+  const handleUpdateStatus = async (id, newStatus) => {
+    try {
+      const response = await updateOrderStatus(id, { status: newStatus });
+      if (response.success) {
+        setOrders((prev) =>
+          prev.map((order) =>
+            order._id === id ? { ...order, order_status: newStatus } : order
+          )
+        );
+        alert("Order status updated successfully!");
+      } else {
+        alert(response.message || "Failed to update order status");
+      }
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      alert("Failed to update order status. Please try again.");
+    }
   };
 
   // Filtering orders
   const filteredOrders = orders
-    .filter((order) => (filter === "all" ? true : order.order_status === filter))
+    .filter((order) =>
+      filter === "all" ? true : order.order_status === filter
+    )
     .filter((order) => {
-      const customerName = order.shipping_address?.fullName?.toLowerCase() || "";
+      const customerName =
+        order.shipping_address?.fullName?.toLowerCase() || "";
       return (
-        order.order_number?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
+        order.order_number
+          ?.toLowerCase()
+          .includes(searchQuery?.toLowerCase()) ||
         customerName.includes(searchQuery?.toLowerCase())
       );
     })
@@ -61,7 +74,8 @@ export default function OrderManagement() {
       const orderDate = new Date(order.created_at);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      if (dateFilter === "today") return orderDate.setHours(0, 0, 0, 0) === today.getTime();
+      if (dateFilter === "today")
+        return orderDate.setHours(0, 0, 0, 0) === today.getTime();
       if (dateFilter === "before") return orderDate < today;
       if (dateFilter === "custom") {
         const start = startDate ? new Date(startDate) : null;
@@ -79,7 +93,10 @@ export default function OrderManagement() {
     currentPage * ORDERS_PER_PAGE
   );
 
-  useEffect(() => setCurrentPage(1), [filter, searchQuery, dateFilter, startDate, endDate]);
+  useEffect(
+    () => setCurrentPage(1),
+    [filter, searchQuery, dateFilter, startDate, endDate]
+  );
 
   const getStatusClass = (status) => {
     switch (status) {
@@ -190,9 +207,15 @@ export default function OrderManagement() {
                   className="text-center hover:bg-gray-50 transition"
                 >
                   <td className="p-2 border">{order.order_number}</td>
-                  <td className="p-2 border">{order.shipping_address?.fullName}</td>
-                  <td className="p-2 border">{order.shipping_address?.email}</td>
-                  <td className="p-2 border">${order.total_amount?.toFixed(2)}</td>
+                  <td className="p-2 border">
+                    {order.shipping_address?.fullName}
+                  </td>
+                  <td className="p-2 border">
+                    {order.shipping_address?.email}
+                  </td>
+                  <td className="p-2 border">
+                    ${order.total_amount?.toFixed(2)}
+                  </td>
                   <td className="p-2 border">
                     <span
                       className={`px-2 py-1 rounded-full ${getStatusClass(
