@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
@@ -7,6 +7,7 @@ import { FaShoppingCart, FaUser, FaSignOutAlt } from "react-icons/fa";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
 
   const navigationLinks = [
@@ -16,7 +17,6 @@ const Navbar = () => {
     { name: "Shop", path: "/shop" },
     { name: "Terms", path: "/terms" },
     { name: "Contact", path: "/contact" },
-    { name: "Cart", path: "/cart" },
   ];
 
   const authLinks = [
@@ -24,8 +24,9 @@ const Navbar = () => {
     { name: "Sign Up", path: "/signup" },
   ];
 
-  const { state } = useCart();
+  const { state, subtotal, removeItem, updateQuantity } = useCart();
   const cartCount = state?.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -63,8 +64,9 @@ const Navbar = () => {
           {/* Cart + Auth (Desktop) */}
           <div className="hidden md:flex items-center space-x-4">
             {/* Cart */}
-            <Link
-              to="/cart"
+            <button
+              type="button"
+              onClick={() => setIsCartOpen(true)}
               className="relative text-gray-700 hover:text-[var(--hover-color)] transition"
             >
               <FaShoppingCart className="h-5 w-5" />
@@ -73,7 +75,7 @@ const Navbar = () => {
                   {cartCount}
                 </span>
               )}
-            </Link>
+            </button>
 
             {/* Auth Section */}
             {isAuthenticated ? (
@@ -224,6 +226,121 @@ const Navbar = () => {
                   </Link>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cart Drawer */}
+      {isCartOpen && (
+        <div className="fixed inset-0 z-[60]">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setIsCartOpen(false)}
+          />
+          {/* Drawer */}
+          <div className="absolute right-0 top-0 h-full w-[90%] sm:w-[420px] bg-white shadow-xl border-l border-gray-200 flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">Your Cart ({cartCount})</h3>
+              <button
+                type="button"
+                onClick={() => setIsCartOpen(false)}
+                className="p-2 text-gray-600 hover:text-black"
+                aria-label="Close cart"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {state.items && state.items.length > 0 ? (
+                <ul className="divide-y">
+                  {state.items.map((item) => (
+                    <li key={item.id} className="p-4 flex items-start gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium text-gray-900 truncate">
+                            {item.title}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => removeItem({ id: item.id })}
+                            className="text-xs text-gray-500 hover:text-red-600"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <div className="mt-1 text-sm text-gray-600">
+                          ${(item.price || 0).toFixed(2)}
+                        </div>
+                        <div className="mt-2 inline-flex items-center border">
+                          <button
+                            type="button"
+                            className="px-2 py-1 text-sm hover:bg-gray-100"
+                            onClick={() =>
+                              updateQuantity({
+                                id: item.id,
+                                quantity: Math.max(1, item.quantity - 1),
+                              })
+                            }
+                            aria-label="Decrease quantity"
+                          >
+                            -
+                          </button>
+                          <span className="px-3 text-sm">{item.quantity}</span>
+                          <button
+                            type="button"
+                            className="px-2 py-1 text-sm hover:bg-gray-100"
+                            onClick={() =>
+                              updateQuantity({
+                                id: item.id,
+                                quantity: item.quantity + 1,
+                              })
+                            }
+                            aria-label="Increase quantity"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="h-full flex items-center justify-center text-gray-500">
+                  Your cart is empty
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-gray-600">Subtotal</span>
+                <span className="text-base font-semibold">
+                  ${(subtotal || 0).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCartOpen(false);
+                    navigate("/cart");
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-[2px] text-sm hover:bg-gray-50"
+                >
+                  View Cart
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCartOpen(false);
+                    navigate("/checkout");
+                  }}
+                  className="flex-1 px-4 py-2 bg-black text-white rounded-[2px] text-sm hover:bg-gray-800"
+                >
+                  Checkout
+                </button>
+              </div>
             </div>
           </div>
         </div>
