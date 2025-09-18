@@ -3,11 +3,11 @@
 import { BooksContext } from "@/context/BooksContext";
 import { useState, useEffect, useRef, useContext } from "react";
 import { FaStar, FaStarHalfAlt, FaRegStar } from "react-icons/fa";
-import { Link } from "react-router";
+import { Link } from "react-router-dom"; // changed from react-router
 
 const CategoriesPage = () => {
 
-  const { books } = useContext(BooksContext);
+  const { url, books, loading, error, fetchBooks } = useContext(BooksContext);
   const book = books.data || [];
 
   const categories = [
@@ -64,6 +64,10 @@ const CategoriesPage = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [filteredBooks, setFilteredBooks] = useState([]);
 
+  // NEW: pagination
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(12);
+
   // Ref for mobile viewport handling
   const viewportRef = useRef(null);
   const touchStartX = useRef(0);
@@ -118,71 +122,53 @@ const CategoriesPage = () => {
   /**
    * Filter and sort books based on current filter settings
    */
+  // REPLACED: client-side filtering with server-side fetching
   useEffect(() => {
-    let result = [...book];
+    const params = {
+      page,
+      limit,
+      // map filters supported by backend
+      ...(searchQuery.trim() && { search: searchQuery.trim() }),
+      ...(selectedCategory !== "All" && { genre: selectedCategory }),
+      minPrice: priceRange[0],
+      maxPrice: priceRange[1],
+      ...(languageFilter !== "All" && { language: languageFilter }),
+      ...(ratingFilter > 0 && { minRating: ratingFilter }),
+      ...(availabilityFilter === "inStock" && { inStock: true }),
+      ...(availabilityFilter === "outOfStock" && { inStock: false }),
+      // map sort option to API sort format
+      sort:
+        sortOption === "priceLowHigh" ? "price" :
+        sortOption === "priceHighLow" ? "-price" :
+        sortOption === "rating" ? "-rating" :
+        sortOption === "newest" ? "-published_date" :
+        sortOption === "bestselling" ? "-num_reviews" :
+        "-is_featured",
+    };
+    // reset to first page when filters (except page/limit) change
+    setActiveGroupIndex(0);
+    fetchBooks(params);
+  }, [
+    // triggers
+    page,
+    limit,
+    selectedCategory,
+    sortOption,
+    priceRange,
+    ratingFilter,
+    languageFilter,
+    availabilityFilter,
+    searchQuery,
+  ]);
 
-    // 1. Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (book) =>
-          book.title.toLowerCase().includes(query) ||
-          book.author.toLowerCase().includes(query) ||
-          book.genre.toLowerCase().includes(query)
-      );
-    }
+  // Update local list when context books change
+  useEffect(() => {
+    setFilteredBooks(books?.data || []);
+  }, [books]);
 
-    // 2. Category filter
-    if (selectedCategory !== "All") {
-      result = result.filter((book) => book.genre === selectedCategory);
-    }
-
-    // 3. Price filter
-    result = result.filter(
-      (book) => book.price >= priceRange[0] && book.price <= priceRange[1]
-    );
-
-    // 4. Rating filter
-    if (ratingFilter > 0) {
-      result = result.filter((book) => book.rating >= ratingFilter);
-    }
-
-    // 5. Language filter
-    if (languageFilter !== "All") {
-      result = result.filter((book) => book.language === languageFilter);
-    }
-
-    // 6. Availability filter
-    if (availabilityFilter === "inStock") {
-      result = result.filter((book) => book.stock > 0);
-    } else if (availabilityFilter === "outOfStock") {
-      result = result.filter((book) => book.stock === 0);
-    }
-
-    // 7. Sorting
-    switch (sortOption) {
-      case "priceLowHigh":
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case "priceHighLow":
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case "rating":
-        result.sort((a, b) => b.rating - a.rating);
-        break;
-      case "newest":
-        result.sort(
-          (a, b) => new Date(b.published_date) - new Date(a.published_date)
-        );
-        break;
-      default: // featured/bestselling
-        result.sort(
-          (a, b) =>
-            b.is_featured - a.is_featured || b.num_reviews - a.num_reviews
-        );
-    }
-
-    setFilteredBooks(result);
+  // Reset to page 1 when changing any non-page filter
+  useEffect(() => {
+    setPage(1);
   }, [
     selectedCategory,
     sortOption,
@@ -191,8 +177,11 @@ const CategoriesPage = () => {
     languageFilter,
     availabilityFilter,
     searchQuery,
-    book // <-- add this dependency
   ]);
+
+  const totalPages = books?.pagination?.pages || 1;
+  const currentPage = books?.pagination?.page || page;
+  const totalItems = books?.pagination?.total || filteredBooks.length;
 
   /**
    * Handle category selection
@@ -370,7 +359,7 @@ const CategoriesPage = () => {
         <Link to={`/bookview/${book.slug}`}>
           <div className="relative pt-[150%] sm:pt-[130%] md:pt-[140%] lg:pt-[150%] w-full">
             <img
-              src={`http://localhost:5000${coverImage}`}
+              src={`${url}${coverImage}`} // was http://localhost:5000
               alt={book.title}
               className="absolute top-0 left-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"
             />
@@ -990,7 +979,15 @@ const CategoriesPage = () => {
 
               {/* Book grid/list display */}
               <div className="mt-4">
-                {filteredBooks.length === 0 ? (
+                {loading ? (
+                  <div className="bg-white rounded-[2px] shadow-sm p-8 text-center mt-8">
+                    Loading books...
+                  </div>
+                ) : error ? (
+                  <div className="bg-white rounded-[2px] shadow-sm p-8 text-center mt-8 text-red-600">
+                    {typeof error === "string" ? error : error?.message || "Failed to load"}
+                  </div>
+                ) : filteredBooks.length === 0 ? (
                   // Empty state
                   <div className="bg-white rounded-[2px] shadow-sm p-8 text-center mt-8">
                     <h3 className="text-xl font-semibold text-gray-800 mb-2">
@@ -1067,11 +1064,47 @@ const CategoriesPage = () => {
                   // Desktop/Tablet Implementation
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {filteredBooks.map((book) => (
-                      <BookCard key={book._id} book={book} />
+                      <BookCard key={book._id || book.id} book={book} />
                     ))}
                   </div>
                 )}
               </div>
+
+              {/* NEW: Pagination controls */}
+              {totalPages > 1 && (
+                <div className="mt-8 flex items-center justify-center gap-2">
+                  <button
+                    className="px-3 py-2 border border-gray-300 rounded-[2px] text-sm disabled:opacity-50"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage <= 1}
+                  >
+                    Prev
+                  </button>
+                  {Array.from({ length: totalPages }).slice(0, 10).map((_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPage(pageNum)}
+                        className={`px-3 py-2 border rounded-[2px] text-sm ${
+                          currentPage === pageNum
+                            ? "bg-black text-white border-black"
+                            : "border-gray-300 hover:border-black"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  <button
+                    className="px-3 py-2 border border-gray-300 rounded-[2px] text-sm disabled:opacity-50"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
           </main>
         </div>

@@ -171,6 +171,8 @@ export const getBooks = async (req, res) => {
       minPrice,
       maxPrice,
       sort, // e.g. "-created_at", "price", "-rating"
+      minRating,         // NEW: filter by minimum rating
+      inStock            // NEW: filter by stock availability ("true" | "false")
     } = req.query;
 
     const p = Math.max(1, toNumber(page, 1));
@@ -191,6 +193,19 @@ export const getBooks = async (req, res) => {
     if (author) filter.author = { $regex: String(author), $options: "i" };
     if (language) filter.language = { $regex: String(language), $options: "i" };
 
+    // NEW: rating filter
+    const minR = Number(minRating);
+    if (Number.isFinite(minR) && minR >= 0) {
+      filter.rating = { $gte: minR };
+    }
+
+    // NEW: stock availability
+    if (typeof inStock !== "undefined") {
+      const v = String(inStock).toLowerCase();
+      if (v === "true") filter.stock = { $gt: 0 };
+      else if (v === "false") filter.stock = 0;
+    }
+
     const priceFilter = {};
     const minP = Number(minPrice);
     const maxP = Number(maxPrice);
@@ -207,7 +222,7 @@ export const getBooks = async (req, res) => {
       "stock",
       "published_date",
       "title",
-      // "slug", // optionally sortable
+      "is_featured", // NEW
     ]);
     let sortSpec = { created_at: -1 };
     if (sort && typeof sort === "string") {

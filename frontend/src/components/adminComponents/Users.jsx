@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useEffect, useState } from "react";
 import { adminUsersAPI } from "../../api/admin-api";
+import { Button } from "../ui/button.jsx";
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -13,7 +14,12 @@ const Users = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const pageSize = 10;
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalUsers: 0,
+  });
+  const pageSize = 20;
 
   const fetchUsers = async () => {
     try {
@@ -23,6 +29,11 @@ const Users = () => {
       if (roleFilter !== "All") params.isAdmin = roleFilter === "Admin";
       const res = await adminUsersAPI.list(params);
       const list = res.data || [];
+      const pag = res.pagination || {
+        currentPage: page,
+        totalPages: 1,
+        totalUsers: list.length,
+      };
       // Apply client-side search for now
       const filtered = list.filter(
         (u) =>
@@ -30,6 +41,7 @@ const Users = () => {
           (u.email || "").toLowerCase().includes(search.toLowerCase())
       );
       setUsers(filtered);
+      setPagination(pag);
     } catch (err) {
       console.error("Error loading users:", err);
     } finally {
@@ -48,7 +60,8 @@ const Users = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
-  const totalPages = 1; // backend returns pagination; keeping simple view
+  const totalPages = pagination.totalPages || 1;
+  const totalUsers = pagination.totalUsers || users.length;
   const paginatedUsers = users;
 
   const handleAction = async (id, action) => {
@@ -174,35 +187,35 @@ const Users = () => {
                     </td>
                     <td className="px-4 py-2 capitalize">{user.status}</td>
                     <td className="px-4 py-2 flex gap-2 flex-wrap">
-                      <button
+                      <Button
                         onClick={() =>
                           handleAction(
                             user._id,
                             user.status !== "active" ? "Approve" : "Ban"
                           )
                         }
-                        className="bg-green-500 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
+                        size="sm"
                       >
                         {user.status !== "active" ? "Approve" : "Ban"}
-                      </button>
-                      <button
-                        onClick={() => openEditModal(user)}
-                        className="bg-blue-500 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
-                      >
+                      </Button>
+                      <Button onClick={() => openEditModal(user)} size="sm">
                         Edit
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => handleResetPassword(user._id)}
-                        className="bg-yellow-500 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
+                        size="sm"
+                        variant="outline"
+                        className="bg-gray-200 text-gray-800 hover:bg-gray-300"
                       >
                         Change PW
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => handleDelete(user._id)}
-                        className="bg-gray-600 text-white px-2 py-1 rounded-[2px] text-xs sm:text-sm"
+                        size="sm"
+                        variant="destructive"
                       >
                         Delete
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -247,41 +260,67 @@ const Users = () => {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <button
+                    <Button
                       onClick={() =>
                         handleAction(
                           user._id,
                           user.status !== "active" ? "Approve" : "Ban"
                         )
                       }
-                      className="bg-green-500 text-white p-2 rounded-[2px] text-xs"
+                      size="sm"
                     >
                       {user.status !== "active" ? "Approve" : "Ban"}
-                    </button>
-                    <button
-                      onClick={() => openEditModal(user)}
-                      className="bg-blue-500 text-white p-2 rounded-[2px] text-xs"
-                    >
+                    </Button>
+                    <Button onClick={() => openEditModal(user)} size="sm">
                       Edit
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => handleResetPassword(user._id)}
-                      className="bg-yellow-500 text-white p-2 rounded-[2px] text-xs"
+                      size="sm"
+                      variant="outline"
+                      className="bg-gray-200 text-gray-800 hover:bg-gray-300"
                     >
                       Change PW
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => handleDelete(user._id)}
-                      className="bg-gray-600 text-white p-2 rounded-[2px] text-xs col-span-2"
+                      size="sm"
+                      variant="destructive"
+                      className="col-span-2"
                     >
                       Delete User
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))
             )}
           </div>
         </>
+      )}
+
+      {/* Pagination Controls */}
+      {totalUsers > pageSize && (
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <Button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            variant="outline"
+            size="sm"
+          >
+            Prev
+          </Button>
+          <div className="text-sm text-gray-600">
+            Page <span className="font-medium">{page}</span> of {totalPages}
+          </div>
+          <Button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            variant="outline"
+            size="sm"
+          >
+            Next
+          </Button>
+        </div>
       )}
 
       {/* --- Edit Modal --- */}
