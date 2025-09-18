@@ -1,3 +1,4 @@
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Users,
   BookOpen,
@@ -20,47 +21,141 @@ import {
   Cell,
   ResponsiveContainer,
 } from "recharts";
+import {
+  adminUsersAPI,
+  adminBooksAPI,
+  adminOrdersAPI,
+} from "../../api/admin-api";
 
 const Dashboard = () => {
-  // Dummy analytics data
-  const salesData = [
-    { month: "Jan", sales: 400 },
-    { month: "Feb", sales: 650 },
-    { month: "Mar", sales: 800 },
-    { month: "Apr", sales: 600 },
-    { month: "May", sales: 900 },
-  ];
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const topBooks = [
-    { name: "Book A", sales: 240 },
-    { name: "Book B", sales: 190 },
-    { name: "Book C", sales: 300 },
-    { name: "Book D", sales: 120 },
-  ];
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [totalBooks, setTotalBooks] = useState(0);
+  const [ordersInProgress, setOrdersInProgress] = useState(0);
+  const [activePromotions, setActivePromotions] = useState(0);
+  const [refundRequests, setRefundRequests] = useState(0);
+  const [pendingManuscripts, setPendingManuscripts] = useState(0);
 
-  const orderStatus = [
-    { name: "Processing", value: 45 },
-    { name: "Shipped", value: 30 },
-    { name: "Delivered", value: 80 },
-    { name: "Refunded", value: 10 },
-  ];
+  const [salesData, setSalesData] = useState([]);
+  const [topBooks, setTopBooks] = useState([]);
+  const [orderStatus, setOrderStatus] = useState([]);
+  const [activities, setActivities] = useState([]);
 
   const COLORS = ["#0f172a", "#3b82f6", "#22c55e", "#ef4444"];
 
-  const activities = [
-    { id: 1, type: "User Signup", detail: "John Doe created an account", date: "2025-09-10" },
-    { id: 2, type: "Book Upload", detail: "New manuscript uploaded: 'AI Revolution'", date: "2025-09-11" },
-    { id: 3, type: "Order Update", detail: "Order #1234 marked as shipped", date: "2025-09-12" },
-  ];
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError("");
 
-  const summaryCards = [
-    { title: "Total Users", value: 0, icon: Users },
-    { title: "Total Books", value: 0, icon: BookOpen },
-    { title: "Pending Manuscripts", value: 0, icon: ClipboardList },
-    { title: "Orders in Progress", value: 0, icon: ShoppingCart },
-    { title: "Active Promotions", value: 0, icon: Tag },
-    { title: "Refund Requests", value: 0, icon: RefreshCcw },
-  ];
+        const usersPromise = adminUsersAPI.list({ page: 1, limit: 1 });
+        const booksPromise = adminBooksAPI.list({ limit: 100 });
+        const statsPromise = adminOrdersAPI.stats();
+
+        const [usersRes, booksRes, statsRes] = await Promise.allSettled([
+          usersPromise,
+          booksPromise,
+          statsPromise,
+        ]);
+
+        if (!mounted) return;
+
+        if (usersRes.status === "fulfilled") {
+          const total = usersRes.value?.pagination?.totalUsers;
+          setTotalUsers(
+            typeof total === "number"
+              ? total
+              : usersRes.value?.data?.length || 0
+          );
+        }
+
+        if (booksRes.status === "fulfilled") {
+          const total = booksRes.value?.pagination?.totalBooks;
+          setTotalBooks(
+            typeof total === "number"
+              ? total
+              : booksRes.value?.data?.length || 0
+          );
+          const b = booksRes.value?.data || [];
+          setTopBooks(
+            b.slice(0, 6).map((x) => ({
+              name: x.title,
+              sales: Number(x.sales || x.stock || 0),
+            }))
+          );
+        }
+
+        if (statsRes.status === "fulfilled") {
+          const s = statsRes.value?.data || statsRes.value || {};
+          const sales = s.salesOverTime || s.revenueOverTime || [];
+          setSalesData(
+            sales.map((p) => ({
+              month: p.month || p.label || "",
+              sales: Number(p.sales || p.total || 0),
+            }))
+          );
+          const byStatus = s.ordersByStatus || s.statusBreakdown || {};
+          const statusArr = Object.entries(byStatus).map(([name, value]) => ({
+            name,
+            value: Number(value),
+          }));
+          setOrderStatus(statusArr);
+          if (typeof s.ordersInProgress === "number")
+            setOrdersInProgress(s.ordersInProgress);
+          if (typeof s.activePromotions === "number")
+            setActivePromotions(s.activePromotions);
+          if (typeof s.refundRequests === "number")
+            setRefundRequests(s.refundRequests);
+          if (typeof s.pendingManuscripts === "number")
+            setPendingManuscripts(s.pendingManuscripts);
+          if (Array.isArray(s.activities)) setActivities(s.activities);
+        }
+      } catch (e) {
+        if (!mounted) return;
+        setError(e.message || "Failed to load dashboard data");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const summaryCards = useMemo(
+    () => [
+      { title: "Total Users", value: totalUsers, icon: Users },
+      { title: "Total Books", value: totalBooks, icon: BookOpen },
+      {
+        title: "Pending Manuscripts",
+        value: pendingManuscripts,
+        icon: ClipboardList,
+      },
+      {
+        title: "Orders in Progress",
+        value: ordersInProgress,
+        icon: ShoppingCart,
+      },
+      { title: "Active Promotions", value: activePromotions, icon: Tag },
+      { title: "Refund Requests", value: refundRequests, icon: RefreshCcw },
+    ],
+    [
+      totalUsers,
+      totalBooks,
+      pendingManuscripts,
+      ordersInProgress,
+      activePromotions,
+      refundRequests,
+    ]
+  );
+
+  if (loading) return <div className="text-gray-500">Loading dashboard...</div>;
+  if (error) return <div className="text-red-600">{error}</div>;
 
   return (
     <div className="space-y-8">
@@ -138,7 +233,10 @@ const Dashboard = () => {
                 label
               >
                 {orderStatus.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
                 ))}
               </Pie>
               <Tooltip />
@@ -162,7 +260,10 @@ const Dashboard = () => {
           </thead>
           <tbody>
             {activities.map((act) => (
-              <tr key={act.id} className="border-b border-gray-100 hover:bg-gray-50">
+              <tr
+                key={act.id}
+                className="border-b border-gray-100 hover:bg-gray-50"
+              >
                 <td className="px-4 py-2 font-medium">{act.type}</td>
                 <td className="px-4 py-2">{act.detail}</td>
                 <td className="px-4 py-2">{act.date}</td>
