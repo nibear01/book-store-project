@@ -6,14 +6,14 @@ function Feature() {
   const [activeTab, setActiveTab] = useState('featured');
   const {
     url,
-    books,
     featuredBooks,
-    trendingBooks,
     loading,
     error,
-    fetchBooks,
     fetchFeaturedBooks,
-    fetchTrendingBooks,
+    onSaleBooks,
+    mostViewedBooks,
+    fetchOnSaleBooks,
+    fetchMostViewedBooks,
   } = useContext(BooksContext);
 
   useEffect(() => {
@@ -21,11 +21,11 @@ function Feature() {
     if (activeTab === 'featured') {
       fetchFeaturedBooks(10);
     } else if (activeTab === 'most_viewed') {
-      fetchTrendingBooks({ limit: 10 });
+      fetchMostViewedBooks(10);
     } else if (activeTab === 'on_sale') {
-      fetchBooks({ onSale: true, limit: 10 });
+      fetchOnSaleBooks(10);
     }
-  }, [activeTab, fetchBooks, fetchFeaturedBooks, fetchTrendingBooks]);
+  }, [activeTab, fetchFeaturedBooks, fetchMostViewedBooks, fetchOnSaleBooks]);
 
   const tabs = [
     { name: 'Featured', key: 'featured' },
@@ -37,8 +37,8 @@ function Feature() {
     activeTab === 'featured'
       ? featuredBooks
       : activeTab === 'most_viewed'
-      ? trendingBooks
-      : books;
+      ? mostViewedBooks
+      : onSaleBooks;
 
   // Normalize to an array for rendering
   const list = Array.isArray(selectedBooks) ? selectedBooks : (selectedBooks?.data || []);
@@ -76,6 +76,8 @@ function Feature() {
           {list.map((book, index) => {
             const img = Array.isArray(book?.cover_image) ? book.cover_image[0] : book?.cover_image;
             const slug = book?.slug;
+            const isOnSale = !!book?.is_on_sale && typeof book?.sale_price === 'number';
+            const displayPrice = isOnSale ? book.sale_price : book?.price;
             return slug ? (
               <Link
                 key={book?.id || book?._id || index}
@@ -95,9 +97,16 @@ function Feature() {
                 <p className="text-xs md:text-sm text-gray-600 mb-2 line-clamp-1">
                   {book?.author || (Array.isArray(book?.authors) ? book.authors.join(', ') : '')}
                 </p>
-                <span className="font-bold text-black text-sm md:text-base">
-                  {book?.price ?? book?.price_range ?? ''}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-black text-sm md:text-base">
+                    {displayPrice ?? ''}
+                  </span>
+                  {isOnSale && (
+                    <span className="text-gray-500 line-through text-xs md:text-sm">
+                      {book?.price}
+                    </span>
+                  )}
+                </div>
               </Link>
             ) : (
               <div
@@ -117,9 +126,16 @@ function Feature() {
                 <p className="text-xs md:text-sm text-gray-600 mb-2 line-clamp-1">
                   {book?.author || (Array.isArray(book?.authors) ? book.authors.join(', ') : '')}
                 </p>
-                <span className="font-bold text-black text-sm md:text-base">
-                  {book?.price ?? book?.price_range ?? ''}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-black text-sm md:text-base">
+                    {displayPrice ?? ''}
+                  </span>
+                  {isOnSale && (
+                    <span className="text-gray-500 line-through text-xs md:text-sm">
+                      {book?.price}
+                    </span>
+                  )}
+                </div>
               </div>
             );
           })}

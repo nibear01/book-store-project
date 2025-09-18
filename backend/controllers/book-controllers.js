@@ -64,6 +64,13 @@ const pickUpdatableFields = (payload = {}) => {
     "meta_keywords",
     "publisher",   // added
     "pages",       // added
+    // NEW
+    "is_on_sale",
+    "sale_price",
+    "views",
+    "is_deal_of_the_week",
+    "deal_start",
+    "deal_end",
   ];
   const out = {};
   for (const k of allowed) {
@@ -155,6 +162,34 @@ const pickUpdatableFields = (payload = {}) => {
     out.pages = pg;
   }
 
+  // NEW: sale fields
+  if (out.sale_price !== undefined) {
+    const sp = Number(out.sale_price);
+    if (!Number.isFinite(sp) || sp < 0) throw new Error("Invalid sale_price");
+    out.sale_price = sp;
+  }
+  if (out.views !== undefined) {
+    const v = Number(out.views);
+    if (!Number.isInteger(v) || v < 0) throw new Error("Invalid views");
+    out.views = v;
+  }
+  if (out.deal_start !== undefined && out.deal_start !== null) {
+    const ds = new Date(out.deal_start);
+    if (isNaN(ds.getTime())) throw new Error("Invalid deal_start");
+    out.deal_start = ds;
+  }
+  if (out.deal_end !== undefined && out.deal_end !== null) {
+    const de = new Date(out.deal_end);
+    if (isNaN(de.getTime())) throw new Error("Invalid deal_end");
+    out.deal_end = de;
+  }
+  if (out.deal_start && out.deal_end && out.deal_end < out.deal_start) {
+    throw new Error("deal_end must be after deal_start");
+  }
+  if (out.price !== undefined && out.sale_price !== undefined && out.sale_price >= out.price) {
+    throw new Error("sale_price must be less than price");
+  }
+
   return out;
 };
 
@@ -172,13 +207,24 @@ export const getBooks = async (req, res) => {
       maxPrice,
       sort, // e.g. "-created_at", "price", "-rating"
       minRating,         // NEW: filter by minimum rating
-      inStock            // NEW: filter by stock availability ("true" | "false")
+      inStock,           // NEW: filter by stock availability ("true" | "false")
+      onSale,            // NEW: filter on sale books
+      deals,             // NEW: filter deals of the week
+      minViews,          // NEW: filter by minimum views
+      // NEW: control is_active filtering
+      status, // "all" | "active" | "inactive"
     } = req.query;
 
     const p = Math.max(1, toNumber(page, 1));
     const l = Math.min(100, Math.max(1, toNumber(limit, 10)));
 
-    const filter = { is_active: true };
+    // CHANGED: status-aware active filter
+    const filter = {};
+    const statusVal = String(status || "active").toLowerCase();
+    if (statusVal === "inactive") filter.is_active = false;
+    else if (statusVal === "all") {
+      // no is_active filter
+    } else filter.is_active = true;
 
     if (search && String(search).trim()) {
       const term = String(search).trim();
@@ -206,6 +252,22 @@ export const getBooks = async (req, res) => {
       else if (v === "false") filter.stock = 0;
     }
 
+    // NEW: on sale filter
+    if (typeof onSale !== "undefined" && String(onSale).toLowerCase() === "true") {
+      filter.is_on_sale = true;
+    }
+
+    // NEW: deals filter
+    if (typeof deals !== "undefined" && String(deals).toLowerCase() === "true") {
+      filter.is_deal_of_the_week = true;
+    }
+
+    // NEW: min views filter
+    const mv = Number(minViews);
+    if (Number.isFinite(mv) && mv >= 0) {
+      filter.views = { $gte: mv };
+    }
+
     const priceFilter = {};
     const minP = Number(minPrice);
     const maxP = Number(maxPrice);
@@ -223,6 +285,10 @@ export const getBooks = async (req, res) => {
       "published_date",
       "title",
       "is_featured", // NEW
+      // NEW
+      "views",
+      "sale_price",
+      "is_on_sale",
     ]);
     let sortSpec = { created_at: -1 };
     if (sort && typeof sort === "string") {
@@ -264,7 +330,13 @@ export const getBookById = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid book slug" });
     }
 
-    const book = await Book.findOne({ slug, is_active: true }).lean();
+    // NEW: increment views on detail fetch
+    const book = await Book.findOneAndUpdate(
+      { slug, is_active: true },
+      { $inc: { views: 1 } },
+      { new: true }
+    ).lean();
+
     if (!book) {
       return res.status(404).json({ success: false, message: "Book not found" });
     }
@@ -296,6 +368,16 @@ export const createBook = async (req, res) => {
       payload.slug = slugify(payload.meta_title);
     }
     payload.slug = await ensureUniqueSlug(payload.slug);
+
+    // NEW: enforce sale logic on create
+    if (payload.is_on_sale) {
+      if (payload.sale_price === undefined) {
+        return res.status(400).json({ success: false, message: "sale_price is required when is_on_sale is true" });
+      }
+      if (!(payload.sale_price < payload.price)) {
+        return res.status(400).json({ success: false, message: "sale_price must be less than price" });
+      }
+    }
 
     // Merge uploaded files
     const uploadedImages = Array.isArray(req.files?.cover_image) ? req.files.cover_image : [];
@@ -335,6 +417,13 @@ export const updateBook = async (req, res) => {
       payload.slug = await ensureUniqueSlug(payload.slug, id);
     }
 
+    // NEW: enforce sale logic when both are provided
+    if (payload.is_on_sale && payload.sale_price !== undefined && payload.price !== undefined) {
+      if (!(payload.sale_price < payload.price)) {
+        return res.status(400).json({ success: false, message: "sale_price must be less than price" });
+      }
+    }
+
     // Merge uploaded files
     const uploadedImages = Array.isArray(req.files?.cover_image) ? req.files.cover_image : [];
     const uploadedBookFile = Array.isArray(req.files?.file_url) ? req.files.file_url[0] : undefined;
@@ -360,7 +449,7 @@ export const updateBook = async (req, res) => {
 };
 
 // DELETE /api/books/:id
-// Soft delete by default (sets is_active=false). Hard delete if ?hard=true.
+// Permanently deletes by default. Soft delete only if ?hard=false.
 export const deleteBook = async (req, res) => {
   try {
     const { id } = req.params;
@@ -370,15 +459,17 @@ export const deleteBook = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid book id" });
     }
 
-    if (String(hard).toLowerCase() === "true") {
+    const doHardDelete = String(hard ?? "true").toLowerCase() !== "false";
+
+    if (doHardDelete) {
       const deleted = await Book.findByIdAndDelete(id);
       if (!deleted) return res.status(404).json({ success: false, message: "Book not found" });
       return res.json({ success: true, message: "Book permanently deleted" });
     }
 
+    // Fallback: soft delete when explicitly requested with hard=false
     const updated = await Book.findByIdAndUpdate(id, { $set: { is_active: false } }, { new: true });
     if (!updated) return res.status(404).json({ success: false, message: "Book not found" });
-
     return res.json({ success: true, message: "Book deactivated", data: updated });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Failed to delete book", error: error.message });
@@ -433,5 +524,47 @@ export const getLatestBooks = async (req, res) => {
     return getBooks(req, res);
   } catch (error) {
     return res.status(500).json({ success: false, message: "Failed to fetch latest books", error: error.message });
+  }
+};
+
+// NEW: GET /api/books/on-sale
+export const getOnSaleBooks = async (req, res) => {
+  try {
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
+    const books = await Book.find({ is_active: true, is_on_sale: true })
+      .sort({ updated_at: -1 })
+      .limit(limit)
+      .lean();
+    return res.json({ success: true, data: books, meta: { limit } });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to fetch on sale books", error: error.message });
+  }
+};
+
+// NEW: GET /api/books/most-viewed
+export const getMostViewedBooks = async (req, res) => {
+  try {
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
+    const books = await Book.find({ is_active: true })
+      .sort({ views: -1, updated_at: -1 })
+      .limit(limit)
+      .lean();
+    return res.json({ success: true, data: books, meta: { limit } });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to fetch most viewed books", error: error.message });
+  }
+};
+
+// NEW: GET /api/books/deals
+export const getDealsOfTheWeek = async (req, res) => {
+  try {
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
+    const books = await Book.find({ is_active: true, is_deal_of_the_week: true })
+      .sort({ updated_at: -1 })
+      .limit(limit)
+      .lean();
+    return res.json({ success: true, data: books, meta: { limit } });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to fetch deals of the week", error: error.message });
   }
 };

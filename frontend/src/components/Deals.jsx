@@ -1,35 +1,37 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
+import { BooksContext } from '@/context/BooksContext';
 
 export default function Deals() {
+  const { url, fetchDealsOfWeek } = useContext(BooksContext);
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
-    const fetchDeals = async () => {
+    const loadDeals = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const response = await fetch('/deals.json');
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const data = await response.json();
-        setDeals(data.deals_of_the_week);
+        const resp = await fetchDealsOfWeek(10);
+        setDeals(Array.isArray(resp?.data) ? resp.data : []);
+        setActiveIndex(0);
       } catch (e) {
-        setError(e.message);
+        setError(e?.message || 'Failed to load deals');
       } finally {
         setLoading(false);
       }
     };
-
-    fetchDeals();
-  }, []);
+    loadDeals();
+  }, [fetchDealsOfWeek]);
 
   const nextSlide = () => {
+    if (deals.length === 0) return;
     setActiveIndex((prevIndex) => (prevIndex + 1) % deals.length);
   };
 
   const prevSlide = () => {
+    if (deals.length === 0) return;
     setActiveIndex((prevIndex) => (prevIndex - 1 + deals.length) % deals.length);
   };
 
@@ -48,6 +50,19 @@ export default function Deals() {
       </div>
     );
   }
+
+  if (!deals.length) {
+    return (
+      <div className="flex justify-center items-center min-h-[200px] bg-white p-4 md:p-8">
+        No deals available.
+      </div>
+    );
+  }
+
+  const current = deals[activeIndex] || {};
+  const img = Array.isArray(current?.cover_image) ? current.cover_image[0] : current?.cover_image;
+  const isOnSale = !!current?.is_on_sale && typeof current?.sale_price === 'number';
+  const displayPrice = isOnSale ? current.sale_price : current?.price;
 
   const isNextButtonDisabled = activeIndex === deals.length - 1;
   const isPrevButtonDisabled = activeIndex === 0;
@@ -95,27 +110,29 @@ export default function Deals() {
         <div className="transition-transform duration-300 ease-in-out">
           <div className="flex flex-col sm:flex-row items-center p-4 md:p-6 rounded-[2px] border border-gray-200 min-h-[200px] md:min-h-[250px] transition-all">
             <img 
-              src={deals[activeIndex]?.cover_image} 
-              alt={deals[activeIndex]?.title} 
+              src={`${url}${img || ''}`} 
+              alt={current?.title || 'Deal book'} 
               className="w-full sm:w-1/3 md:w-1/4 max-w-[120px] md:max-w-[150px] h-auto object-contain rounded-[2px] mb-4 sm:mb-0 sm:mr-6 flex-shrink-0" 
             />
             <div className="text-center sm:text-left flex-grow">
-              <p className="text-xs md:text-sm text-red-600 font-semibold uppercase mb-1 md:mb-2">
-                {deals[activeIndex]?.format}
-              </p>
+              {!!current?.is_deal_of_the_week && (
+                <p className="text-xs md:text-sm text-red-600 font-semibold uppercase mb-1 md:mb-2">
+                  Deal of the Week
+                </p>
+              )}
               <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-1 md:mb-2 line-clamp-2">
-                {deals[activeIndex]?.title}
+                {current?.title}
               </h3>
               <p className="text-sm md:text-md text-gray-600 mb-2 md:mb-3 line-clamp-1">
-                {deals[activeIndex]?.author}
+                {current?.author}
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2">
                 <span className="font-bold text-xl md:text-2xl text-black">
-                  {deals[activeIndex]?.price}
+                  {displayPrice}
                 </span>
-                {deals[activeIndex]?.original_price && (
+                {isOnSale && (
                   <span className="text-gray-500 line-through text-sm md:text-base">
-                    {deals[activeIndex]?.original_price}
+                    {current?.price}
                   </span>
                 )}
               </div>

@@ -11,6 +11,9 @@ const BooksContextProvider = ({ children }) => {
   const [featuredBooks, setFeaturedBooks] = useState([]);
   const [trendingBooks, setTrendingBooks] = useState([]);
   const [latestBooks, setLatestBooks] = useState([]);
+  const [onSaleBooks, setOnSaleBooks] = useState([]);
+  const [mostViewedBooks, setMostViewedBooks] = useState([]);
+  const [dealsOfWeek, setDealsOfWeek] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -58,6 +61,24 @@ const BooksContextProvider = ({ children }) => {
     [fetchData]
   );
 
+  // Fetch on-sale books
+  const fetchOnSaleBooks = useCallback(
+    (limit = 10) => fetchData("/on-sale", { limit }, setOnSaleBooks),
+    [fetchData]
+  );
+
+  // Fetch most-viewed books
+  const fetchMostViewedBooks = useCallback(
+    (limit = 10) => fetchData("/most-viewed", { limit }, setMostViewedBooks),
+    [fetchData]
+  );
+
+  // Fetch deals of the week
+  const fetchDealsOfWeek = useCallback(
+    (limit = 10) => fetchData("/deals", { limit }, setDealsOfWeek),
+    [fetchData]
+  );
+
   // Get book by slug
   const getBookBySlug = useCallback(
     async (slug) => {
@@ -69,52 +90,52 @@ const BooksContextProvider = ({ children }) => {
   );
 
   // Admin: Add book
-    const addBook = async (formData) => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await axios.post(`${url}/api/books`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    ...(token && { 'Authorization': `Bearer ${token}` })
-                }
-            });
-            return response.data;
-        } catch (err) {
-            throw err;
+  const addBook = async (formData) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${url}/api/books`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(token && { 'Authorization': `Bearer ${token}` })
         }
-    };
+      });
+      return response.data;
+    } catch (err) {
+      throw err;
+    }
+  };
 
-    // Admin: Update book
-    const updateBook = async (id, formData) => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await axios.put(`${url}/api/books/${id}`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    ...(token && { 'Authorization': `Bearer ${token}` })
-                }
-            });
-            return response.data;
-        } catch (err) {
-            throw err;
+  // Admin: Update book
+  const updateBook = async (id, formData) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(`${url}/api/books/${id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(token && { 'Authorization': `Bearer ${token}` })
         }
-    };
+      });
+      return response.data;
+    } catch (err) {
+      throw err;
+    }
+  };
 
-    // Admin: Delete book
-    const deleteBook = async (id, hard = false) => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await axios.delete(`${url}/api/books/${id}`, {
-                params: { hard },
-                headers: {
-                    ...(token && { 'Authorization': `Bearer ${token}` })
-                }
-            });
-            return response.data;
-        } catch (err) {
-            throw err;
+  // Admin: Delete book (hard delete by default)
+  const deleteBook = async (id, hard = true) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.delete(`${url}/api/books/${id}`, {
+        params: { hard },
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` })
         }
-    };
+      });
+      return response.data;
+    } catch (err) {
+      throw err;
+    }
+  };
 
   // Initial load
   useEffect(() => {
@@ -127,12 +148,18 @@ const BooksContextProvider = ({ children }) => {
     featuredBooks,
     trendingBooks,
     latestBooks,
+    onSaleBooks,
+    mostViewedBooks,
+    dealsOfWeek,
     loading,
     error,
     fetchBooks,
     fetchFeaturedBooks,
     fetchTrendingBooks,
     fetchLatestBooks,
+    fetchOnSaleBooks,
+    fetchMostViewedBooks,
+    fetchDealsOfWeek,
     getBookBySlug,
     addBook,
     updateBook,

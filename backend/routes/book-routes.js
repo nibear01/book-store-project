@@ -10,6 +10,9 @@ import {
   getFeaturedBooks,
   getTrendingBooks,
   getLatestBooks,
+  getOnSaleBooks,
+  getMostViewedBooks,
+  getDealsOfTheWeek,
 } from "../controllers/book-controllers.js";
 import { uploadBookAssets } from "../middlewares/upload-middleware.js";
 
@@ -33,6 +36,18 @@ router.get("/trending", getTrendingBooks);
 // Query: ?limit=10
 router.get("/latest", getLatestBooks);
 
+// GET /api/books/on-sale
+// Query: ?limit=10
+router.get("/on-sale", getOnSaleBooks);
+
+// GET /api/books/most-viewed
+// Query: ?limit=10
+router.get("/most-viewed", getMostViewedBooks);
+
+// GET /api/books/deals
+// Query: ?limit=10
+router.get("/deals", getDealsOfTheWeek);
+
 // GET /api/books/:slug
 // Path: /api/books/:slug
 router.get("/:slug", getBookById);
@@ -52,21 +67,6 @@ router.put("/:id", protect, isAdmin, uploadBookAssets, updateBook);
 router.delete("/:id", protect, isAdmin, deleteBook);
 
 export default router;
-//     fileSize: 25 * 1024 * 1024, // 25MB per file
-//     files: 6, // 5 images + 1 book file
-//   },
-// });
-
-// // Public
-// router.get("/", getBooks);
-// router.get("/featured", getFeaturedBooks);
-// router.get("/trending", getTrendingBooks);
-// router.get("/latest", getLatestBooks);
-// router.get("/:id", getBookById);
-
-// // Admin-only (with uploads)
-// router.post(
-//   "/",
 //   protect,
 //   isAdmin,
 //   upload.fields([

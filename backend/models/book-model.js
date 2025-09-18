@@ -23,6 +23,14 @@ const bookSchema = new mongoose.Schema(
     is_featured: { type: Boolean, default: false },
     publisher: { type: String, trim: true }, // added
     pages: { type: Number, default: 0 }, // added
+
+    // On sale / most viewed / deals of the week
+    is_on_sale: { type: Boolean, default: false },
+    sale_price: { type: Number, default: null }, // when on sale, must be >= 0 and < price (validated in controller)
+    views: { type: Number, default: 0 }, // incremented on detail view
+    is_deal_of_the_week: { type: Boolean, default: false },
+    deal_start: { type: Date, default: null }, // optional
+    deal_end: { type: Date, default: null },   // optional
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
