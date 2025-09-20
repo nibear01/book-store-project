@@ -20,15 +20,17 @@ const BooksTable = ({ books, toGenreArray, onViewDetails, onEdit, onDelete }) =>
         {books.map((b) => {
           const onSale = !!b.is_on_sale && typeof b.sale_price === "number";
           const genreLabel = toGenreArray(b?.genre).join(", ");
-          const cover = b.cover_image;
+          const coverRaw = Array.isArray(b.cover_image) ? b.cover_image[0] : b.cover_image;
+          const cover = typeof coverRaw === "string" ? `${API_BASE}${coverRaw}` : null;
           return (
             <tr key={b._id || b.id} className="border-b">
               <td className="px-3 py-2 text-sm">
                 {cover ? (
                   <img
-                    src={`${API_BASE}${cover}`}
+                    src={cover}
                     alt={b.title}
                     className="h-12 w-10 object-cover rounded"
+                    loading="lazy"
                   />
                 ) : (
                   <span className="text-gray-400">—</span>

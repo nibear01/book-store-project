@@ -1,4 +1,5 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { BooksContext } from "@/context/BooksContext";
 import { isValidISBN } from "./utils";
 
@@ -35,12 +36,26 @@ const AddEditBookModal = ({ open, initialBook, onClose, onSuccess, onError }) =>
   const editingId = useMemo(() => (initialBook ? String(initialBook._id || initialBook.id) : null), [initialBook]);
 
   const [form, setForm] = useState(emptyForm);
+  // CHANGED: keep raw preview string (either blob: URL or server path)
   const [coverPreview, setCoverPreview] = useState(null);
+
+  // Revoke blob URL on unmount/change to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      if (coverPreview && String(coverPreview).startsWith("blob:")) {
+        URL.revokeObjectURL(coverPreview);
+      }
+    };
+  }, [coverPreview]);
 
   useEffect(() => {
     if (!initialBook) {
       setForm(emptyForm);
-      setCoverPreview(null);
+      // reset preview (revoke any blob url)
+      setCoverPreview((prev) => {
+        if (prev && String(prev).startsWith("blob:")) URL.revokeObjectURL(prev);
+        return null;
+      });
       return;
     }
     setForm({
@@ -80,14 +95,16 @@ const AddEditBookModal = ({ open, initialBook, onClose, onSuccess, onError }) =>
     setCoverPreview(typeof cover === "string" ? cover : null);
   }, [initialBook]);
 
-  const handleCoverImageChange = (e) => {
-    const file = e.target.files?.[0];
-    setForm((f) => ({ ...f, cover_image: file || null }));
-    if (file) setCoverPreview(URL.createObjectURL(file));
-    else setCoverPreview(null);
-  };
+  const handleCoverImageChange = useCallback((e) => {
+    const file = e.target.files?.[0] || null;
+    setForm((f) => ({ ...f, cover_image: file }));
+    setCoverPreview((prev) => {
+      if (prev && String(prev).startsWith("blob:")) URL.revokeObjectURL(prev);
+      return file ? URL.createObjectURL(file) : null;
+    });
+  }, []);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
 
     if (form.isbn && !isValidISBN(form.isbn)) {
@@ -148,19 +165,43 @@ const AddEditBookModal = ({ open, initialBook, onClose, onSuccess, onError }) =>
       else result = await addBook(formData);
       onSuccess?.(result);
     } catch (err) {
-      onError?.("Error occurred!");
+      console.log("Book add/update error:", err);
+      if (err.response) {
+        console.log("Response data:", err.response.data);
+        onError?.(err.response.data?.message || "Error occurred!");
+      } else {
+        onError?.("Error occurred!");
+      }
     }
-  };
+  }, [form, editingId, addBook, updateBook, onError, onSuccess]);
 
   if (!open) return null;
 
-  const previewSrc =
-    typeof coverPreview === "string" ? `${API_BASE}${coverPreview}` : coverPreview || null;
+  const previewSrc = useMemo(() => {
+    if (!coverPreview) return null;
+    return String(coverPreview).startsWith("blob:") ? coverPreview : `${API_BASE}${coverPreview}`;
+  }, [coverPreview]);
 
-  return (
-    <div className="modal-bg fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-6">
+  // Memoized cover preview
+  const CoverPreview = useMemo(
+    () =>
+      React.memo(({ src }) => (
+        <div className="aspect-[3/4] w-32 sm:w-36 mx-auto rounded-lg border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center overflow-hidden">
+          {src ? (
+            <img src={src} alt="Cover preview" className="h-full w-full object-cover" loading="lazy" />
+          ) : (
+            <span className="text-gray-400 text-sm text-center px-2">No cover</span>
+          )}
+        </div>
+      )),
+    []
+  );
+
+  // Render via portal for smoother layering and fewer reflows
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div
-        className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 overflow-hidden flex flex-col"
+        className="relative w-full max-w-3xl bg-white rounded-[2px] shadow-xl border border-gray-200 overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="bg-slate-800 text-white px-6 py-4 flex items-center justify-between">
@@ -174,17 +215,11 @@ const AddEditBookModal = ({ open, initialBook, onClose, onSuccess, onError }) =>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+        <form onSubmit={handleSubmit} encType="multipart/form-data" className="flex flex-col h-full">
           <div className="p-6 overflow-y-auto max-h-[70vh] space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-1">
-                <div className="aspect-[3/4] w-32 sm:w-36 mx-auto rounded-lg border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center overflow-hidden">
-                  {previewSrc ? (
-                    <img src={previewSrc} alt="Cover preview" className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="text-gray-400 text-sm text-center px-2">No cover</span>
-                  )}
-                </div>
+                <CoverPreview src={previewSrc} />
               </div>
               <div className="sm:col-span-2 space-y-3">
                 <label className="block text-sm font-medium">Cover Image</label>
@@ -445,7 +480,7 @@ const AddEditBookModal = ({ open, initialBook, onClose, onSuccess, onError }) =>
           <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t">
             <button
               type="button"
-              className="px-5 py-2 rounded-lg border font-semibold hover:bg-gray-100 transition"
+              className="px-5 py-2 rounded-[2px] border font-semibold hover:bg-gray-100 transition"
               onClick={onClose}
             >
               Cancel
@@ -459,8 +494,9 @@ const AddEditBookModal = ({ open, initialBook, onClose, onSuccess, onError }) =>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
-export default AddEditBookModal;
+export default React.memo(AddEditBookModal);
