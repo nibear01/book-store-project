@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useAuth } from "../context/AuthContext";
+import { toast } from "react-toastify";
 
 const SignupPage = () => {
   const navigate = useNavigate();
@@ -71,12 +72,12 @@ const SignupPage = () => {
     setError("");
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match!");
+      toast.error("Passwords do not match!");
       return;
     }
 
     if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long!");
+      toast.error("Password must be at least 6 characters long!");
       return;
     }
 
@@ -86,7 +87,7 @@ const SignupPage = () => {
 
     // Basic E.164-like validation: + followed by 8-15 digits overall
     if (!/^\+[1-9][0-9]{7,14}$/.test(fullPhone)) {
-      setError("Please enter a valid phone number.");
+      toast.error("Please enter a valid phone number.");
       return;
     }
 
@@ -102,6 +103,7 @@ const SignupPage = () => {
       });
 
       console.log("Registration successful:", response);
+      toast.success("Account created successfully!");
       // Navigate appropriately after successful registration
       if (response?.isAdmin) {
         navigate("/admin/dashboard", { replace: true });
@@ -110,7 +112,7 @@ const SignupPage = () => {
       }
     } catch (error) {
       console.error("Registration failed:", error);
-      setError(error.message || "Registration failed. Please try again.");
+      toast.error(error.message || "Registration failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -124,13 +126,6 @@ const SignupPage = () => {
           <h3 className="text-center">Create a new account</h3>
         </div>
         <div className="px-5">
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-              {error}
-            </div>
-          )}
-
           <form onSubmit={handleRegister} className="flex-col justify-center">
             {/* Name */}
             <div className="space-y-3 mb-3">

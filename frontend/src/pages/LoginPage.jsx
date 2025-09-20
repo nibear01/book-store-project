@@ -3,14 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useAuth } from "../context/AuthContext";
+import { toast } from "react-toastify";
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated, user } = useAuth();
+  const { login, isAuthenticated, user, loading, error: authError } = useAuth();
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   // If already authenticated, prevent access to login page
@@ -24,16 +24,24 @@ const LoginPage = () => {
     }
   }, [isAuthenticated, user, navigate]);
 
+  // Display auth error from context
+  useEffect(() => {
+    if (authError) {
+      console.log("Auth error from context:", authError);
+      const errorMessage =
+        authError.message || authError.response?.data?.message || authError;
+      toast.error(errorMessage);
+    }
+  }, [authError]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
     if (!email || !password) {
-      setError("Please fill in all fields");
+      toast.error("Please fill in all fields");
       return;
     }
-
-    setIsLoading(true);
 
     try {
       const loggedInUser = await login({
@@ -42,6 +50,7 @@ const LoginPage = () => {
       });
 
       console.log("Login successful:", loggedInUser);
+      toast.success("Login successful!");
       if (loggedInUser?.isAdmin) {
         navigate("/admin/dashboard", { replace: true });
       } else {
@@ -49,9 +58,20 @@ const LoginPage = () => {
       }
     } catch (error) {
       console.error("Login failed:", error);
-      setError(error.message || "Login failed. Please check your credentials.");
-    } finally {
-      setIsLoading(false);
+      console.log("Error type:", typeof error);
+      console.log("Error message:", error.message);
+      console.log("Error response:", error.response);
+
+      // Get the specific error message from the backend
+      const errorMessage = error.message || error.response?.data?.message || "";
+
+      console.log("Final error message:", errorMessage);
+
+      // Show the specific error message from the backend
+      toast.error(
+        errorMessage ||
+          "Login failed. Please check your credentials and try again."
+      );
     }
   };
 
@@ -66,13 +86,6 @@ const LoginPage = () => {
           <h3 className="text-center">Sign in to continue</h3>
         </div>
         <div className="px-5 flex-col justify-center items-center">
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-              {error}
-            </div>
-          )}
-
           <form onSubmit={handleLogin} className="flex-col justify-center">
             {/* Email */}
             <div className="space-y-3 mb-3">
@@ -123,14 +136,14 @@ const LoginPage = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={loading}
               className={`text-center w-full p-2 my-6 cursor-pointer rounded-[2px] ${
-                isLoading
+                loading
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-black hover:bg-gray-800"
               } text-white transition-colors`}
             >
-              {isLoading ? "Signing In..." : "Login"}
+              {loading ? "Signing In..." : "Login"}
             </button>
           </form>
 

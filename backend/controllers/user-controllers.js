@@ -69,7 +69,7 @@ export const loginUser = async (req, res) => {
         if (!user) {
             return res.status(401).json({
                 success: false,
-                message: "Invalid email or password"
+                message: "Email does not exist. Please check your email address or sign up for a new account."
             });
         }
 
@@ -77,7 +77,7 @@ export const loginUser = async (req, res) => {
         if (user.password !== password) {
             return res.status(401).json({
                 success: false,
-                message: "Invalid email or password"
+                message: "Incorrect password. Please check your password and try again."
             });
         }
 
@@ -233,6 +233,7 @@ export const updateUser = async (req, res) => {
         if (email !== undefined) update.email = email;
         if (address !== undefined) update.address = address;
         if (status !== undefined) update.status = status;
+        if (req.body.password !== undefined) update.password = req.body.password;
 
         // Handle uploaded profile image
         if (req.file) {

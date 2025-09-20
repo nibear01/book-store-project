@@ -1,9 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { createOrder } from "../api/order-api";
+import { toast } from "react-toastify";
 
 const CheckoutPage = () => {
-  const { state, subtotal, shipping, total, dispatch } = useCart();
+  const navigate = useNavigate();
+  const { state, subtotal, shipping, total, dispatch, clearCart } = useCart();
 
   const [form, setForm] = useState({
     fullName: "",
@@ -53,7 +56,7 @@ const CheckoutPage = () => {
 
     // Check if cart is empty
     if (!state.items || state.items.length === 0) {
-      alert("Your cart is empty. Please add items before checkout.");
+      toast.error("Your cart is empty. Please add items before checkout.");
       return;
     }
 
@@ -91,7 +94,7 @@ const CheckoutPage = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("You must be logged in to place an order.");
+        toast.error("You must be logged in to place an order.");
         setLoading(false);
         return;
       }
@@ -100,12 +103,13 @@ const CheckoutPage = () => {
       console.log(data);
 
       if (data.success) {
-        // Show success message with order number
-        const orderNumber = data.data.order_number;
-        alert(`Order placed successfully! Order Number: ${orderNumber}`);
+        // Show success message
+        toast.success("Order placed successfully!");
 
-        // Clear cart and form
-        dispatch({ type: "CLEAR" });
+        // Clear cart using the clearCart function from context
+        await clearCart();
+
+        // Clear form
         setForm({
           fullName: "",
           email: "",
@@ -117,14 +121,16 @@ const CheckoutPage = () => {
           paymentMethod: "",
         });
 
-        // Redirect to orders page
-        window.location.href = "/orders";
+        // Redirect to order summary page
+        navigate(`/order-summary/${data.data._id}`, {
+          state: { orderId: data.data._id },
+        });
       } else {
-        alert(data.message || "Failed to place order");
+        toast.error(data.message || "Failed to place order");
       }
     } catch (err) {
       console.error(err);
-      alert("Server error. Please try again later.");
+      toast.error("Server error. Please try again later.");
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,8 @@ import {
   Route,
   useLocation,
 } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import Homepage from "./pages/homepage";
 import AboutPage from "./pages/AboutPage";
 import CategoriesPage from "./pages/CategoriesPage";
@@ -30,6 +32,7 @@ import Books from "./components/adminComponents/Books";
 import Order from "./components/adminComponents/Order";
 import Settings from "./components/adminComponents/Settings";
 import UserDashboard from "./pages/UserDashboard";
+import OrderSummaryPage from "./pages/OrderSummaryPage";
 import { useAuth } from "./context/AuthContext";
 import { Navigate } from "react-router-dom";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -157,9 +160,31 @@ function AppContent() {
             </RequireAuth>
           }
         />
+        <Route
+          path="/order-summary/:orderId"
+          element={
+            <RequireAuth>
+              <OrderSummaryPage />
+            </RequireAuth>
+          }
+        />
       </Routes>
 
       {!hideNavbarFooter && <Footer />}
+
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </>
   );
 }
