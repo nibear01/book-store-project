@@ -102,9 +102,7 @@ const CheckoutPage = () => {
       if (data.success) {
         // Show success message with order number
         const orderNumber = data.data.order_number;
-        const confirmed = window.confirm(
-          `Order placed successfully!\n\nOrder Number: ${orderNumber}\n\nClick OK to view your orders.`
-        );
+        alert(`Order placed successfully! Order Number: ${orderNumber}`);
 
         // Clear cart and form
         dispatch({ type: "CLEAR" });
@@ -120,9 +118,7 @@ const CheckoutPage = () => {
         });
 
         // Redirect to orders page
-        if (confirmed) {
-          window.location.href = "/orders";
-        }
+        window.location.href = "/orders";
       } else {
         alert(data.message || "Failed to place order");
       }
