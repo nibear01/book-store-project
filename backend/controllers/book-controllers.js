@@ -2,6 +2,9 @@ import mongoose from "mongoose";
 import path from "path";
 import Book from "../models/book-model.js";
 
+// NEW: fs/promises for renaming
+import fs from "fs/promises";
+
 // Helper: safely parse number with default
 const toNumber = (val, def) => {
   const n = Number(val);
@@ -566,5 +569,127 @@ export const getDealsOfTheWeek = async (req, res) => {
     return res.json({ success: true, data: books, meta: { limit } });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Failed to fetch deals of the week", error: error.message });
+  }
+};
+
+// NEW: helper to sanitize/normalize filenames
+const sanitizeBaseName = (name = "") =>
+  String(name)
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9.\-_]/g, "")
+    .replace(/-+/g, "-");
+
+// NEW: ensure unique destination filename
+const ensureUniquePath = async (dir, base) => {
+  const ext = path.extname(base);
+  const name = path.basename(base, ext);
+  let candidate = base;
+  let i = 1;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    try {
+      await fs.access(path.join(dir, candidate));
+      // exists -> try next
+      candidate = `${name}-${i}${ext}`;
+      i += 1;
+    } catch {
+      // not exists
+      return candidate;
+    }
+  }
+};
+
+// NEW: POST /api/books/bulk-upload
+// FormData: bulk_images[] (images), bulk_files[] (pdf/epub)
+// Optional fields:
+//   - renameMap: JSON string mapping original file name -> desired filename (with or without extension)
+//   - imagesNames: JSON string array of desired basenames by index for bulk_images[]
+//   - filesNames: JSON string array of desired basenames by index for bulk_files[]
+export const bulkUploadAssets = async (req, res) => {
+  try {
+    const files = req.files || {};
+    const images = Array.isArray(files.bulk_images) ? files.bulk_images : [];
+    const bookFiles = Array.isArray(files.bulk_files) ? files.bulk_files : [];
+
+    // parse optional rename inputs
+    let renameMap = {};
+    let imagesNames = [];
+    let filesNames = [];
+    try {
+      if (req.body?.renameMap) renameMap = JSON.parse(req.body.renameMap);
+    } catch {}
+    try {
+      if (req.body?.imagesNames) imagesNames = JSON.parse(req.body.imagesNames);
+    } catch {}
+    try {
+      if (req.body?.filesNames) filesNames = JSON.parse(req.body.filesNames);
+    } catch {}
+
+    const toPublic = (abs) => {
+      const rel = path.relative(process.cwd(), abs).split(path.sep).join("/");
+      return rel.startsWith("/") ? `/${rel}` : `/${rel}`;
+    };
+
+    const processBatch = async (arr, namesByIndex) => {
+      const results = [];
+      for (let i = 0; i < arr.length; i += 1) {
+        const f = arr[i];
+        const dir = path.dirname(f.path);
+        const origExt = path.extname(f.originalname) || path.extname(f.filename) || "";
+        const provided = renameMap[f.originalname] ?? namesByIndex[i];
+
+        let desiredBase = provided ? sanitizeBaseName(String(provided)) : null;
+        if (desiredBase) {
+          // Ensure extension present; if provided already has an extension, keep it
+          if (!path.extname(desiredBase)) {
+            desiredBase = `${desiredBase}${origExt}`;
+          }
+        }
+
+        // If no desired name -> keep current stored name
+        let finalFilename = desiredBase || path.basename(f.path);
+        // If different -> rename and ensure uniqueness
+        if (finalFilename !== path.basename(f.path)) {
+          finalFilename = await ensureUniquePath(dir, finalFilename);
+          const dst = path.join(dir, finalFilename);
+          await fs.rename(f.path, dst);
+        } else {
+          // Still ensure uniqueness in case of manual clashes (rare)
+          const unique = await ensureUniquePath(dir, finalFilename);
+          if (unique !== finalFilename) {
+            const dst = path.join(dir, unique);
+            await fs.rename(f.path, dst);
+            finalFilename = unique;
+          }
+        }
+
+        const abs = path.join(dir, finalFilename);
+        results.push({
+          original: f.originalname,
+          filename: finalFilename,
+          url: toPublic(abs),
+        });
+      }
+      return results;
+    };
+
+    const imagesOut = await processBatch(images, imagesNames);
+    const filesOut = await processBatch(bookFiles, filesNames);
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        images: imagesOut,
+        files: filesOut,
+      },
+      message: "Bulk assets uploaded successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to upload bulk assets",
+      error: error.message,
+    });
   }
 };

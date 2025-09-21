@@ -13,8 +13,10 @@ import {
   getOnSaleBooks,
   getMostViewedBooks,
   getDealsOfTheWeek,
+  bulkUploadAssets,
 } from "../controllers/book-controllers.js";
 import { uploadBookAssets } from "../middlewares/upload-middleware.js";
+import { uploadBulkAssets } from "../middlewares/upload-middleware.js";
 
 const router = express.Router();
 
@@ -58,6 +60,16 @@ router.get("/:slug", getBookById);
 // FormData: { title, author, price, meta_title, ... } + files: cover_image[], file_url
 router.post("/", protect, isAdmin, uploadBookAssets, createBook);
 
+// NEW: POST /api/books/bulk-upload
+// FormData: bulk_images[], bulk_files[]; optional fields: renameMap (JSON), imagesNames (JSON), filesNames (JSON)
+router.post(
+  "/bulk-upload",
+  protect,
+  isAdmin,
+  uploadBulkAssets,
+  bulkUploadAssets
+);
+
 // PUT /api/books/:id
 // FormData: { ...fields } + files: cover_image[], file_url
 router.put("/:id", protect, isAdmin, uploadBookAssets, updateBook);
@@ -67,18 +79,6 @@ router.put("/:id", protect, isAdmin, uploadBookAssets, updateBook);
 router.delete("/:id", protect, isAdmin, deleteBook);
 
 export default router;
-//   protect,
-//   isAdmin,
-//   upload.fields([
-//     { name: "cover_image", maxCount: 5 },
-//     { name: "file_url", maxCount: 1 },
-//   ]),
-//   createBook
-// );
-// router.put(
-//   "/:id",
-//   protect,
-//   isAdmin,
 //   upload.fields([
 //     { name: "cover_image", maxCount: 5 },
 //     { name: "file_url", maxCount: 1 },

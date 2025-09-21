@@ -17,6 +17,9 @@ const storage = multer.diskStorage({
     if (file.fieldname === "cover_image") return cb(null, imgDir);
     if (file.fieldname === "file_url") return cb(null, fileDir);
     if (file.fieldname === "profile_image") return cb(null, userImgDir); // added
+    // NEW: bulk fields
+    if (file.fieldname === "bulk_images") return cb(null, imgDir);
+    if (file.fieldname === "bulk_files") return cb(null, fileDir);
     return cb(null, uploadRoot);
   },
   filename: (req, file, cb) => {
@@ -40,6 +43,16 @@ const fileFilter = (req, file, cb) => {
     if (file.mimetype && file.mimetype.startsWith("image/")) return cb(null, true); // added
     return cb(new Error("Invalid profile image file type"), false);
   }
+  // NEW: bulk fields
+  if (file.fieldname === "bulk_images") {
+    if (file.mimetype && file.mimetype.startsWith("image/")) return cb(null, true);
+    return cb(new Error("Invalid bulk image file type"), false);
+  }
+  if (file.fieldname === "bulk_files") {
+    const allowed = new Set(["application/pdf", "application/epub+zip"]);
+    if (allowed.has(file.mimetype)) return cb(null, true);
+    return cb(new Error("Invalid bulk book file type"), false);
+  }
   cb(null, false);
 };
 
@@ -56,6 +69,21 @@ export const upload = multer({
 export const uploadBookAssets = upload.fields([
   { name: "cover_image", maxCount: 5 },
   { name: "file_url", maxCount: 1 },
+]);
+
+// NEW: bulk uploader with larger limits
+const uploadBulk = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 25 * 1024 * 1024, // 25MB per file
+    files: 500, // bulk
+  },
+});
+
+export const uploadBulkAssets = uploadBulk.fields([
+  { name: "bulk_images", maxCount: 400 },
+  { name: "bulk_files", maxCount: 100 },
 ]);
 
 // Optional export if you need paths elsewhere
