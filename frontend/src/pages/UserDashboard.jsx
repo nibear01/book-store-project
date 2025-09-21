@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { userAPI } from "../api/user-api";
+import { getUserOrders } from "../api/order-api";
 
 const UserDashboard = () => {
+  const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", address: "" });
@@ -20,25 +23,73 @@ const UserDashboard = () => {
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [profileFile, setProfileFile] = useState(null); // added
   const [preview, setPreview] = useState(null); // added
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const baseUrl = import.meta.env.VITE_BACKEND_URL || "";
 
   // helper to get correct profile image path from various shapes
-  const getProfileImageUrl = (u) => {
-    const img = u?.profile_image ?? u?.data?.profile_image ?? null;
-    return img ? `${baseUrl}${img}` : null;
-  };
+  const getProfileImageUrl = useCallback(
+    (u) => {
+      const img = u?.profile_image ?? u?.data?.profile_image ?? null;
+      return img ? `${baseUrl}${img}` : null;
+    },
+    [baseUrl]
+  );
+
+  const fetchRecentOrders = useCallback(async () => {
+    setOrdersLoading(true);
+    try {
+      const data = await getUserOrders();
+      console.log("Orders data:", data); // Debug log
+      if (data.success) {
+        // Get the 3 most recent orders
+        setRecentOrders((data.data || []).slice(0, 3));
+      } else {
+        console.log("Orders fetch failed:", data.message);
+        setRecentOrders([]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch recent orders:", err);
+      setRecentOrders([]);
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
+    console.log("UserDashboard useEffect triggered, user:", user); // Debug log
     if (user) {
       setForm({
         name: (user?.name ?? user?.data?.name) || "",
         email: (user?.email ?? user?.data?.email) || "",
         address: (user?.address ?? user?.data?.address) || "",
       });
-      setPreview(getProfileImageUrl(user));
+      // Handle profile image URL directly
+      const img = user?.profile_image ?? user?.data?.profile_image ?? null;
+      setPreview(img ? `${baseUrl}${img}` : null);
       setProfileFile(null);
+      fetchRecentOrders();
     }
-  }, [user, baseUrl]);
+  }, [user, fetchRecentOrders, baseUrl]);
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      pending: "bg-yellow-100 text-yellow-800",
+      processing: "bg-blue-100 text-blue-800",
+      shipped: "bg-purple-100 text-purple-800",
+      delivered: "bg-green-100 text-green-800",
+      cancelled: "bg-red-100 text-red-800",
+    };
+    return colors[status] || "bg-gray-100 text-gray-800";
+  };
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -166,7 +217,7 @@ const UserDashboard = () => {
       });
 
       // If login successful, update password
-      const response = await userAPI.updateProfileById(user._id, {
+      await userAPI.updateProfileById(user._id, {
         password: passwordForm.newPassword,
       });
 
@@ -380,7 +431,7 @@ const UserDashboard = () => {
             <form onSubmit={onSubmitPassword} className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-700 mb-1">
-                  Current Password
+                  Current Password <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
@@ -395,7 +446,7 @@ const UserDashboard = () => {
 
               <div>
                 <label className="block text-sm text-gray-700 mb-1">
-                  New Password
+                  New Password <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
@@ -413,7 +464,7 @@ const UserDashboard = () => {
 
               <div>
                 <label className="block text-sm text-gray-700 mb-1">
-                  Confirm New Password
+                  Confirm New Password <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
@@ -450,6 +501,145 @@ const UserDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Recent Orders Section */}
+      <div className="bg-white border border-gray-200 rounded-[2px] p-4 mt-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Recent Orders</h2>
+          <button
+            onClick={() => navigate("/orders")}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >
+            View All Orders →
+          </button>
+        </div>
+
+        {ordersLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          </div>
+        ) : recentOrders.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="mx-auto h-16 w-16 text-gray-400 mb-3">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1}
+                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                />
+              </svg>
+            </div>
+            <p className="text-gray-600 mb-4">No orders yet</p>
+            <button
+              onClick={() => navigate("/shop")}
+              className="bg-gray-900 text-white px-4 py-2 rounded-[2px] text-sm hover:bg-gray-800 transition-colors"
+            >
+              Start Shopping
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {recentOrders.map((order) => (
+              <div
+                key={order._id}
+                className="flex items-center justify-between p-3 border border-gray-100 rounded-[2px] hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        Order #{order.order_number}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {formatDate(order.createdAt)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          order.order_status
+                        )}`}
+                      >
+                        {order.order_status.charAt(0).toUpperCase() +
+                          order.order_status.slice(1)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-1">
+                    <p className="text-sm text-gray-600">
+                      {order.items.length} item
+                      {order.items.length !== 1 ? "s" : ""} • Total: $
+                      {order.total_amount.toFixed(2)}
+                    </p>
+                    {/* Book Details */}
+                    <div className="mt-2 space-y-1">
+                      {order.items.slice(0, 2).map((item, itemIndex) => (
+                        <div
+                          key={itemIndex}
+                          className="flex items-center gap-2 text-xs text-gray-500"
+                        >
+                          <div className="flex-shrink-0">
+                            {item.book?.image ? (
+                              <img
+                                src={`${baseUrl}${item.book.image}`}
+                                alt={item.book.title}
+                                className="h-8 w-6 object-cover rounded"
+                                onError={(e) => {
+                                  e.target.style.display = "none";
+                                  e.target.nextSibling.style.display = "flex";
+                                }}
+                              />
+                            ) : null}
+                            <div
+                              className="h-8 w-6 bg-gray-200 rounded flex items-center justify-center"
+                              style={{
+                                display: item.book?.image ? "none" : "flex",
+                              }}
+                            >
+                              <svg
+                                className="h-4 w-4 text-gray-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={1}
+                                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                                />
+                              </svg>
+                            </div>
+                          </div>
+                          <span className="truncate">
+                            {item.book?.title || "Unknown Book"}
+                          </span>
+                          <span className="text-gray-400">
+                            ×{item.quantity}
+                          </span>
+                        </div>
+                      ))}
+                      {order.items.length > 2 && (
+                        <p className="text-xs text-gray-400">
+                          +{order.items.length - 2} more item
+                          {order.items.length - 2 !== 1 ? "s" : ""}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate(`/order-summary/${order._id}`)}
+                  className="ml-4 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  View Details
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

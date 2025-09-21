@@ -33,6 +33,7 @@ import Order from "./components/adminComponents/Order";
 import Settings from "./components/adminComponents/Settings";
 import UserDashboard from "./pages/UserDashboard";
 import OrderSummaryPage from "./pages/OrderSummaryPage";
+import UserOrdersPage from "./pages/UserOrdersPage";
 import { useAuth } from "./context/AuthContext";
 import { Navigate } from "react-router-dom";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -165,6 +166,14 @@ function AppContent() {
           element={
             <RequireAuth>
               <OrderSummaryPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/orders"
+          element={
+            <RequireAuth>
+              <UserOrdersPage />
             </RequireAuth>
           }
         />
