@@ -137,8 +137,23 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center">
+          {/* Mobile Menu Button + Cart */}
+          <div className="md:hidden flex items-center space-x-2">
+            {/* Mobile Cart Button */}
+            <button
+              type="button"
+              onClick={() => setIsCartOpen(true)}
+              className="relative p-2 text-gray-700 hover:text-gray-900 focus:outline-none"
+            >
+              <FaShoppingCart className="h-5 w-5" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] w-4 h-4">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+
+            {/* Mobile Menu Toggle */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-2 rounded-[2px] text-gray-700 hover:text-gray-900 focus:outline-none"
