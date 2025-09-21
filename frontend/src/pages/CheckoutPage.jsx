@@ -11,6 +11,7 @@ const CheckoutPage = () => {
   const [form, setForm] = useState({
     fullName: "",
     email: "",
+    phone: "",
     street: "",
     city: "",
     state: "",
@@ -39,6 +40,11 @@ const CheckoutPage = () => {
     if (!form.email.trim()) newErrors.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(form.email))
       newErrors.email = "Email is invalid";
+    if (!form.phone.trim()) newErrors.phone = "Phone number is required";
+    else if (
+      !/^[\+]?[1-9][\d]{7,14}$/.test(form.phone.replace(/[\s\-\(\)]/g, ""))
+    )
+      newErrors.phone = "Please enter a valid phone number";
     if (!form.street.trim()) newErrors.street = "Street address is required";
     if (!form.city.trim()) newErrors.city = "City is required";
     if (!form.state.trim()) newErrors.state = "State is required";
@@ -79,6 +85,7 @@ const CheckoutPage = () => {
       shipping_address: {
         fullName: form.fullName,
         email: form.email,
+        phone: form.phone,
         street: form.street,
         city: form.city,
         state: form.state,
@@ -113,6 +120,7 @@ const CheckoutPage = () => {
         setForm({
           fullName: "",
           email: "",
+          phone: "",
           street: "",
           city: "",
           state: "",
@@ -171,6 +179,24 @@ const CheckoutPage = () => {
             />
             {errors.email && (
               <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Phone Number</label>
+            <input
+              name="phone"
+              type="tel"
+              value={form.phone}
+              onChange={handleChange}
+              placeholder="+1 (555) 123-4567"
+              className={`mt-1 w-full border rounded px-3 py-2 ${
+                errors.phone ? "border-red-500" : ""
+              }`}
+              required
+            />
+            {errors.phone && (
+              <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
             )}
           </div>
 
