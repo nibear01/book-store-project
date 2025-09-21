@@ -29,8 +29,6 @@ const CategoriesPage = () => {
     categories,
     groupCount,
 
-    // Handlers
-    setSortOption,
     setPriceRange,
     setRatingFilter,
     setLanguageFilter,
@@ -89,11 +87,12 @@ const CategoriesPage = () => {
     languageFilter,
     availabilityFilter,
     searchQuery,
+    setActiveGroupIndex,
+    fetchBooks,
   ]);
 
   const totalPages = books?.pagination?.pages || 1;
   const currentPage = books?.pagination?.page || page;
-  const totalItems = books?.pagination?.total || filteredBooks.length;
 
   return (
     <div className="min-h-screen bg-white">
@@ -151,45 +150,45 @@ const CategoriesPage = () => {
             onTouchEnd={handleTouchEnd}
             onResetFilters={resetFilters}
           />
-              </div>
+        </div>
 
         {/* Pagination controls */}
-              {totalPages > 1 && (
-                <div className="mt-8 flex items-center justify-center gap-2">
-                  <button
-                    className="px-3 py-2 border border-gray-300 rounded-[2px] text-sm disabled:opacity-50"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage <= 1}
-                  >
-                    Prev
-                  </button>
+        {totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center gap-2">
+            <button
+              className="px-3 py-2 border border-gray-300 rounded-[2px] text-sm disabled:opacity-50"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage <= 1}
+            >
+              Prev
+            </button>
             {Array.from({ length: totalPages })
               .slice(0, 10)
               .map((_, i) => {
-                    const pageNum = i + 1;
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setPage(pageNum)}
-                        className={`px-3 py-2 border rounded-[2px] text-sm ${
-                          currentPage === pageNum
-                            ? "bg-black text-white border-black"
-                            : "border-gray-300 hover:border-black"
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
+                const pageNum = i + 1;
+                return (
                   <button
-                    className="px-3 py-2 border border-gray-300 rounded-[2px] text-sm disabled:opacity-50"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage >= totalPages}
+                    key={pageNum}
+                    onClick={() => setPage(pageNum)}
+                    className={`px-3 py-2 border rounded-[2px] text-sm ${
+                      currentPage === pageNum
+                        ? "bg-black text-white border-black"
+                        : "border-gray-300 hover:border-black"
+                    }`}
                   >
-                    Next
+                    {pageNum}
                   </button>
-                </div>
-              )}
+                );
+              })}
+            <button
+              className="px-3 py-2 border border-gray-300 rounded-[2px] text-sm disabled:opacity-50"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
