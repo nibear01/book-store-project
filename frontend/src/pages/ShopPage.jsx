@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useCart } from "../context/CartContext";
 import { booksAPI } from "../api/book-api.js";
 import { useAuth } from "../context/AuthContext"; // ✅ import auth
+import { getImageUrl } from "../utils/imageUtils";
 
 const ShopPage = () => {
   const { addToCart } = useCart();
@@ -45,7 +46,7 @@ const ShopPage = () => {
           <div key={b._id} className="border rounded-[2px] p-4">
             {Array.isArray(b.cover_image) && b.cover_image[0] && (
               <img
-                src={`http://localhost:5000${b.cover_image[0]}`}
+                src={getImageUrl(b.cover_image[0])}
                 alt={b.title}
                 className="w-full h-48 object-cover rounded mb-3"
               />

@@ -23,6 +23,7 @@ import { BooksContextProvider } from "./context/BooksContext";
 import AdminPage from "./pages/AdminPage";
 import Footer from "./pages/Footer";
 import BookViewPage from "./pages/BookViewPage";
+import EbookProductPage from "./pages/EbookProductPage";
 // import { HelmetProvider } from 'react-helmet-async';
 
 // Admin components
@@ -153,6 +154,7 @@ function AppContent() {
           }
         />
         <Route path="/bookview/:slug" element={<BookViewPage />} />
+        <Route path="/products/ebooks/:slug" element={<EbookProductPage />} />
         <Route
           path="/account"
           element={

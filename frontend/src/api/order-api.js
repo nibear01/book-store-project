@@ -1,11 +1,14 @@
 // src/api/order-api.js
 import axios from 'axios';
+import { mockApiService } from '../services/mockApiService';
+
 const API_BASE_URL = 'http://localhost:5000/api';
 //const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'; // Use .env for base URL
 
-const api = axios.create({
+// Create API instance with interceptors for fallback
+const api = mockApiService.setupInterceptors(axios.create({
   baseURL: API_BASE_URL,
-});
+}));
 
 // Request interceptor to add auth token
 api.interceptors.request.use(

@@ -6,6 +6,7 @@ import { useParams } from "react-router";
 import { BooksContext } from "@/context/BooksContext";
 import { useAuth } from "../context/AuthContext";
 import { Helmet } from "react-helmet";
+import { getImageUrl } from "../utils/imageUtils";
 
 const BookViewPage = () => {
   const [book, setBook] = useState(null);
@@ -135,7 +136,7 @@ const BookViewPage = () => {
         <meta property="og:title" content={book.meta_title || book.title} />
         <meta property="og:description" content={book.meta_description || book.description} />
         {currentImage && (
-          <meta property="og:image" content={`http://localhost:5000${currentImage}`} />
+          <meta property="og:image" content={getImageUrl(currentImage)} />
         )}
         <meta property="og:type" content="book" />
       </Helmet>
@@ -187,7 +188,7 @@ const BookViewPage = () => {
                 )}
                 
                 <img
-                  src={`http://localhost:5000${currentImage}`}
+                  src={getImageUrl(currentImage)}
                   alt={book.title}
                   className="w-full h-auto object-cover rounded-[2px] shadow-md"
                   style={{ maxHeight: '380px' }} // Added maxHeight constraint
@@ -204,7 +205,7 @@ const BookViewPage = () => {
                         }`}
                       >
                         <img
-                          src={`http://localhost:5000${img}`}
+                          src={getImageUrl(img)}
                           alt={`${book.title} view ${index + 1}`}
                           className="w-full h-full object-cover"
                         />

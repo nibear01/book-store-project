@@ -4,6 +4,7 @@ import { FaStar, FaStarHalfAlt, FaRegStar } from "react-icons/fa";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
+import { getImageUrl } from "../../utils/imageUtils";
 
 const BookCard = ({ book, baseUrl }) => {
   const { addToCart } = useCart();
@@ -82,7 +83,7 @@ const BookCard = ({ book, baseUrl }) => {
       <Link to={`/bookview/${book.slug}`}>
         <div className="relative pt-[150%] sm:pt-[130%] md:pt-[140%] lg:pt-[150%] w-full">
           <img
-            src={`${baseUrl}${coverImage}`}
+            src={getImageUrl(coverImage, baseUrl)}
             alt={book.title}
             className="absolute top-0 left-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"
           />

@@ -3,15 +3,19 @@ import Feature from "@/components/Feature";
 import Hero from "@/components/Hero";
 import Deals from "@/components/Deals";
 import Book from "@/components/Book";
+import EbookLink from "@/components/EbookLink";
 
 const homepage = () => {
   return (
-    <div className="min-h-screen bg-gray-50 mx-20 ">
-      <Hero />
-      <Category />
-      <Feature />
-      <Deals />
-      <Book />
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Hero />
+        <Category />
+        <Feature />
+        <Deals />
+        <Book />
+        <EbookLink />
+      </div>
     </div>
   );
 };

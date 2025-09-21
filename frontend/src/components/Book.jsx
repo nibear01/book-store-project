@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { BooksContext } from '@/context/BooksContext';
 import { Link } from 'react-router-dom';
+import { getImageUrl } from '../utils/imageUtils';
 
 const categories = ["All", "History", "Science & Math", "Romance", "Travel"];
 
@@ -98,7 +99,7 @@ const Book = () => {
                 {/* Book Image */}
                 <div className="relative w-full aspect-[3/4] mb-3 md:mb-4 overflow-hidden rounded-[2px]">
                   <img
-                    src={`${url}${img || ''}`}
+                    src={getImageUrl(img, url)}
                     alt={book.title || 'Book cover'}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     loading="lazy"
