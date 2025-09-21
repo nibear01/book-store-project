@@ -83,7 +83,7 @@ const UserDashboard = () => {
   const getStatusColor = (status) => {
     const colors = {
       pending: "bg-yellow-100 text-yellow-800",
-      processing: "bg-blue-100 text-blue-800",
+      processing: "bg-red-100 text-red-800",
       shipped: "bg-purple-100 text-purple-800",
       delivered: "bg-green-100 text-green-800",
       cancelled: "bg-red-100 text-red-800",
@@ -309,7 +309,7 @@ const UserDashboard = () => {
             </button>
             <button
               onClick={openPasswordModal}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-[2px] hover:bg-blue-700"
+              className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-[2px] hover:bg-red-700"
             >
               Change Password
             </button>
@@ -404,7 +404,7 @@ const UserDashboard = () => {
           onClick={closePasswordModal}
         >
           <div
-            className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
+            className="bg-white rounded-[2px] p-6 w-full max-w-md mx-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
@@ -438,7 +438,7 @@ const UserDashboard = () => {
                   name="currentPassword"
                   value={passwordForm.currentPassword}
                   onChange={onPasswordChange}
-                  className="w-full p-3 border border-gray-300 rounded-[2px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="w-full p-3 border border-gray-300 rounded-[2px] focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
                   placeholder="Enter your current password"
                   required
                 />
@@ -453,7 +453,7 @@ const UserDashboard = () => {
                   name="newPassword"
                   value={passwordForm.newPassword}
                   onChange={onPasswordChange}
-                  className="w-full p-3 border border-gray-300 rounded-[2px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="w-full p-3 border border-gray-300 rounded-[2px] focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
                   placeholder="Enter your new password"
                   required
                 />
@@ -471,7 +471,7 @@ const UserDashboard = () => {
                   name="confirmPassword"
                   value={passwordForm.confirmPassword}
                   onChange={onPasswordChange}
-                  className="w-full p-3 border border-gray-300 rounded-[2px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="w-full p-3 border border-gray-300 rounded-[2px] focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
                   placeholder="Confirm your new password"
                   required
                 />
@@ -484,7 +484,7 @@ const UserDashboard = () => {
                   className={`flex-1 px-4 py-2 rounded-[2px] text-white ${
                     changingPassword
                       ? "bg-gray-400"
-                      : "bg-blue-600 hover:bg-blue-700"
+                      : "bg-red-600 hover:bg-red-700"
                   }`}
                 >
                   {changingPassword ? "Updating..." : "Update Password"}
@@ -508,7 +508,7 @@ const UserDashboard = () => {
           <h2 className="text-lg font-semibold text-gray-900">Recent Orders</h2>
           <button
             onClick={() => navigate("/orders")}
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            className="text-sm text-red-600 hover:text-red-800 font-medium"
           >
             View All Orders →
           </button>
@@ -631,7 +631,7 @@ const UserDashboard = () => {
                 </div>
                 <button
                   onClick={() => navigate(`/order-summary/${order._id}`)}
-                  className="ml-4 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  className="ml-4 text-red-600 hover:text-red-800 text-sm font-medium"
                 >
                   View Details
                 </button>

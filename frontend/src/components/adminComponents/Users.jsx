@@ -188,6 +188,7 @@ const Users = () => {
                     <td className="px-4 py-2 capitalize">{user.status}</td>
                     <td className="px-4 py-2 flex gap-2 flex-wrap">
                       <Button
+                        className="rounded-[2px]"
                         onClick={() =>
                           handleAction(
                             user._id,
@@ -198,14 +199,18 @@ const Users = () => {
                       >
                         {user.status !== "active" ? "Approve" : "Ban"}
                       </Button>
-                      <Button onClick={() => openEditModal(user)} size="sm">
+                      <Button
+                        className="rounded-[2px]"
+                        onClick={() => openEditModal(user)}
+                        size="sm"
+                      >
                         Edit
                       </Button>
                       <Button
                         onClick={() => handleResetPassword(user._id)}
                         size="sm"
                         variant="outline"
-                        className="bg-gray-200 text-gray-800 hover:bg-gray-300"
+                        className="bg-gray-200 text-gray-800 hover:bg-gray-300 rounded-[2px]"
                       >
                         Change PW
                       </Button>
@@ -213,6 +218,7 @@ const Users = () => {
                         onClick={() => handleDelete(user._id)}
                         size="sm"
                         variant="destructive"
+                        className="rounded-[2px]"
                       >
                         Delete
                       </Button>

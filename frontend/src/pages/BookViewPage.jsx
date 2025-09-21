@@ -340,9 +340,9 @@ const BookViewPage = () => {
                   <span className="font-semibold">Published:</span>{" "}
                   {book.published_date ? new Date(book.published_date).toLocaleDateString() : 'N/A'}
                 </div>
-                <div>
+                {/* <div>
                   <span className="font-semibold">Format:</span> {book.file_url ? 'Digital & Physical' : 'Physical'}
-                </div>
+                </div> */}
               </div>
             </div>
           </div>

@@ -25,7 +25,6 @@ export default function Order() {
   const [endDate, setEndDate] = useState("");
 
   const ORDERS_PER_PAGE = 20;
-  const token = localStorage.getItem("token");
   const printRef = useRef();
 
   // Fetch all orders
@@ -35,7 +34,7 @@ export default function Order() {
       try {
         const data = await getAllOrders();
         console.log(data);
-        if (data.success) setOrders(data.data || []);
+        if (data.success) setOrders(data.data.reverse() || []);
         else setOrders([]);
       } catch (err) {
         console.error(err);
@@ -194,11 +193,11 @@ export default function Order() {
           <thead className="bg-gray-100">
             <tr>
               <th className="p-3 border">Order ID</th>
-              <th className="p-3 border">Customer</th>
+              <th className="p-3 border">Customer Name</th>
               <th className="p-3 border">Email</th>
               <th className="p-3 border">Total</th>
               <th className="p-3 border">Status</th>
-              <th className="p-3 border">Date</th>
+              <th className="p-3 border">Date & Time</th>
               <th className="p-3 border">Action</th>
               <th className="p-3 border">Update Status</th>
             </tr>
@@ -232,7 +231,7 @@ export default function Order() {
 
                   <td className="p-2 border">
                     <span
-                      className={`px-2 py-1 rounded-full ${getStatusClass(
+                      className={`px-2 py-1 rounded-full text-[11px] ${getStatusClass(
                         order.order_status
                       )}`}
                     >
