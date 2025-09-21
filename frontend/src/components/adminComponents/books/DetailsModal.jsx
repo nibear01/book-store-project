@@ -4,6 +4,9 @@ const API_BASE = "http://localhost:5000";
 
 const DetailsModal = ({ book, toGenreArray, onClose }) => {
   if (!book) return null;
+  const coverRaw = Array.isArray(book.cover_image) ? book.cover_image[0] : book.cover_image;
+  const cover = typeof coverRaw === "string" ? `${API_BASE}${coverRaw}` : null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-[2px] shadow-xl max-w-lg w-full p-6">
@@ -15,11 +18,12 @@ const DetailsModal = ({ book, toGenreArray, onClose }) => {
         </div>
         <div className="mt-4 grid grid-cols-3 gap-4">
           <div className="col-span-1">
-            {book.cover_image ? (
+            {cover ? (
               <img
-                src={`${API_BASE}${book.cover_image}`}
+                src={cover}
                 alt={book.title}
                 className="w-full h-40 object-cover rounded"
+                loading="lazy"
               />
             ) : (
               <div className="w-full h-40 bg-gray-100 rounded" />
