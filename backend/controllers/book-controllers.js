@@ -382,6 +382,35 @@ export const createBook = async (req, res) => {
       }
     }
 
+    // Merge URL-based cover images from body (CSV import support)
+    const body = req.body || {};
+    const coverUrlSet = new Set(
+      Array.isArray(payload.cover_image) ? payload.cover_image.filter(Boolean) : []
+    );
+
+    if (typeof body.cover_image === "string" && body.cover_image.trim()) {
+      // If a single URL was provided in 'cover_image' as text (CSV), use it as-is
+      if (isAbsoluteUrl(body.cover_image.trim())) coverUrlSet.add(body.cover_image.trim());
+    }
+    if (typeof body.cover_image_url === "string" && body.cover_image_url.trim()) {
+      coverUrlSet.add(body.cover_image_url.trim());
+    }
+    if (typeof body.cover_image_urls === "string" && body.cover_image_urls.trim()) {
+      // Try JSON parse first, otherwise split by common separators
+      let list = [];
+      try {
+        const parsed = JSON.parse(body.cover_image_urls);
+        if (Array.isArray(parsed)) list = parsed;
+      } catch {
+        list = body.cover_image_urls.split(/[|,\n]/).map((s) => s.trim()).filter(Boolean);
+      }
+      for (const u of list) if (isAbsoluteUrl(u)) coverUrlSet.add(u);
+    }
+
+    if (coverUrlSet.size) {
+      payload.cover_image = Array.from(coverUrlSet);
+    }
+
     // Merge uploaded files
     const uploadedImages = Array.isArray(req.files?.cover_image) ? req.files.cover_image : [];
     const uploadedBookFile = Array.isArray(req.files?.file_url) ? req.files.file_url[0] : undefined;
@@ -415,7 +444,7 @@ export const updateBook = async (req, res) => {
 
     const payload = pickUpdatableFields(req.body);
 
-    // If slug provided, ensure uniqueness (do not auto-update slug on title change)
+    // If slug provided, ensure uniqueness
     if (payload.slug) {
       payload.slug = await ensureUniqueSlug(payload.slug, id);
     }
@@ -425,6 +454,33 @@ export const updateBook = async (req, res) => {
       if (!(payload.sale_price < payload.price)) {
         return res.status(400).json({ success: false, message: "sale_price must be less than price" });
       }
+    }
+
+    // Merge URL-based cover images from body (CSV/automation support)
+    const body = req.body || {};
+    const coverUrlSet = new Set(
+      Array.isArray(payload.cover_image) ? payload.cover_image.filter(Boolean) : []
+    );
+
+    if (typeof body.cover_image === "string" && body.cover_image.trim()) {
+      if (isAbsoluteUrl(body.cover_image.trim())) coverUrlSet.add(body.cover_image.trim());
+    }
+    if (typeof body.cover_image_url === "string" && body.cover_image_url.trim()) {
+      coverUrlSet.add(body.cover_image_url.trim());
+    }
+    if (typeof body.cover_image_urls === "string" && body.cover_image_urls.trim()) {
+      let list = [];
+      try {
+        const parsed = JSON.parse(body.cover_image_urls);
+        if (Array.isArray(parsed)) list = parsed;
+      } catch {
+        list = body.cover_image_urls.split(/[|,\n]/).map((s) => s.trim()).filter(Boolean);
+      }
+      for (const u of list) if (isAbsoluteUrl(u)) coverUrlSet.add(u);
+    }
+
+    if (coverUrlSet.size) {
+      payload.cover_image = Array.from(coverUrlSet);
     }
 
     // Merge uploaded files
@@ -693,3 +749,6 @@ export const bulkUploadAssets = async (req, res) => {
     });
   }
 };
+
+// helper: detect absolute URL
+const isAbsoluteUrl = (s) => typeof s === "string" && /^https?:\/\//i.test(s);

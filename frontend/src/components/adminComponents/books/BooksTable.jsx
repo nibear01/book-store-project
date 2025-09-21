@@ -21,7 +21,10 @@ const BooksTable = ({ books, toGenreArray, onViewDetails, onEdit, onDelete }) =>
           const onSale = !!b.is_on_sale && typeof b.sale_price === "number";
           const genreLabel = toGenreArray(b?.genre).join(", ");
           const coverRaw = Array.isArray(b.cover_image) ? b.cover_image[0] : b.cover_image;
-          const cover = typeof coverRaw === "string" ? `${API_BASE}${coverRaw}` : null;
+          const cover =
+            typeof coverRaw === "string"
+              ? (/^https?:\/\//i.test(coverRaw) ? coverRaw : `${API_BASE}${coverRaw}`)
+              : null;
           return (
             <tr key={b._id || b.id} className="border-b">
               <td className="px-3 py-2 text-sm">

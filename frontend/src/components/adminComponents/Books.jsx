@@ -131,11 +131,22 @@ const Books = () => {
         "pages",
         "meta_description",
         "meta_keywords",
+        // NEW: allow URL-based assets from CSV
+        "file_url",
+        "cover_image",
+        "cover_image_url",
+        "cover_image_urls",
       ];
       maybe.forEach((k) => {
         const v = get(k);
         if (v !== "") fd.append(k, v);
       });
+      // Also map alternative headers if present
+      const altCoverOne = get("image_url") || get("cover_url");
+      if (altCoverOne) fd.append("cover_image_url", altCoverOne);
+      const altCoverMany = get("image_urls");
+      if (altCoverMany) fd.append("cover_image_urls", altCoverMany);
+
       // booleans/numbers
       const bools = ["is_active", "is_featured", "is_on_sale", "is_deal_of_the_week"];
       bools.forEach((k) => {

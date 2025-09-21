@@ -5,7 +5,10 @@ const API_BASE = "http://localhost:5000";
 const DetailsModal = ({ book, toGenreArray, onClose }) => {
   if (!book) return null;
   const coverRaw = Array.isArray(book.cover_image) ? book.cover_image[0] : book.cover_image;
-  const cover = typeof coverRaw === "string" ? `${API_BASE}${coverRaw}` : null;
+  const cover =
+    typeof coverRaw === "string"
+      ? (/^https?:\/\//i.test(coverRaw) ? coverRaw : `${API_BASE}${coverRaw}`)
+      : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
