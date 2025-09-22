@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { createOrder } from "../api/order-api";
 import { toast } from "react-toastify";
+import { useAuth } from "../context/AuthContext";
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
-  const { state, subtotal, shipping, total, dispatch, clearCart } = useCart();
+  const { state, subtotal, shipping, clearCart } = useCart();
+  const { user, isAuthenticated } = useAuth();
 
   const [form, setForm] = useState({
     fullName: "",
@@ -48,6 +50,19 @@ const CheckoutPage = () => {
   );
   const [errors, setErrors] = useState({});
 
+  // Prefill form with logged-in user details (non-destructive)
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    setForm((prev) => ({
+      ...prev,
+      fullName: prev.fullName || user.name || "",
+      email: prev.email || user.email || "",
+      phone: prev.phone || user.phone || "",
+      street: prev.street || user.address || "",
+      // city/state/zip/country left to user as backend stores a single address
+    }));
+  }, [isAuthenticated, user]);
+
   // Handle input changes
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -67,7 +82,7 @@ const CheckoutPage = () => {
       newErrors.email = "Email is invalid";
     if (!form.phone.trim()) newErrors.phone = "Phone number is required";
     else if (
-      !/^[\+]?[1-9][\d]{7,14}$/.test(form.phone.replace(/[\s\-\(\)]/g, ""))
+      !/^[\\+]?[1-9][\d]{7,14}$/.test(form.phone.replace(/[\s\-\\(\\)]/g, ""))
     )
       newErrors.phone = "Please enter a valid phone number";
     if (!form.street.trim()) newErrors.street = "Street address is required";
