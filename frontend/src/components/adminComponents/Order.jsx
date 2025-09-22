@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { getAllOrders, updateOrderStatus } from "../../api/order-api";
+import ReactToPrint from "react-to-print";
 
 export default function Order() {
   const [orders, setOrders] = useState([]);
@@ -102,14 +103,17 @@ export default function Order() {
   };
 
   // Delete order
-  const handleDeleteCustomer = () => {
-    const updatedOrders = orders.filter(
-      (order) => order._id !== selectedOrder._id
-    );
-    setOrders(updatedOrders);
-    setViewOrderVisible(false);
-    toast.success("Order deleted!");
-  };
+const handleDeleteCustomer = () => {
+  if (!selectedOrder) return;
+  const updatedOrders = orders.filter(
+    (order) => order._id !== selectedOrder._id
+  );
+  setOrders(updatedOrders);
+  setSelectedOrder(null); // Clear the selected order
+  setViewOrderVisible(false); // Close modal
+  toast.success("Order deleted!");
+};
+
 
   // Format date
   const formatDate = (dateString) => {
@@ -209,20 +213,14 @@ export default function Order() {
         return "bg-gray-300 text-black";
     }
   };
-
-  const handlePrint = () => {
-    if (!printRef.current) return;
-    const printContent = printRef.current.innerHTML;
-    const newWindow = window.open("", "_blank");
-    newWindow.document.write(`
-      <html>
-        <head><title>Order Details</title></head>
-        <body>${printContent}</body>
-      </html>
-    `);
-    newWindow.document.close();
-    newWindow.print();
-  };
+<ReactToPrint
+  trigger={() => (
+    <button className="px-4 py-2 bg-gray-800 text-white rounded w-full md:w-auto">
+      Print
+    </button>
+  )}
+  content={() => printRef.current}
+/>
 
   return (
     <div className="container mx-auto px-4 py-8">
