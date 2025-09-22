@@ -244,7 +244,7 @@ const CheckoutPage = () => {
             <label className="block text-sm font-medium">Street Address</label>
             <input
               name="street"
-              value={form.street}
+              
               onChange={handleChange}
               className={`mt-1 w-full border rounded px-3 py-2 ${
                 errors.street ? "border-red-500" : ""
@@ -311,7 +311,7 @@ const CheckoutPage = () => {
               value={form.country}
               onChange={handleChange}
               className="mt-1 w-full border rounded px-3 py-2"
-              placeholder="USA"
+              placeholder="Bangladesh"
             />
           </div>
 
@@ -357,30 +357,30 @@ const CheckoutPage = () => {
                 <span>
                   {i.title} × {i.quantity}
                 </span>
-                <span>${(i.price * i.quantity).toFixed(2)}</span>
+                <span>৳{(i.price * i.quantity).toFixed(2)}</span>
               </li>
             ))}
           </ul>
           <div className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span>${subtotal.toFixed(2)}</span>
+              <span>৳{subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span>Shipping</span>
-              <span>${shipping.toFixed(2)}</span>
+              <span>৳{shipping.toFixed(2)}</span>
             </div>
             {discountAmount > 0 && (
               <div className="flex justify-between text-green-600">
                 <span>
                   Discount{discountLabel ? ` (${discountLabel})` : ""}
                 </span>
-                <span>- ${discountAmount.toFixed(2)}</span>
+                <span>- ৳{discountAmount.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between font-semibold text-base pt-2 border-t">
               <span>Total</span>
-              <span>${payableTotal.toFixed(2)}</span>
+              <span>৳{payableTotal.toFixed(2)}</span>
             </div>
           </div>
         </div>
