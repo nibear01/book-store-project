@@ -29,7 +29,8 @@ export const createOrder = async (req, res) => {
 export const getUserOrders = async (req, res) => {
     try {
         const orders = await Order.find({ user: req.user._id })
-            .populate('items.book', 'title image price');
+            .populate('items.book', 'title image price')
+            .populate('user', 'name email phone');
         res.status(200).json({
             success: true,
             data: orders
@@ -45,7 +46,7 @@ export const getUserOrders = async (req, res) => {
 // Get all orders (admin)
 export const getAllOrders = async (req, res) => {
     try {
-        const orders = await Order.find().populate('user', 'name email');
+        const orders = await Order.find().populate('user', 'name email phone');
         res.status(200).json({
             success: true,
             data: orders
@@ -62,7 +63,8 @@ export const getAllOrders = async (req, res) => {
 export const getOrderById = async (req, res) => {
     try {
         const order = await Order.findById(req.params.id)
-            .populate('items.book', 'title image price');
+            .populate('items.book', 'title image price')
+            .populate('user', 'name email phone');
         if (!order) {
             return res.status(404).json({
                 success: false,

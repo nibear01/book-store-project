@@ -21,6 +21,31 @@ const CheckoutPage = () => {
   });
 
   const [loading, setLoading] = useState(false);
+
+  // Derived: discount based on simple conditions
+  const itemCount = (state.items || []).reduce((sum, i) => sum + i.quantity, 0);
+  const { discountAmount, discountLabel } = (() => {
+    let amount = 0;
+    let label = "";
+    // Rule 1: 15% off if subtotal >= $200
+    if (subtotal >= 200) {
+      amount = subtotal * 0.15;
+      label = "15% off orders $200+";
+      // Rule 2: 10% off if subtotal >= $100
+    } else if (subtotal >= 100) {
+      amount = subtotal * 0.1;
+      label = "10% off orders $100+";
+      // Rule 3: 5% off if buying 5+ items
+    } else if (itemCount >= 5) {
+      amount = subtotal * 0.05;
+      label = "5% multi-item discount (5+ items)";
+    }
+    return { discountAmount: Number(amount.toFixed(2)), discountLabel: label };
+  })();
+  const payableTotal = Math.max(
+    0,
+    Number((subtotal + shipping - discountAmount).toFixed(2))
+  );
   const [errors, setErrors] = useState({});
 
   // Handle input changes
@@ -81,7 +106,7 @@ const CheckoutPage = () => {
 
     const orderData = {
       items: orderItems,
-      total_amount: total,
+      total_amount: payableTotal,
       shipping_address: {
         fullName: form.fullName,
         email: form.email,
@@ -330,9 +355,17 @@ const CheckoutPage = () => {
               <span>Shipping</span>
               <span>${shipping.toFixed(2)}</span>
             </div>
+            {discountAmount > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>
+                  Discount{discountLabel ? ` (${discountLabel})` : ""}
+                </span>
+                <span>- ${discountAmount.toFixed(2)}</span>
+              </div>
+            )}
             <div className="flex justify-between font-semibold text-base pt-2 border-t">
               <span>Total</span>
-              <span>${total.toFixed(2)}</span>
+              <span>${payableTotal.toFixed(2)}</span>
             </div>
           </div>
         </div>
