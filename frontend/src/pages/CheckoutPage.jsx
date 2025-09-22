@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
-  const { state, subtotal, shipping, total, dispatch, clearCart } = useCart();
+  const { state, subtotal, shipping, clearCart } = useCart();
 
   const [form, setForm] = useState({
     fullName: "",
@@ -67,7 +67,7 @@ const CheckoutPage = () => {
       newErrors.email = "Email is invalid";
     if (!form.phone.trim()) newErrors.phone = "Phone number is required";
     else if (
-      !/^[\+]?[1-9][\d]{7,14}$/.test(form.phone.replace(/[\s\-\(\)]/g, ""))
+      !/^[\\+]?[1-9][\d]{7,14}$/.test(form.phone.replace(/[\s\-\\(\\)]/g, ""))
     )
       newErrors.phone = "Please enter a valid phone number";
     if (!form.street.trim()) newErrors.street = "Street address is required";

@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { useCart } from "../context/CartContext";
 import { booksAPI } from "../api/book-api.js";
-import { useAuth } from "../context/AuthContext"; // ✅ import auth
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom"; // ✅ import navigate
+import { toast } from "react-toastify";
 
 const ShopPage = () => {
   const { addToCart } = useCart();
-  const { isAuthenticated } = useAuth(); // ✅ check login
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate(); // ✅ use navigate
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -25,6 +28,28 @@ const ShopPage = () => {
     load();
   }, []);
 
+  const handleAddToCart = async (book) => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      await addToCart({
+        item: {
+          id: book._id,
+          title: book.title,
+          price: Number(book.price || 0),
+        },
+        quantity: 1,
+      });
+      toast.success(`${book.title} added to cart!`);
+    } catch (error) {
+      console.error("Failed to add to cart:", error);
+      toast.error("Failed to add item to cart. Please try again.");
+    }
+  };
+
   if (loading) {
     return <div className="max-w-6xl mx-auto px-6 py-10">Loading books...</div>;
   }
@@ -42,7 +67,7 @@ const ShopPage = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-8">
         {books.map((b) => (
-          <div key={b._id} className="border rounded-[2px] p-4">
+          <div key={b._id} className="border rounded-[2px] p-4 flex flex-col">
             {Array.isArray(b.cover_image) && b.cover_image[0] && (
               <img
                 src={`http://localhost:5000${b.cover_image[0]}`}
@@ -55,27 +80,19 @@ const ShopPage = () => {
             <p className="text-gray-700 mb-3 mt-1">
               ${Number(b.price || 0).toFixed(2)}
             </p>
-            {isAuthenticated ? (
-              <button
-                onClick={() =>
-                  addToCart({
-                    item: {
-                      id: b._id,
-                      title: b.title,
-                      price: Number(b.price || 0),
-                    },
-                    quantity: 1,
-                  })
-                }
-                className="bg-red-500 text-white px-3 py-2 rounded-[2px] hover:bg-red-600"
-              >
-                Add to Cart
-              </button>
-            ) : (
-              <p className="text-sm text-gray-500 mt-2">
-                🔒 Please <a href="/login" className="text-red-500 underline">login</a> to add items to cart.
-              </p>
-            )}
+
+            {/* Always show Add to Cart button */}
+            <button
+              onClick={() => handleAddToCart(b)}
+              className={`mt-auto w-full py-2.5 rounded-[2px] text-white transition-colors ${
+                b.stock > 0
+                  ? "bg-red-500 hover:bg-red-600"
+                  : "bg-gray-400 cursor-not-allowed"
+              }`}
+              disabled={b.stock <= 0}
+            >
+              {b.stock > 0 ? "Add to Cart" : "Out of Stock"}
+            </button>
           </div>
         ))}
       </div>

@@ -270,8 +270,11 @@ const Navbar = () => {
             <div className="flex-1 overflow-y-auto">
               {state.items && state.items.length > 0 ? (
                 <ul className="divide-y">
-                  {state.items.map((item) => (
-                    <li key={item.id} className="p-4 flex items-start gap-3">
+                  {state.items.map((item, index) => (
+                    <li
+                      key={item._id || item.id || index}
+                      className="p-4 flex items-start gap-3"
+                    >
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <p className="font-medium text-gray-900 truncate">
@@ -279,7 +282,7 @@ const Navbar = () => {
                           </p>
                           <button
                             type="button"
-                            onClick={() => removeItem({ id: item.id })}
+                            onClick={() => removeItem({ id: item._id || item.id })}
                             className="text-xs text-gray-500 hover:text-red-600"
                           >
                             Remove
@@ -294,7 +297,7 @@ const Navbar = () => {
                             className="px-2 py-1 text-sm hover:bg-gray-100"
                             onClick={() =>
                               updateQuantity({
-                                id: item.id,
+                                id: item._id || item.id,
                                 quantity: Math.max(1, item.quantity - 1),
                               })
                             }
@@ -308,7 +311,7 @@ const Navbar = () => {
                             className="px-2 py-1 text-sm hover:bg-gray-100"
                             onClick={() =>
                               updateQuantity({
-                                id: item.id,
+                                id: item._id || item.id,
                                 quantity: item.quantity + 1,
                               })
                             }
