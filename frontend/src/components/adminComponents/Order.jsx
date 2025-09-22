@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
 import { getAllOrders, updateOrderStatus } from "../../api/order-api";
 
 export default function Order() {
@@ -18,31 +17,38 @@ export default function Order() {
     address: "",
   });
 
+  // State for search, filter, and sort
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [sortDirection, setSortDirection] = useState("desc");
+  const [sortBy, setSortBy] = useState("date");
 
   const ORDERS_PER_PAGE = 20;
   const printRef = useRef();
 
   // Fetch all orders
-  useEffect(() => {
-    const fetchOrders = async () => {
-      setLoading(true);
-      try {
-        const data = await getAllOrders();
-        console.log(data);
-        if (data.success) setOrders(data.data.reverse() || []);
-        else setOrders([]);
-      } catch (err) {
-        console.error(err);
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const data = await getAllOrders();
+      if (data.success) {
+        setOrders(data.data || []);
+      } else {
         setOrders([]);
         toast.error("Failed to fetch orders");
       }
-      setLoading(false);
-    };
+    } catch (err) {
+      console.error(err);
+      setOrders([]);
+      toast.error("Failed to fetch orders");
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
     fetchOrders();
   }, []);
 
@@ -73,6 +79,7 @@ export default function Order() {
       fullName: order.shipping_address?.fullName || "",
       email: order.shipping_address?.email || "",
       address: order.shipping_address?.address || "",
+      phone: order.shipping_address?.phone || ""
     });
     setViewOrderVisible(true);
     setEditMode(false);
@@ -118,38 +125,72 @@ export default function Order() {
     return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
   };
 
-  // Filtered & paginated orders
-  const filteredOrders = orders
+  // Filtered & sorted orders
+  const filteredAndSortedOrders = orders
+    .slice() // Create a copy to avoid mutating state
     .filter((order) =>
       filter === "all" ? true : order.order_status === filter
     )
     .filter((order) => {
       const customerName =
         order.shipping_address?.fullName?.toLowerCase() || "";
+      const customerEmail =
+        order.shipping_address?.email?.toLowerCase() || "";
+      const orderNumber = order.order_number?.toLowerCase() || "";
       return (
-        order.order_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        customerName.includes(searchQuery.toLowerCase())
+        orderNumber.includes(searchQuery.toLowerCase()) ||
+        customerName.includes(searchQuery.toLowerCase()) ||
+        customerEmail.includes(searchQuery.toLowerCase())
       );
     })
     .filter((order) => {
-      const orderDate = new Date(order.created_at);
+      const orderDate = new Date(order.created_at || order.createdAt);
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (dateFilter === "today")
-        return orderDate.setHours(0, 0, 0, 0) === today.getTime();
-      if (dateFilter === "before") return orderDate < today;
+
+      if (dateFilter === "today") {
+        // Fix for "Today" filter: Compare YYYY-MM-DD strings
+        const todayString = today.toISOString().slice(0, 10);
+        const orderDateString = orderDate.toISOString().slice(0, 10);
+        return orderDateString === todayString;
+      }
+      
+      if (dateFilter === "before") {
+        // This logic is already correct
+        return orderDate < today;
+      }
+
       if (dateFilter === "custom") {
         const start = startDate ? new Date(startDate) : null;
         const end = endDate ? new Date(endDate) : null;
+
+        // Fix for "Custom" filter: Set end date to the end of the day
+        if (end) {
+          end.setHours(23, 59, 59, 999);
+        }
+
         if (start && orderDate < start) return false;
         if (end && orderDate > end) return false;
         return true;
       }
-      return true;
+      
+      return true; // "all" filter
+    })
+    .sort((a, b) => {
+      if (sortBy === "date") {
+        // Correct way to compare dates
+        const dateA = new Date(a.created_at || a.createdAt);
+        const dateB = new Date(b.created_at || b.createdAt);
+        return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
+      } else if (sortBy === "price") {
+        return sortDirection === "asc"
+          ? a.total_amount - b.total_amount
+          : b.total_amount - a.total_amount;
+      }
+      return 0;
     });
 
-  const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE);
-  const paginatedOrders = filteredOrders.slice(
+  const totalPages = Math.ceil(filteredAndSortedOrders.length / ORDERS_PER_PAGE);
+  const paginatedOrders = filteredAndSortedOrders.slice(
     (currentPage - 1) * ORDERS_PER_PAGE,
     currentPage * ORDERS_PER_PAGE
   );
@@ -163,7 +204,7 @@ export default function Order() {
       case "delivered":
         return "bg-green-500 text-white";
       case "cancel":
-        return "bg-red-500 text-white";  
+        return "bg-red-500 text-white";
       default:
         return "bg-gray-300 text-black";
     }
@@ -185,7 +226,97 @@ export default function Order() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold ">Orders</h1>
       <ToastContainer position="top-right" autoClose={2000} />
+
+      {/* Controls: Search, Filter, Sort, Refresh */}
+      <div className="mb-6 bg-gray-50 p-4 rounded-lg shadow-md flex flex-col md:flex-row md:items-center gap-4">
+        {/* Search Bar */}
+        <div className="flex-1">
+          <input
+            type="text"
+            placeholder="Search by name, email, or order ID"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Date Filter */}
+        <div className="flex items-center gap-2">
+          <label htmlFor="date-filter" className="text-gray-700">Date:</label>
+          <select
+            id="date-filter"
+            value={dateFilter}
+            onChange={(e) => {
+              setDateFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="p-2 border rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All</option>
+            <option value="today">Today</option>
+            <option value="before">Before Today</option>
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+
+        {dateFilter === "custom" && (
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="p-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <span className="text-gray-500">to</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="p-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
+
+        {/* Sort By Control */}
+        <div className="flex items-center gap-2">
+          <label htmlFor="sort-by" className="text-gray-700">Sort By:</label>
+          <select
+            id="sort-by"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="p-2 border rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="date">Date</option>
+            <option value="price">Price</option>
+          </select>
+        </div>
+
+        {/* Sort Direction Control */}
+        <div className="flex items-center gap-2">
+          <label htmlFor="sort-direction" className="text-gray-700">Direction:</label>
+          <select
+            id="sort-direction"
+            value={sortDirection}
+            onChange={(e) => setSortDirection(e.target.value)}
+            className="p-2 border rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="asc">Oldest to Newest</option>
+            <option value="desc">Newest to Oldest</option>
+          </select>
+        </div>
+
+        {/* Refresh Button */}
+        <div>
+          <button
+            onClick={fetchOrders}
+            className="px-6 py-2 bg-black text-white rounded-full hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
 
       {/* Orders Table */}
       <div className="overflow-x-auto">
@@ -196,7 +327,6 @@ export default function Order() {
               <th className="p-3 border">Customer Name</th>
               <th className="p-3 border">Email</th>
               <th className="p-3 border">Total</th>
-              <th className="p-3 border">Status</th>
               <th className="p-3 border">Date & Time</th>
               <th className="p-3 border">Action</th>
               <th className="p-3 border">Update Status</th>
@@ -205,13 +335,13 @@ export default function Order() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="8" className="p-4 text-center">
+                <td colSpan="7" className="p-4 text-center">
                   Loading...
                 </td>
               </tr>
             ) : paginatedOrders.length === 0 ? (
               <tr>
-                <td colSpan="8" className="p-4 text-center">
+                <td colSpan="7" className="p-4 text-center">
                   No orders found
                 </td>
               </tr>
@@ -227,17 +357,6 @@ export default function Order() {
                   </td>
                   <td className="p-2 border">
                     ${order.total_amount?.toFixed(2)}
-                  </td>
-
-                  <td className="p-2 border">
-                    <span
-                      className={`px-2 py-1 rounded-full text-[11px] ${getStatusClass(
-                        order.order_status
-                      )}`}
-                    >
-                      {order.order_status?.charAt(0).toUpperCase() +
-                        order.order_status?.slice(1)}
-                    </span>
                   </td>
                   <td className="p-2 border">
                     {formatDate(order.created_at || order.createdAt)}
@@ -256,12 +375,12 @@ export default function Order() {
                       onChange={(e) =>
                         handleUpdateStatus(order._id, e.target.value)
                       }
-                      className="px-2 py-1 border rounded"
+                      className={`px-2 py-1 border rounded ${getStatusClass(order.order_status)}`}
                     >
-                      <option value="pending">Pending</option>
-                      <option value="shipped">Shipped</option>
-                      <option value="delivered">Delivered</option>
-                      <option value="cancel">Cancel</option>
+                      <option className="bg-white text-black" value="pending">Pending</option>
+                      <option className="bg-white text-black" value="shipped">Shipped</option>
+                      <option className="bg-white text-black" value="delivered">Delivered</option>
+                      <option className="bg-white text-black" value="cancel">Cancel</option>
                     </select>
                   </td>
                 </tr>
@@ -280,19 +399,17 @@ export default function Order() {
         >
           Prev
         </button>
-
         {Array.from({ length: totalPages }, (_, i) => (
           <p
             key={i + 1}
             onClick={() => setCurrentPage(i + 1)}
-            className={` ${
-              currentPage === i + 1 ? " text-black" : "bg-white text-gray-700"
+            className={`cursor-pointer ${
+              currentPage === i + 1 ? "font-bold text-black" : "text-gray-700"
             }`}
           >
-            page {i + 1} of {i + 1}
+            {i + 1}
           </p>
         ))}
-
         <button
           onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
           className="px-3 py-1 border rounded disabled:opacity-50"
@@ -304,7 +421,7 @@ export default function Order() {
 
       {/* View/Edit/Delete Modal */}
       {viewOrderVisible && selectedOrder && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center  p-4">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-xl md:max-w-2xl rounded-lg p-6 overflow-y-auto max-h-[90vh] relative">
             <button
               className="absolute top-2 right-2 text-lg font-bold text-gray-600 hover:text-black"
@@ -380,11 +497,11 @@ export default function Order() {
                     </p>
                     <p>
                       <span className="font-semibold">Address:</span>{" "}
-                      {selectedOrder.shipping_address?.address}
+                      {selectedOrder.shipping_address?.state}
                     </p>
                     <p>
                       <span className="font-semibold">Phone:</span>{" "}
-                      {selectedOrder.shipping_address?.phone || "-"}
+                      {selectedOrder?.user?.phone || "-"}
                     </p>
                   </div>
                 )}
@@ -414,7 +531,7 @@ export default function Order() {
                             ${item.price?.toFixed(2)}
                           </td>
                           <td className="border p-2 text-right">
-                            ${(item.quantity * item.price)?.toFixed(2)}
+                            {(item.quantity * item.price)?.toFixed(2)}
                           </td>
                         </tr>
                       ))}
