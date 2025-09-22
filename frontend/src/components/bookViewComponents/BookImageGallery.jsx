@@ -27,10 +27,10 @@ const BookImageGallery = ({
     };
 
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
+    window.addEventListener("resize", checkMobile);
+
     return () => {
-      window.removeEventListener('resize', checkMobile);
+      window.removeEventListener("resize", checkMobile);
     };
   }, []);
 
@@ -95,7 +95,7 @@ const BookImageGallery = ({
 
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
-    
+
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
@@ -109,11 +109,11 @@ const BookImageGallery = ({
 
   // Add keyboard navigation
   const handleKeyDown = (e) => {
-    if (e.key === 'ArrowLeft') {
+    if (e.key === "ArrowLeft") {
       handleModalPrev();
-    } else if (e.key === 'ArrowRight') {
+    } else if (e.key === "ArrowRight") {
       handleModalNext();
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       closeModal();
     }
   };
@@ -122,17 +122,17 @@ const BookImageGallery = ({
     setModalImageIndex(index);
     setIsModalOpen(true);
     // Prevent background scrolling when modal is open
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
     // Add event listener for keyboard navigation
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     // Restore background scrolling
-    document.body.style.overflow = 'unset';
+    document.body.style.overflow = "unset";
     // Remove event listener when modal closes
-    document.removeEventListener('keydown', handleKeyDown);
+    document.removeEventListener("keydown", handleKeyDown);
   };
 
   const handleAddToWishlist = () => {
@@ -185,13 +185,15 @@ const BookImageGallery = ({
           <button
             onClick={() => openModal(currentImageIndex)}
             className="w-full cursor-zoom-in"
-          ><div className="relative w-full aspect-[3/4] mb-3 md:mb-4 overflow-hidden rounded-[2px]">
-            <img
-              src={`http://localhost:5000${currentImage}`}
-              alt={book.title}
-              className="w-full h-auto object-cover rounded-[2px] shadow-md transition-transform hover:scale-105"
-              style={{ maxHeight: "380px" }}
-            /></div>
+          >
+            <div className="relative w-full mb-3 md:mb-4 overflow-hidden rounded-[2px]">
+              <img
+                src={`http://localhost:5000${currentImage}`}
+                alt={book.title}
+                className="w-full h-auto object-cover rounded-[2px] shadow-md transition-transform hover:scale-105"
+                style={{ maxHeight: "380px" }}
+              />
+            </div>
           </button>
 
           {book.cover_image && book.cover_image.length > 1 && (
@@ -236,8 +238,14 @@ const BookImageGallery = ({
                 : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
             }`}
           >
-            <FaHeart className={`mr-1 md:mr-2 ${isWishlisted ? "fill-current" : ""}`} />
-            {isWishlisted ? "Wishlisted" : isMobile ? "Wishlist" : "Add to Wishlist"}
+            <FaHeart
+              className={`mr-1 md:mr-2 ${isWishlisted ? "fill-current" : ""}`}
+            />
+            {isWishlisted
+              ? "Wishlisted"
+              : isMobile
+              ? "Wishlist"
+              : "Add to Wishlist"}
           </button>
 
           <button
@@ -250,84 +258,104 @@ const BookImageGallery = ({
         </div>
       </div>
 
-      {/* Modal for viewing pages */}
+      {/* Modal for viewing pages - UPDATED POSITIONING */}
+      {/* Modal for viewing pages - FIXED HEIGHT ISSUE */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 md:p-4">
-          <div className="relative bg-white rounded-[2px] w-full max-w-2xl max-h-[95vh] md:max-h-screen overflow-hidden">
-            {/* Header */}
-            <div className="flex justify-between items-center p-3 md:p-4 border-b">
-              <h3 className="text-sm md:text-lg font-semibold truncate max-w-[70%]">
-                Preview: {book.title} - Page {modalImageIndex + 1} of{" "}
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6">
+          <div className="relative bg-white rounded-[2px] w-full max-w-4xl max-h-[95vh] overflow-hidden mx-auto my-auto shadow-2xl flex flex-col">
+            {/* Header - Compact and centered */}
+            <div className="flex-shrink-0 flex justify-between items-center p-3 sm:p-4 border-b bg-white">
+              <h3 className="text-sm sm:text-base md:text-lg font-semibold truncate max-w-[60%]">
+                {book.title} - Page {modalImageIndex + 1} of{" "}
                 {samplePages.length}
               </h3>
               <button
                 onClick={closeModal}
-                className="text-gray-500 hover:text-gray-700 text-lg md:text-xl p-1"
+                className="text-gray-500 hover:text-gray-700 text-xl p-2 rounded-full hover:bg-gray-100 transition-colors"
+                aria-label="Close preview"
               >
                 <FaTimes />
               </button>
             </div>
 
-            {/* Main Image */}
-            <div 
-              className="relative flex items-center justify-center p-4 md:p-8 bg-gray-100 min-h-[200px] md:min-h-[250px]"
+            {/* Main Image Container - Centered with proper spacing */}
+            <div
+              className="flex-1 relative flex items-center justify-center p-3 sm:p-4 md:p-6 bg-gray-50 min-h-[200px]"
               onTouchStart={onTouchStart}
               onTouchMove={onTouchMove}
               onTouchEnd={onTouchEnd}
             >
-              {!isMobile && (
-                <>
-                  <button
-                    onClick={handleModalPrev}
-                    className="absolute left-2 md:left-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 md:p-3 shadow-lg hover:bg-gray-100 z-10"
-                  >
-                    <FaChevronLeft className="text-gray-700 text-base md:text-xl" />
-                  </button>
+              {/* Navigation Arrows - Positioned with proper spacing */}
+              <button
+                onClick={handleModalPrev}
+                className="absolute left-2 sm:left-4 md:left-6 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-2 sm:p-3 shadow-lg hover:shadow-xl z-10 transition-all duration-200 border border-gray-200"
+                aria-label="Previous page"
+              >
+                <FaChevronLeft className="text-gray-700 text-base sm:text-lg md:text-xl" />
+              </button>
 
-                  <button
-                    onClick={handleModalNext}
-                    className="absolute right-2 md:right-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 md:p-3 shadow-lg hover:bg-gray-100 z-10"
-                  >
-                    <FaChevronRight className="text-gray-700 text-base md:text-xl" />
-                  </button>
-                </>
-              )}
+              <button
+                onClick={handleModalNext}
+                className="absolute right-2 sm:right-4 md:right-6 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-2 sm:p-3 shadow-lg hover:shadow-xl z-10 transition-all duration-200 border border-gray-200"
+                aria-label="Next page"
+              >
+                <FaChevronRight className="text-gray-700 text-base sm:text-lg md:text-xl" />
+              </button>
 
-              <img
-                src={`http://localhost:5000${samplePages[modalImageIndex]}`}
-                alt={`${book.title} - Page ${modalImageIndex + 1}`}
-                className="max-w-full max-h-[300px] md:max-h-[400px] object-contain shadow-lg"
-              />
+              {/* Main Image - Responsive sizing with safe area */}
+              <div className="flex items-center justify-center w-full h-full">
+                <img
+                  src={`http://localhost:5000${samplePages[modalImageIndex]}`}
+                  alt={`${book.title} - Page ${modalImageIndex + 1}`}
+                  className="max-w-[90%] max-h-[60vh] object-contain shadow-lg rounded-[2px]"
+                  style={{
+                    width: "auto",
+                    height: "auto",
+                    maxWidth: "min(90%, 550px)",
+                    maxHeight: "min(60vh, 450px)",
+                  }}
+                />
+              </div>
 
               {/* Mobile swipe indicators */}
               {isMobile && (
-                <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                  <span className="text-xs text-gray-600 bg-white/80 px-2 py-1 rounded">
+                <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2">
+                  <span className="text-xs text-gray-600 bg-white/90 px-3 py-2 rounded-full shadow-sm">
                     Swipe ← → to navigate
+                  </span>
+                </div>
+              )}
+
+              {/* Page indicator for mobile */}
+              {isMobile && (
+                <div className="absolute top-3 left-1/2 transform -translate-x-1/2">
+                  <span className="text-sm font-medium bg-black/70 text-white px-3 py-1 rounded-full">
+                    {modalImageIndex + 1} / {samplePages.length}
                   </span>
                 </div>
               )}
             </div>
 
-            {/* Thumbnail Navigation */}
-            <div className="p-3 md:p-4 border-t bg-gray-50">
-              <div className="flex overflow-x-auto space-x-2 py-2 thumbnail-scroll">
+            {/* Thumbnail Navigation - Compact and scrollable */}
+            <div className="flex-shrink-0 p-3 sm:p-4 border-t bg-gray-50 border-gray-200">
+              <div className="flex overflow-x-auto space-x-2 sm:space-x-3 py-2 thumbnail-scroll px-1">
                 {samplePages.map((img, index) => (
                   <button
                     key={index}
                     onClick={() => setModalImageIndex(index)}
-                    className={`flex-shrink-0 w-12 h-14 md:w-14 md:h-18 border-2 rounded overflow-hidden ${
+                    className={`flex-shrink-0 w-12 h-14 sm:w-14 sm:h-16 border-2 rounded-[2px] overflow-hidden transition-all duration-200 ${
                       index === modalImageIndex
-                        ? "border-red-500"
-                        : "border-gray-300"
+                        ? "border-red-500 shadow-md scale-105"
+                        : "border-gray-300 hover:border-gray-400"
                     }`}
+                    aria-label={`Go to page ${index + 1}`}
                   >
                     <img
                       src={`http://localhost:5000${img}`}
                       alt={`Page ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
-                    <div className="text-xs text-center bg-black bg-opacity-50 text-white py-1">
+                    <div className="text-xs text-center bg-black/70 text-white py-1 font-medium">
                       {index + 1}
                     </div>
                   </button>
@@ -335,30 +363,32 @@ const BookImageGallery = ({
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="p-3 md:p-4 border-t flex flex-col md:flex-row justify-between items-center space-y-2 md:space-y-0">
-              <span className="text-xs md:text-sm text-gray-600">
-                Previewing first {samplePages.length} pages
-              </span>
-              <div className="flex space-x-2 w-full md:w-auto justify-center">
-                <button
-                  onClick={handleModalPrev}
-                  className="px-3 py-1.5 md:px-4 md:py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm md:text-base flex-1 md:flex-none"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={handleModalNext}
-                  className="px-3 py-1.5 md:px-4 md:py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm md:text-base flex-1 md:flex-none"
-                >
-                  Next
-                </button>
-                <button
-                  onClick={closeModal}
-                  className="px-3 py-1.5 md:px-4 md:py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm md:text-base flex-1 md:flex-none"
-                >
-                  Close
-                </button>
+            {/* Footer - Compact actions */}
+            <div className="flex-shrink-0 p-3 sm:p-4 border-t bg-white border-gray-200">
+              <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
+                <span className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
+                  Previewing {samplePages.length} sample pages
+                </span>
+                <div className="flex space-x-2 w-full sm:w-auto justify-center">
+                  <button
+                    onClick={handleModalPrev}
+                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-[2px] text-sm font-medium transition-colors flex-1 sm:flex-none min-w-[90px]"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={handleModalNext}
+                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-[2px] text-sm font-medium transition-colors flex-1 sm:flex-none min-w-[90px]"
+                  >
+                    Next
+                  </button>
+                  <button
+                    onClick={closeModal}
+                    className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-[2px] text-sm font-medium transition-colors flex-1 sm:flex-none min-w-[90px]"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           </div>
