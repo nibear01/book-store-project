@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { getAllOrders, updateOrderStatus } from "../../api/order-api";
-import ReactToPrint from "react-to-print";
 
 export default function Order() {
   const [orders, setOrders] = useState([]);
@@ -24,8 +23,7 @@ export default function Order() {
   const [dateFilter, setDateFilter] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [sortDirection, setSortDirection] = useState("desc");
-  const [sortBy, setSortBy] = useState("date");
+  const [sortDirection, setSortDirection] = useState("desc"); // 'asc' or 'desc'
 
   const ORDERS_PER_PAGE = 20;
   const printRef = useRef();
@@ -35,8 +33,10 @@ export default function Order() {
     setLoading(true);
     try {
       const data = await getAllOrders();
+      console.log(data)
       if (data.success) {
-        setOrders(data.data || []);
+        // Removed the `.reverse()` call here to allow for proper sorting via the UI controls
+        setOrders(data.data|| []);
       } else {
         setOrders([]);
         toast.error("Failed to fetch orders");
@@ -103,17 +103,14 @@ export default function Order() {
   };
 
   // Delete order
-const handleDeleteCustomer = () => {
-  if (!selectedOrder) return;
-  const updatedOrders = orders.filter(
-    (order) => order._id !== selectedOrder._id
-  );
-  setOrders(updatedOrders);
-  setSelectedOrder(null); // Clear the selected order
-  setViewOrderVisible(false); // Close modal
-  toast.success("Order deleted!");
-};
-
+  const handleDeleteCustomer = () => {
+    const updatedOrders = orders.filter(
+      (order) => order._id !== selectedOrder._id
+    );
+    setOrders(updatedOrders);
+    setViewOrderVisible(false);
+    toast.success("Order deleted!");
+  };
 
   // Format date
   const formatDate = (dateString) => {
@@ -147,50 +144,46 @@ const handleDeleteCustomer = () => {
         customerEmail.includes(searchQuery.toLowerCase())
       );
     })
-    .filter((order) => {
-      const orderDate = new Date(order.created_at || order.createdAt);
-      const today = new Date();
+  .filter((order) => {
+  // support both created_at and createdAt
+  const rawDate = order.created_at || order.createdAt;
+  if (!rawDate) return false;
 
-      if (dateFilter === "today") {
-        // Fix for "Today" filter: Compare YYYY-MM-DD strings
-        const todayString = today.toISOString().slice(0, 10);
-        const orderDateString = orderDate.toISOString().slice(0, 10);
-        return orderDateString === todayString;
-      }
-      
-      if (dateFilter === "before") {
-        // This logic is already correct
-        return orderDate < today;
-      }
+  const orderDate = new Date(rawDate);
+  if (isNaN(orderDate)) return false;
 
-      if (dateFilter === "custom") {
-        const start = startDate ? new Date(startDate) : null;
-        const end = endDate ? new Date(endDate) : null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // midnight today
 
-        // Fix for "Custom" filter: Set end date to the end of the day
-        if (end) {
-          end.setHours(23, 59, 59, 999);
-        }
+  if (dateFilter === "today") {
+    const orderDay = new Date(orderDate);
+    orderDay.setHours(0, 0, 0, 0);
+    return orderDay.getTime() === today.getTime();
+  }
 
-        if (start && orderDate < start) return false;
-        if (end && orderDate > end) return false;
-        return true;
-      }
-      
-      return true; // "all" filter
-    })
+  if (dateFilter === "before") {
+    return orderDate < today;
+  }
+
+  if (dateFilter === "custom") {
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+
+    // normalize
+    if (start) start.setHours(0, 0, 0, 0);
+    if (end) end.setHours(23, 59, 59, 999);
+
+    if (start && orderDate < start) return false;
+    if (end && orderDate > end) return false;
+    return true;
+  }
+
+  return true; // "all"
+})
     .sort((a, b) => {
-      if (sortBy === "date") {
-        // Correct way to compare dates
-        const dateA = new Date(a.created_at || a.createdAt);
-        const dateB = new Date(b.created_at || b.createdAt);
-        return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
-      } else if (sortBy === "price") {
-        return sortDirection === "asc"
-          ? a.total_amount - b.total_amount
-          : b.total_amount - a.total_amount;
-      }
-      return 0;
+      const dateA = new Date(a.created_at);
+      const dateB = new Date(b.created_at);
+      return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
     });
 
   const totalPages = Math.ceil(filteredAndSortedOrders.length / ORDERS_PER_PAGE);
@@ -213,18 +206,24 @@ const handleDeleteCustomer = () => {
         return "bg-gray-300 text-black";
     }
   };
-<ReactToPrint
-  trigger={() => (
-    <button className="px-4 py-2 bg-gray-800 text-white rounded w-full md:w-auto">
-      Print
-    </button>
-  )}
-  content={() => printRef.current}
-/>
+
+  const handlePrint = () => {
+    if (!printRef.current) return;
+    const printContent = printRef.current.innerHTML;
+    const newWindow = window.open("", "_blank");
+    newWindow.document.write(`
+      <html>
+        <head><title>Order Details</title></head>
+        <body>${printContent}</body>
+      </html>
+    `);
+    newWindow.document.close();
+    newWindow.print();
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold ">Orders</h1>
+      <h1 className ="text-2xl font-bold ">Orders</h1>
       <ToastContainer position="top-right" autoClose={2000} />
 
       {/* Controls: Search, Filter, Sort, Refresh */}
@@ -277,31 +276,16 @@ const handleDeleteCustomer = () => {
           </div>
         )}
 
-        {/* Sort By Control */}
+        {/* Sort Controls */}
         <div className="flex items-center gap-2">
           <label htmlFor="sort-by" className="text-gray-700">Sort By:</label>
           <select
-            id="sort-by"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="p-2 border rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="date">Date</option>
-            <option value="price">Price</option>
-          </select>
-        </div>
-
-        {/* Sort Direction Control */}
-        <div className="flex items-center gap-2">
-          <label htmlFor="sort-direction" className="text-gray-700">Direction:</label>
-          <select
-            id="sort-direction"
             value={sortDirection}
             onChange={(e) => setSortDirection(e.target.value)}
             className="p-2 border rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="asc">Oldest to Newest</option>
             <option value="desc">Newest to Oldest</option>
+            <option value="asc">Oldest to Newest</option>
           </select>
         </div>
 
@@ -495,7 +479,7 @@ const handleDeleteCustomer = () => {
                     </p>
                     <p>
                       <span className="font-semibold">Address:</span>{" "}
-                      {selectedOrder.shipping_address?.state}
+                      {selectedOrder.shipping_address?.address}
                     </p>
                     <p>
                       <span className="font-semibold">Phone:</span>{" "}
