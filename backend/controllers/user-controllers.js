@@ -1,4 +1,5 @@
 import User from "../models/user-model.js";
+import Cart from "../models/cart-model.js";
 import { generateToken } from "../middlewares/auth-middleware.js";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
@@ -275,9 +276,17 @@ export const deleteUser = async (req, res) => {
             });
         }
 
+        // Cascade delete: remove the user's cart (if any)
+        try {
+            await Cart.deleteOne({ user: user._id });
+        } catch (e) {
+            // Log and continue; do not fail the main delete due to cart cleanup
+            console.error("Failed to delete cart for user", user._id, e?.message);
+        }
+
         res.status(200).json({
             success: true,
-            message: "User deleted successfully"
+            message: "User and associated cart deleted successfully"
         });
     } catch (error) {
         res.status(500).json({
