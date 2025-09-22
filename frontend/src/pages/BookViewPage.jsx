@@ -12,6 +12,7 @@ import {
   BookDetails,
   BookActions,
   BookTabs,
+  RelatedBooksPanel, // Add this import
 } from "../components/bookViewComponents";
 
 const BookViewPage = () => {
@@ -98,6 +99,9 @@ const BookViewPage = () => {
             setActiveTab={setActiveTab}
             isAuthenticated={isAuthenticated}
           />
+
+          {/* Related Books Panel - Add this section */}
+          <RelatedBooksPanel book={book} />
         </div>
       </div>
     </>

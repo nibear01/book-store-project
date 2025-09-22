@@ -79,6 +79,38 @@ const BooksContextProvider = ({ children }) => {
     [fetchData]
   );
 
+  // Get books by genre
+  const getBooksByGenre = useCallback(
+    async (genre, limit = 10) => {
+      try {
+        const { data } = await axios.get(`${url}/api/books`, {
+          params: { genre, limit }
+        });
+        return data.data || data.books || [];
+      } catch (err) {
+        console.error("Error fetching books by genre:", err);
+        return [];
+      }
+    },
+    [url]
+  );
+
+  // Get books by author
+  const getBooksByAuthor = useCallback(
+    async (author, limit = 10) => {
+      try {
+        const { data } = await axios.get(`${url}/api/books`, {
+          params: { author, limit }
+        });
+        return data.data || data.books || [];
+      } catch (err) {
+        console.error("Error fetching books by author:", err);
+        return [];
+      }
+    },
+    [url]
+  );
+
   // Get book by slug
   const getBookBySlug = useCallback(
     async (slug) => {
@@ -88,6 +120,31 @@ const BooksContextProvider = ({ children }) => {
     },
     [url]
   );
+
+  // Add to cart functionality
+  const addToCart = useCallback((item) => {
+    // Get existing cart from localStorage or initialize empty array
+    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    
+    // Check if item already exists in cart
+    const existingItemIndex = existingCart.findIndex(cartItem => 
+      cartItem.item.id === item.item.id
+    );
+
+    if (existingItemIndex >= 0) {
+      // Update quantity if item exists
+      existingCart[existingItemIndex].quantity += item.quantity;
+    } else {
+      // Add new item to cart
+      existingCart.push(item);
+    }
+
+    // Save updated cart to localStorage
+    localStorage.setItem('cart', JSON.stringify(existingCart));
+    
+    // You can also add state management for cart here if needed
+    console.log('Item added to cart:', item);
+  }, []);
 
   // Admin: Add book
   const addBook = async (formData) => {
@@ -160,7 +217,10 @@ const BooksContextProvider = ({ children }) => {
     fetchOnSaleBooks,
     fetchMostViewedBooks,
     fetchDealsOfWeek,
+    getBooksByGenre, // Added this function
+    getBooksByAuthor, // Added this function
     getBookBySlug,
+    addToCart, // Added this function
     addBook,
     updateBook,
     deleteBook,
