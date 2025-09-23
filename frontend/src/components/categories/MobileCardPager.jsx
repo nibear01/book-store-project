@@ -22,18 +22,19 @@ const MobileCardPager = ({
       aria-roledescription="swipeable book groups"
       aria-label={`Book groups, swipe left or right to navigate`}
     >
-      {/* Viewport container - ensures full screen coverage */}
-      <div className="h-full w-full">
-        {/* Groups container - slides horizontally */}
-        <div
-          className="h-full w-full flex transition-transform duration-300 ease-in-out"
-          style={{
-            transform: `translateX(-${activeGroupIndex * 100}%)`,
-            width: `${groupCount * 100}%`,
-          }}
-        >
-          {children}
-        </div>
+      {/* Groups container - slides horizontally */}
+      <div
+        className="h-full flex transition-transform duration-300 ease-in-out"
+        style={{
+          transform: `translateX(-${activeGroupIndex * 100}%)`,
+          width: `${groupCount * 100}%`,
+        }}
+      >
+        {React.Children.map(children, (child, index) => (
+          <div key={index} className="h-full w-full flex-shrink-0">
+            {child}
+          </div>
+        ))}
       </div>
 
       {/* Pagination indicators */}
@@ -43,10 +44,10 @@ const MobileCardPager = ({
             <button
               key={index}
               onClick={() => onGroupChange(index)}
-              className={`w-2.5 h-2.5 rounded-[2px] transition-all ${
+              className={`h-2.5 rounded-full transition-all ${
                 index === activeGroupIndex
-                  ? "bg-black w-3.5"
-                  : "bg-gray-300 hover:bg-gray-400"
+                  ? "bg-black w-6"
+                  : "bg-gray-300 hover:bg-gray-400 w-2.5"
               }`}
               aria-label={`Go to book group ${index + 1}`}
               aria-current={index === activeGroupIndex ? "true" : "false"}
@@ -55,9 +56,9 @@ const MobileCardPager = ({
         </div>
       )}
 
-      {/* Keyboard navigation hints */}
+      {/* Screen reader live region */}
       <div className="sr-only" aria-live="polite">
-        Use left and right arrow keys to navigate between book groups
+        Use swipe left or right to navigate between book groups
       </div>
     </div>
   );

@@ -1,21 +1,18 @@
-import { useState } from "react";
 import { LayoutGrid, List } from "lucide-react";
 
-const ViewToggle = ({ onToggle }) => {
-  const [view, setView] = useState("grid");
-
+const ViewToggle = ({ currentView, onViewChange }) => {
   const handleToggle = () => {
-    const newView = view === "grid" ? "list" : "grid";
-    setView(newView);
-    if (onToggle) onToggle(newView);
+    const newView = currentView === "grid" ? "list" : "grid";
+    if (onViewChange) onViewChange(newView);
   };
 
   return (
     <button
       onClick={handleToggle}
-      className="p-2 rounded-lg border hover:bg-gray-100 transition"
+      className="p-2 rounded-md border hover:bg-gray-100 transition-colors"
+      aria-label={`Switch to ${currentView === "grid" ? "list" : "grid"} view`}
     >
-      {view === "grid" ? (
+      {currentView === "grid" ? (
         <LayoutGrid className="w-5 h-5" />
       ) : (
         <List className="w-5 h-5" />

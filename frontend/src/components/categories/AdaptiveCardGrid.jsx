@@ -1,9 +1,16 @@
+// AdaptiveCardGrid.jsx
 import React from "react";
 
-const AdaptiveCardGrid = ({ children }) => (
-  <div className="adaptive-card-grid w-full h-full">
-    <div className="grid grid-cols-2 gap-4 w-full h-full">{children}</div>
-  </div>
-);
+const AdaptiveCardGrid = ({ children, viewMode = "grid" }) => {
+  const gridClass = viewMode === "grid" 
+    ? "grid grid-cols-2 gap-3 sm:gap-4"
+    : "flex flex-col gap-4";
+  
+  return (
+    <div className={gridClass}>
+      {children}
+    </div>
+  );
+};
 
 export default AdaptiveCardGrid;

@@ -10,13 +10,13 @@ const PriceFilter = ({ priceRange, onPriceRangeChange, isOpen, onToggle }) => (
   >
     <div className="px-2">
       <div className="flex justify-between text-sm text-gray-600 mb-1">
-        <span>${priceRange[0]}</span>
-        <span>${priceRange[1]}</span>
+        <span>{priceRange[0]} BDT</span>
+        <span>{priceRange[1]} BDT</span>
       </div>
       <input
         type="range"
         min="0"
-        max="50"
+        max="1500"
         value={priceRange[0]}
         onChange={(e) =>
           onPriceRangeChange([Number(e.target.value), priceRange[1]])
@@ -27,7 +27,7 @@ const PriceFilter = ({ priceRange, onPriceRangeChange, isOpen, onToggle }) => (
       <input
         type="range"
         min="0"
-        max="50"
+        max="1500"
         value={priceRange[1]}
         onChange={(e) =>
           onPriceRangeChange([priceRange[0], Number(e.target.value)])
@@ -36,7 +36,7 @@ const PriceFilter = ({ priceRange, onPriceRangeChange, isOpen, onToggle }) => (
         aria-label="Maximum price"
       />
       <div className="text-center text-sm text-gray-500 mt-2">
-        Range: ${priceRange[0]} - ${priceRange[1]}
+        Range: {priceRange[0]} BDT - {priceRange[1]} BDT
       </div>
     </div>
   </FilterSection>
