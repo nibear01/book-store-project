@@ -23,6 +23,7 @@ import { BooksContextProvider } from "./context/BooksContext";
 import AdminPage from "./pages/AdminPage";
 import Footer from "./pages/Footer";
 import BookViewPage from "./pages/BookViewPage";
+import ErrorBoundary from "./components/ErrorBoundary";
 // import { HelmetProvider } from 'react-helmet-async';
 
 // Admin components
@@ -92,6 +93,7 @@ function AppContent() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/categories" element={<CategoriesPage />} />
         <Route path="/shop" element={<ShopPage />} />
+        <Route path="/category/:slug" element={<ShopPage />} />
 
         <Route
           path="/admin"
@@ -200,19 +202,21 @@ function AppContent() {
 
 function App() {
   return (
-    <Router>
-      {/* <HelmetProvider> */}
-      <AuthProvider>
-        <BooksContextProvider>
-          <CartProvider>
-            <div className="min-h-screen bg-gray-50">
-              <AppContent />
-            </div>
-          </CartProvider>
-        </BooksContextProvider>
-      </AuthProvider>
-      {/* </HelmetProvider> */}
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        {/* <HelmetProvider> */}
+        <AuthProvider>
+          <BooksContextProvider>
+            <CartProvider>
+              <div className="min-h-screen bg-gray-50">
+                <AppContent />
+              </div>
+            </CartProvider>
+          </BooksContextProvider>
+        </AuthProvider>
+        {/* </HelmetProvider> */}
+      </Router>
+    </ErrorBoundary>
   );
 }
 

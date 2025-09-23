@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useCart } from "../context/CartContext";
 import { booksAPI } from "../api/book-api.js";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom"; // ✅ import navigate
+import { useNavigate, useParams, useSearchParams } from "react-router-dom"; // ✅ import navigate and params
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
 
@@ -10,16 +10,69 @@ const ShopPage = () => {
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate(); // ✅ use navigate
+  const { slug } = useParams(); // Get category slug from URL
+  const [searchParams] = useSearchParams(); // Get query parameters
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [categoryName, setCategoryName] = useState("");
+
+  // Convert slug back to category name
+  const slugToCategory = (slug) => {
+    if (!slug) return null;
+    return slug
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await booksAPI.list({ limit: 12, sort: "-created_at" });
-        setBooks(res.data || []);
+        let categoryFilter = null;
+        
+        // Check if we have a category slug from the URL
+        if (slug) {
+          categoryFilter = slugToCategory(slug);
+          setCategoryName(categoryFilter);
+          console.log(`📚 Loading books for category: ${categoryFilter} (from slug: ${slug})`);
+        } else {
+          // Check for category query parameter
+          const categoryParam = searchParams.get('category');
+          if (categoryParam) {
+            categoryFilter = categoryParam;
+            setCategoryName(categoryParam);
+            console.log(`📚 Loading books for category: ${categoryParam} (from query param)`);
+          }
+        }
+        
+        // Fetch books with or without category filter
+        if (categoryFilter) {
+          try {
+            const res = await booksAPI.getByCategory(categoryFilter, 20);
+            setBooks(res.data || res.books || []);
+          } catch (apiError) {
+            console.warn('API failed, using fallback data:', apiError);
+            // Fallback to JSON data
+            const jsonResponse = await fetch('/Book.json');
+            const allBooks = await jsonResponse.json();
+            const filteredBooks = allBooks
+              .filter(book => book.category === categoryFilter)
+              .map(book => ({
+                ...book,
+                _id: book.id,
+                slug: book.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+                cover_image: [book.image],
+                price: parseFloat(book.price),
+                stock: Math.floor(Math.random() * 50) + 1
+              }));
+            setBooks(filteredBooks);
+          }
+        } else {
+          const res = await booksAPI.list({ limit: 12, sort: "-created_at" });
+          setBooks(res.data || []);
+        }
       } catch (e) {
         setError(e.message || "Failed to load books");
       } finally {
@@ -27,7 +80,7 @@ const ShopPage = () => {
       }
     };
     load();
-  }, []);
+  }, [slug, searchParams]);
 
   const handleAddToCart = async (book) => {
     if (!isAuthenticated) {
@@ -63,8 +116,43 @@ const ShopPage = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
-      <h1 className="text-3xl font-bold">Shop</h1>
-      <p className="text-gray-600 mt-2">Discover our collection of books</p>
+      <h1 className="text-3xl font-bold">
+        {categoryName ? `${categoryName} Books` : 'Shop'}
+      </h1>
+      <p className="text-gray-600 mt-2">
+        {categoryName 
+          ? `Explore our collection of ${categoryName.toLowerCase()} books`
+          : 'Discover our collection of books'
+        }
+      </p>
+      
+      {categoryName && (
+        <div className="mt-4">
+          <Link 
+            to="/shop" 
+            className="text-blue-600 hover:text-blue-800 underline text-sm"
+          >
+            ← Back to All Books
+          </Link>
+        </div>
+      )}
+
+      {books.length === 0 && !loading && (
+        <div className="text-center py-12">
+          <div className="text-gray-400 mb-4">
+            <span className="text-4xl">📚</span>
+          </div>
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">
+            No books found{categoryName && ` in ${categoryName}`}
+          </h3>
+          <p className="text-gray-600">
+            {categoryName 
+              ? `We don't have any ${categoryName.toLowerCase()} books available right now.`
+              : 'No books are currently available.'
+            }
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 gap-6 mt-8">
         {books.map((b) => (
@@ -73,9 +161,12 @@ const ShopPage = () => {
               <Link to={`/bookview/${b.slug}`}>
                 <div className="relative w-full aspect-[3/4] mb-3 md:mb-4 overflow-hidden rounded-[2px]">
                   <img
-                    src={`http://localhost:5000${b.cover_image[0]}`}
+                    src={b.cover_image[0].startsWith('/') ? b.cover_image[0] : `http://localhost:5000${b.cover_image[0]}`}
                     alt={b.title}
-                    className="w-full  object-cover rounded mb-3 hover:scale-105 transition-transform duration-300"
+                    className="w-full object-cover rounded mb-3 hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      e.target.src = '/images/placeholder-book.jpg';
+                    }}
                   />
                 </div>
               </Link>

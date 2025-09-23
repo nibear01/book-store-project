@@ -28,8 +28,12 @@ const BooksContextProvider = ({ children }) => {
         if (setter) setter(data);
         return data;
       } catch (err) {
+        console.warn(`API Error for ${endpoint}:`, err.message);
         setError(err);
-        throw err;
+        // Return empty data structure to prevent crashes
+        const emptyData = { data: [], success: false };
+        if (setter) setter(emptyData);
+        return emptyData;
       } finally {
         setLoading(false);
       }
@@ -148,50 +152,38 @@ const BooksContextProvider = ({ children }) => {
 
   // Admin: Add book
   const addBook = async (formData) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(`${url}/api/books`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        }
-      });
-      return response.data;
-    } catch (err) {
-      throw err;
-    }
+    const token = localStorage.getItem('token');
+    const response = await axios.post(`${url}/api/books`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      }
+    });
+    return response.data;
   };
 
   // Admin: Update book
   const updateBook = async (id, formData) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.put(`${url}/api/books/${id}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        }
-      });
-      return response.data;
-    } catch (err) {
-      throw err;
-    }
+    const token = localStorage.getItem('token');
+    const response = await axios.put(`${url}/api/books/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      }
+    });
+    return response.data;
   };
 
   // Admin: Delete book (hard delete by default)
   const deleteBook = async (id, hard = true) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.delete(`${url}/api/books/${id}`, {
-        params: { hard },
-        headers: {
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        }
-      });
-      return response.data;
-    } catch (err) {
-      throw err;
-    }
+    const token = localStorage.getItem('token');
+    const response = await axios.delete(`${url}/api/books/${id}`, {
+      params: { hard },
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      }
+    });
+    return response.data;
   };
 
   // Initial load

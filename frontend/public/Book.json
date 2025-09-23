@@ -1,75 +1,165 @@
 [
 {
-"id": 1,
-"title": "All You Can Ever Know: A Memoir",
-"author": "J. D. Robb",
-"type": "HARDCOVER",
-"price": "14.20",
-"category": "History",
-"image": "../src/assets/images/img1-13.png"
+  "id": 1,
+  "title": "All You Can Ever Know: A Memoir",
+  "author": "J. D. Robb",
+  "type": "HARDCOVER",
+  "price": "14.20",
+  "category": "Biography",
+  "image": "/images/img1-13.png"
 },
 {
-"id": 2,
-"title": "Broken Faith: Inside the Word of Faith",
-"author": "Edward Lee",
-"type": "PAPERBACK",
-"price": "10.29",
-"category": "History",
-"image": "../src/assets/images/12-120x183.jpg"
+  "id": 2,
+  "title": "Broken Faith: Inside the Word of Faith",
+  "author": "Edward Lee",
+  "type": "PAPERBACK",
+  "price": "10.29",
+  "category": "History",
+  "image": "/images/12-120x183.jpg"
 },
 {
-"id": 3,
-"title": "Eternity Springs: The McBrides of Texas EV...",
-"author": "Emily March",
-"type": "PAPERBACK",
-"price": "6.99",
-"category": "History",
-"image": "../src/assets/images/14-120x183.jpg"
+  "id": 3,
+  "title": "Love Story Collection",
+  "author": "Emily March",
+  "type": "PAPERBACK",
+  "price": "6.99",
+  "category": "Romance",
+  "image": "/images/14-120x183.jpg"
 },
 {
-"id": 4,
-"title": "Jesus: The God Who Knows Your Name",
-"author": "Max Lucado",
-"type": "HARDCOVER",
-"price": "16.59",
-"category": "History",
-"image": "../src/assets/images/img1-13.png"
+  "id": 4,
+  "title": "Jesus: The God Who Knows Your Name",
+  "author": "Max Lucado",
+  "type": "HARDCOVER",
+  "price": "16.59",
+  "category": "Biography",
+  "image": "/images/img1-13.png"
 },
 {
-"id": 5,
-"title": "Next Level Basic: The Definitive Basic Bitch...",
-"author": "Stassi Schroeder",
-"type": "KINDLE",
-"originalPrice": "9.99",
-"price": "4.72",
-"category": "Science & Math",
-"image": "../src/assets/images/22-200x327.jpg"
+  "id": 5,
+  "title": "The Complete Guide to Healthy Living",
+  "author": "Dr. Stassi Schroeder",
+  "type": "KINDLE",
+  "originalPrice": "9.99",
+  "price": "4.72",
+  "category": "Health",
+  "image": "/images/22-200x327.jpg"
 },
 {
-"id": 6,
-"title": "The Rural Diaries: Love, Livestock, and Big Lif...",
-"author": "Hilarie Burton",
-"type": "HARDCOVER",
-"price": "14.82",
-"category": "Science & Math",
-"image": "../src/assets/images/30-120x183.jpg"
+  "id": 6,
+  "title": "The Rural Diaries: Love, Livestock, and Big Life",
+  "author": "Hilarie Burton",
+  "type": "HARDCOVER",
+  "price": "14.82",
+  "category": "Biography",
+  "image": "/images/30-120x183.jpg"
 },
 {
-"id": 7,
-"title": "Foreman",
-"author": "Pieter du Toit",
-"type": "HARDCOVER, KINDLE, PAPERBACK",
-"price": "29.95",
-"category": "Science & Math",
-"image": "../src/assets/images/23-120x183.jpg"
+  "id": 7,
+  "title": "Photography Mastery",
+  "author": "Pieter du Toit",
+  "type": "HARDCOVER, KINDLE, PAPERBACK",
+  "price": "29.95",
+  "category": "Arts & Photography",
+  "image": "/images/23-120x183.jpg"
 },
 {
-"id": 8,
-"title": "Think Like a Monk: Train Your Mind for...",
-"author": "Anna Burns",
-"type": "KINDLE EDITION",
-"price": "56.00",
-"category": "Science & Math",
-"image": "../src/assets/images/32-120x183.jpg"
+  "id": 8,
+  "title": "Think Like a Monk: Train Your Mind for Peace",
+  "author": "Jay Shetty",
+  "type": "KINDLE EDITION",
+  "price": "56.00",
+  "category": "Health",
+  "image": "/images/32-120x183.jpg"
+},
+{
+  "id": 9,
+  "title": "JavaScript: The Definitive Guide",
+  "author": "David Flanagan",
+  "type": "PAPERBACK",
+  "price": "45.99",
+  "category": "Technology",
+  "image": "/images/img1-13.png"
+},
+{
+  "id": 10,
+  "title": "The Complete Guide to Cooking",
+  "author": "Gordon Ramsay",
+  "type": "HARDCOVER",
+  "price": "32.50",
+  "category": "Food & Drink",
+  "image": "/images/12-120x183.jpg"
+},
+{
+  "id": 11,
+  "title": "Pride and Prejudice",
+  "author": "Jane Austen",
+  "type": "PAPERBACK",
+  "price": "12.99",
+  "category": "Literature",
+  "image": "/images/14-120x183.jpg"
+},
+{
+  "id": 12,
+  "title": "Lonely Planet Europe",
+  "author": "Lonely Planet",
+  "type": "PAPERBACK",
+  "price": "28.95",
+  "category": "Travel",
+  "image": "/images/22-200x327.jpg"
+},
+{
+  "id": 13,
+  "title": "The History of Music Theory",
+  "author": "Sarah Johnson",
+  "type": "HARDCOVER",
+  "price": "41.20",
+  "category": "Music",
+  "image": "/images/30-120x183.jpg"
+},
+{
+  "id": 14,
+  "title": "World War II Chronicles",
+  "author": "Michael Brown",
+  "type": "HARDCOVER",
+  "price": "35.75",
+  "category": "History",
+  "image": "/images/23-120x183.jpg"
+},
+{
+  "id": 15,
+  "title": "Digital Art Techniques",
+  "author": "Lisa Chen",
+  "type": "KINDLE",
+  "price": "19.99",
+  "category": "Arts & Photography",
+  "image": "/images/32-120x183.jpg"
+},
+{
+  "id": 16,
+  "title": "The Power of Love",
+  "author": "Nicholas Sparks",
+  "type": "PAPERBACK",
+  "price": "15.49",
+  "category": "Romance",
+  "image": "/images/img1-13.png"
+},
+{
+  "id": 17,
+  "title": "Python Programming Fundamentals",
+  "author": "Sarah Williams",
+  "type": "PAPERBACK",
+  "price": "39.99",
+  "category": "Technology",
+  "image": "/images/12-120x183.jpg"
+},
+{
+  "id": 18,
+  "title": "Mediterranean Cuisine",
+  "author": "Marco Antonio",
+  "type": "HARDCOVER",
+  "price": "26.80",
+  "category": "Food & Drink",
+  "image": "/images/14-120x183.jpg"
 }
 ]
