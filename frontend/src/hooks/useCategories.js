@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 export const useCategories = (books) => {
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [sortOption, setSortOption] = useState("featured");
-    const [priceRange, setPriceRange] = useState([0, 50]);
+    const [priceRange, setPriceRange] = useState([0, 1500]);
     const [ratingFilter, setRatingFilter] = useState(0);
     const [languageFilter, setLanguageFilter] = useState("All");
     const [availabilityFilter, setAvailabilityFilter] = useState("all");
@@ -20,7 +20,6 @@ export const useCategories = (books) => {
     const [limit, setLimit] = useState(12);
 
     // Refs for mobile viewport handling
-    const viewportRef = useRef(null);
     const touchStartX = useRef(0);
     const touchEndX = useRef(0);
 
