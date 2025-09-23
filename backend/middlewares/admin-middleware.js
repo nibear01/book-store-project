@@ -98,16 +98,7 @@ export const canChangeRole = async (req, res, next) => {
             });
         }
 
-        // Prevent admin from changing their own role
-        const targetUserId = req.params.id;
-        const currentUserId = req.user._id.toString();
-
-        if (targetUserId === currentUserId) {
-            return res.status(400).json({
-                success: false,
-                message: "You cannot change your own role"
-            });
-        }
+        // Note: Self role changes allowed for this project setup
 
         next();
     } catch (error) {

@@ -108,6 +108,60 @@ export const loginUser = async (req, res) => {
     }
 };
 
+// @desc    Login user by phone
+// @route   POST /api/users/login-phone
+// @access  Public
+export const loginUserByPhone = async (req, res) => {
+    try {
+        const { phone, password } = req.body;
+
+        if (!phone || !password) {
+            return res.status(400).json({ success: false, message: "Phone and password are required" });
+        }
+
+        // Find user by phone
+        const user = await User.findOne({ phone });
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: "Phone number does not exist. Please check your phone or sign up."
+            });
+        }
+
+        // Check password (plain text in current implementation)
+        if (user.password !== password) {
+            return res.status(401).json({
+                success: false,
+                message: "Incorrect password. Please check your password and try again."
+            });
+        }
+
+        // Check if user is active
+        if (user.status !== "active") {
+            return res.status(401).json({
+                success: false,
+                message: "Account is inactive or suspended"
+            });
+        }
+
+        // Generate JWT token
+        const token = generateToken(user._id);
+
+        res.status(200).json({
+            success: true,
+            message: "Login successful",
+            token,
+            data: user
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error logging in with phone",
+            error: error.message
+        });
+    }
+};
+
 // @desc    Get all users (Admin only)
 // @route   GET /api/users
 // @access  Private/Admin
