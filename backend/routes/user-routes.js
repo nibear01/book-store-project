@@ -2,6 +2,7 @@ import express from "express";
 import {
     registerUser,
     loginUser,
+    loginUserByPhone,
     getMe,
     getAllUsers,
     getUserById,
@@ -29,6 +30,7 @@ const router = express.Router();
 // Public routes
 router.post("/register", registerUser);
 router.post("/login", loginUser);
+router.post("/login-phone", loginUserByPhone);
 
 // Public password reset routes
 router.post("/forgot-password", forgotPassword);

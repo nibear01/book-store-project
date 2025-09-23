@@ -73,14 +73,17 @@ export const userAPI = {
 
     // Login user
     login: async (credentials) => {
-        const { email, password } = credentials;
+        // Support both email and phone login
+        const { email, phone, password } = credentials;
+        const isPhoneLogin = !!phone && !email;
 
-        const response = await apiRequest('/users/login', {
+        const response = await apiRequest(isPhoneLogin ? '/users/login-phone' : '/users/login', {
             method: 'POST',
-            body: JSON.stringify({
-                email,
-                password,
-            }),
+            body: JSON.stringify(
+                isPhoneLogin
+                    ? { phone, password }
+                    : { email, password }
+            ),
         });
 
         // Store token in localStorage

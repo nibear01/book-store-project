@@ -382,25 +382,18 @@ const Users = () => {
             </div>
             <select
               className="border p-2 rounded-[2px] w-full mb-4"
-              value={(editingUser.role || "user").replace("_", " ")}
+              value={editingUser.role || "user"}
               onChange={(e) =>
                 setEditingUser({
                   ...editingUser,
-                  role:
-                    e.target.value === "Admin"
-                      ? "admin"
-                      : e.target.value === "Book Manager"
-                      ? "book_manager"
-                      : e.target.value === "Order Manager"
-                      ? "order_manager"
-                      : "user",
+                  role: e.target.value,
                 })
               }
             >
-              <option value="User">User</option>
-              <option value="Admin">Admin</option>
-              <option value="Book Manager">Book Manager</option>
-              <option value="Order Manager">Order Manager</option>
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+              <option value="book_manager">Book Manager</option>
+              <option value="order_manager">Order Manager</option>
             </select>
 
             <label className="block mb-2 text-sm">Status</label>
