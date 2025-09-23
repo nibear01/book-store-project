@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { getAllOrders, updateOrderStatus } from "../../api/order-api";
-import ReactToPrint from "react-to-print";
+import { useReactToPrint } from "react-to-print";
 
 export default function Order() {
   const [orders, setOrders] = useState([]);
@@ -29,6 +29,7 @@ export default function Order() {
 
   const ORDERS_PER_PAGE = 20;
   const printRef = useRef();
+  const handlePrint = useReactToPrint({ content: () => printRef.current });
 
   // Fetch all orders
   const fetchOrders = async () => {
@@ -80,7 +81,7 @@ export default function Order() {
       fullName: order.shipping_address?.fullName || "",
       email: order.shipping_address?.email || "",
       address: order.shipping_address?.address || "",
-      phone: order.shipping_address?.phone || ""
+      phone: order.shipping_address?.phone || "",
     });
     setViewOrderVisible(true);
     setEditMode(false);
@@ -103,17 +104,16 @@ export default function Order() {
   };
 
   // Delete order
-const handleDeleteCustomer = () => {
-  if (!selectedOrder) return;
-  const updatedOrders = orders.filter(
-    (order) => order._id !== selectedOrder._id
-  );
-  setOrders(updatedOrders);
-  setSelectedOrder(null); // Clear the selected order
-  setViewOrderVisible(false); // Close modal
-  toast.success("Order deleted!");
-};
-
+  const handleDeleteCustomer = () => {
+    if (!selectedOrder) return;
+    const updatedOrders = orders.filter(
+      (order) => order._id !== selectedOrder._id
+    );
+    setOrders(updatedOrders);
+    setSelectedOrder(null); // Clear the selected order
+    setViewOrderVisible(false); // Close modal
+    toast.success("Order deleted!");
+  };
 
   // Format date
   const formatDate = (dateString) => {
@@ -138,8 +138,7 @@ const handleDeleteCustomer = () => {
     .filter((order) => {
       const customerName =
         order.shipping_address?.fullName?.toLowerCase() || "";
-      const customerEmail =
-        order.shipping_address?.email?.toLowerCase() || "";
+      const customerEmail = order.shipping_address?.email?.toLowerCase() || "";
       const orderNumber = order.order_number?.toLowerCase() || "";
       return (
         orderNumber.includes(searchQuery.toLowerCase()) ||
@@ -157,7 +156,7 @@ const handleDeleteCustomer = () => {
         const orderDateString = orderDate.toISOString().slice(0, 10);
         return orderDateString === todayString;
       }
-      
+
       if (dateFilter === "before") {
         // This logic is already correct
         return orderDate < today;
@@ -176,7 +175,7 @@ const handleDeleteCustomer = () => {
         if (end && orderDate > end) return false;
         return true;
       }
-      
+
       return true; // "all" filter
     })
     .sort((a, b) => {
@@ -193,7 +192,9 @@ const handleDeleteCustomer = () => {
       return 0;
     });
 
-  const totalPages = Math.ceil(filteredAndSortedOrders.length / ORDERS_PER_PAGE);
+  const totalPages = Math.ceil(
+    filteredAndSortedOrders.length / ORDERS_PER_PAGE
+  );
   const paginatedOrders = filteredAndSortedOrders.slice(
     (currentPage - 1) * ORDERS_PER_PAGE,
     currentPage * ORDERS_PER_PAGE
@@ -213,14 +214,6 @@ const handleDeleteCustomer = () => {
         return "bg-gray-300 text-black";
     }
   };
-<ReactToPrint
-  trigger={() => (
-    <button className="px-4 py-2 bg-gray-800 text-white rounded w-full md:w-auto">
-      Print
-    </button>
-  )}
-  content={() => printRef.current}
-/>
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -242,7 +235,9 @@ const handleDeleteCustomer = () => {
 
         {/* Date Filter */}
         <div className="flex items-center gap-2">
-          <label htmlFor="date-filter" className="text-gray-700">Date:</label>
+          <label htmlFor="date-filter" className="text-gray-700">
+            Date:
+          </label>
           <select
             id="date-filter"
             value={dateFilter}
@@ -279,7 +274,9 @@ const handleDeleteCustomer = () => {
 
         {/* Sort By Control */}
         <div className="flex items-center gap-2">
-          <label htmlFor="sort-by" className="text-gray-700">Sort By:</label>
+          <label htmlFor="sort-by" className="text-gray-700">
+            Sort By:
+          </label>
           <select
             id="sort-by"
             value={sortBy}
@@ -293,7 +290,9 @@ const handleDeleteCustomer = () => {
 
         {/* Sort Direction Control */}
         <div className="flex items-center gap-2">
-          <label htmlFor="sort-direction" className="text-gray-700">Direction:</label>
+          <label htmlFor="sort-direction" className="text-gray-700">
+            Direction:
+          </label>
           <select
             id="sort-direction"
             value={sortDirection}
@@ -373,12 +372,22 @@ const handleDeleteCustomer = () => {
                       onChange={(e) =>
                         handleUpdateStatus(order._id, e.target.value)
                       }
-                      className={`px-2 py-1 border rounded ${getStatusClass(order.order_status)}`}
+                      className={`px-2 py-1 border rounded ${getStatusClass(
+                        order.order_status
+                      )}`}
                     >
-                      <option className="bg-white text-black" value="pending">Pending</option>
-                      <option className="bg-white text-black" value="shipped">Shipped</option>
-                      <option className="bg-white text-black" value="delivered">Delivered</option>
-                      <option className="bg-white text-black" value="cancel">Cancel</option>
+                      <option className="bg-white text-black" value="pending">
+                        Pending
+                      </option>
+                      <option className="bg-white text-black" value="shipped">
+                        Shipped
+                      </option>
+                      <option className="bg-white text-black" value="delivered">
+                        Delivered
+                      </option>
+                      <option className="bg-white text-black" value="cancel">
+                        Cancel
+                      </option>
                     </select>
                   </td>
                 </tr>
