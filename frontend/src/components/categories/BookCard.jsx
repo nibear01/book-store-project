@@ -222,7 +222,7 @@ const BookCard = ({ book, baseUrl, viewMode = "grid" }) => {
             </div>
 
             {/* Stock status */}
-            <span
+            {/* <span
               className={`font-semibold px-2.5 py-1 rounded-full border ${
                 book.stock > 0
                   ? "bg-green-100 text-green-700 border-green-200"
@@ -230,7 +230,7 @@ const BookCard = ({ book, baseUrl, viewMode = "grid" }) => {
               } ${viewMode === "list" ? "text-xs mt-1" : "text-xs"}`}
             >
               {book.stock > 0 ? `In Stock (${book.stock})` : "Out of Stock"}
-            </span>
+            </span> */}
           </div>
 
           {/* Add to cart button */}
