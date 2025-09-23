@@ -26,7 +26,8 @@ const Users = () => {
       setLoading(true);
       const params = { page, limit: pageSize };
       if (statusFilter !== "All") params.status = statusFilter.toLowerCase();
-      if (roleFilter !== "All") params.isAdmin = roleFilter === "Admin";
+      if (roleFilter !== "All")
+        params.role = roleFilter.toLowerCase().replace(" ", "_");
       const res = await adminUsersAPI.list(params);
       const list = res.data || [];
       const pag = res.pagination || {
@@ -108,8 +109,8 @@ const Users = () => {
         status: editingUser.status,
       });
       // Also update role if changed
-      if (typeof editingUser.isAdmin === "boolean") {
-        await adminUsersAPI.changeRole(editingUser._id, editingUser.isAdmin);
+      if (editingUser.role) {
+        await adminUsersAPI.changeRole(editingUser._id, editingUser.role);
       }
       await fetchUsers();
       closeEditModal();
@@ -136,6 +137,8 @@ const Users = () => {
           <option value="All">All Roles</option>
           <option value="User">User</option>
           <option value="Admin">Admin</option>
+          <option value="Book Manager">Book Manager</option>
+          <option value="Order Manager">Order Manager</option>
         </select>
 
         <select
@@ -172,6 +175,7 @@ const Users = () => {
                 <tr>
                   <th className="px-4 py-2">Name</th>
                   <th className="px-4 py-2">Email</th>
+                  <th className="px-4 py-2">Phone</th>
                   <th className="px-4 py-2">Role</th>
                   <th className="px-4 py-2">Status</th>
                   <th className="px-4 py-2">Actions</th>
@@ -182,30 +186,35 @@ const Users = () => {
                   <tr key={user._id} className="border-b hover:bg-gray-50">
                     <td className="px-4 py-2">{user.name}</td>
                     <td className="px-4 py-2">{user.email}</td>
-                    <td className="px-4 py-2">
-                      {user.isAdmin ? "Admin" : "User"}
+                    <td className="px-4 py-2">{user.phone}</td>
+                    <td className="px-4 py-2 capitalize">
+                      {(user.role || "user").replace("_", " ")}
                     </td>
                     <td className="px-4 py-2 capitalize">{user.status}</td>
                     <td className="px-4 py-2 flex gap-2 flex-wrap">
-                      <Button
-                        className="rounded-[2px]"
-                        onClick={() =>
-                          handleAction(
-                            user._id,
-                            user.status !== "active" ? "Approve" : "Ban"
-                          )
-                        }
-                        size="sm"
-                      >
-                        {user.status !== "active" ? "Approve" : "Ban"}
-                      </Button>
-                      <Button
-                        className="rounded-[2px]"
-                        onClick={() => openEditModal(user)}
-                        size="sm"
-                      >
-                        Edit
-                      </Button>
+                      {user.role !== "admin" && (
+                        <>
+                          <Button
+                            className="rounded-[2px]"
+                            onClick={() =>
+                              handleAction(
+                                user._id,
+                                user.status !== "active" ? "Approve" : "Ban"
+                              )
+                            }
+                            size="sm"
+                          >
+                            {user.status !== "active" ? "Approve" : "Ban"}
+                          </Button>
+                          <Button
+                            className="rounded-[2px]"
+                            onClick={() => openEditModal(user)}
+                            size="sm"
+                          >
+                            Edit
+                          </Button>
+                        </>
+                      )}
                       <Button
                         onClick={() => handleResetPassword(user._id)}
                         size="sm"
@@ -214,21 +223,23 @@ const Users = () => {
                       >
                         Change PW
                       </Button>
-                      <Button
-                        onClick={() => handleDelete(user._id)}
-                        size="sm"
-                        variant="destructive"
-                        className="rounded-[2px]"
-                      >
-                        Delete
-                      </Button>
+                      {user.role !== "admin" && (
+                        <Button
+                          onClick={() => handleDelete(user._id)}
+                          size="sm"
+                          variant="destructive"
+                          className="rounded-[2px]"
+                        >
+                          Delete
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))}
                 {paginatedUsers.length === 0 && (
                   <tr>
                     <td
-                      colSpan="5"
+                      colSpan="6"
                       className="text-center p-4 text-gray-500 italic"
                     >
                       No users found
@@ -255,10 +266,11 @@ const Users = () => {
                     <div>
                       <h3 className="font-medium text-gray-900">{user.name}</h3>
                       <p className="text-sm text-gray-600">{user.email}</p>
+                      <p className="text-sm text-gray-600">{user.phone}</p>
                     </div>
                     <div className="text-right">
-                      <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-[2px]">
-                        {user.isAdmin ? "Admin" : "User"}
+                      <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-[2px] capitalize">
+                        {(user.role || "user").replace("_", " ")}
                       </span>
                       <span className={`block mt-1 text-xs capitalize`}>
                         {user.status}
@@ -266,36 +278,42 @@ const Users = () => {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      onClick={() =>
-                        handleAction(
-                          user._id,
-                          user.status !== "active" ? "Approve" : "Ban"
-                        )
-                      }
-                      size="sm"
-                    >
-                      {user.status !== "active" ? "Approve" : "Ban"}
-                    </Button>
-                    <Button onClick={() => openEditModal(user)} size="sm">
-                      Edit
-                    </Button>
+                    {user.role !== "admin" && (
+                      <>
+                        <Button
+                          onClick={() =>
+                            handleAction(
+                              user._id,
+                              user.status !== "active" ? "Approve" : "Ban"
+                            )
+                          }
+                          size="sm"
+                        >
+                          {user.status !== "active" ? "Approve" : "Ban"}
+                        </Button>
+                        <Button onClick={() => openEditModal(user)} size="sm">
+                          Edit
+                        </Button>
+                      </>
+                    )}
                     <Button
                       onClick={() => handleResetPassword(user._id)}
                       size="sm"
                       variant="outline"
-                      className="bg-gray-200 text-gray-800 hover:bg-gray-300"
+                      className="bg-gray-200 text-gray-800 hover:bg-gray-300 col-span-2"
                     >
                       Change PW
                     </Button>
-                    <Button
-                      onClick={() => handleDelete(user._id)}
-                      size="sm"
-                      variant="destructive"
-                      className="col-span-2"
-                    >
-                      Delete User
-                    </Button>
+                    {user.role !== "admin" && (
+                      <Button
+                        onClick={() => handleDelete(user._id)}
+                        size="sm"
+                        variant="destructive"
+                        className="col-span-2"
+                      >
+                        Delete User
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))
@@ -355,19 +373,34 @@ const Users = () => {
               }
             />
 
-            <label className="block mb-2 text-sm">Role</label>
+            <label className="block mb-1 text-sm">Role</label>
+            <div className="text-xs text-gray-600 mb-1">
+              Current role:{" "}
+              <span className="capitalize">
+                {(editingUser.role || "user").replace("_", " ")}
+              </span>
+            </div>
             <select
               className="border p-2 rounded-[2px] w-full mb-4"
-              value={editingUser.isAdmin ? "Admin" : "User"}
+              value={(editingUser.role || "user").replace("_", " ")}
               onChange={(e) =>
                 setEditingUser({
                   ...editingUser,
-                  isAdmin: e.target.value === "Admin",
+                  role:
+                    e.target.value === "Admin"
+                      ? "admin"
+                      : e.target.value === "Book Manager"
+                      ? "book_manager"
+                      : e.target.value === "Order Manager"
+                      ? "order_manager"
+                      : "user",
                 })
               }
             >
               <option value="User">User</option>
               <option value="Admin">Admin</option>
+              <option value="Book Manager">Book Manager</option>
+              <option value="Order Manager">Order Manager</option>
             </select>
 
             <label className="block mb-2 text-sm">Status</label>
@@ -410,13 +443,21 @@ const Users = () => {
               User: {changingPwUser?.email || changingPwUser?._id}
             </p>
 
+            <label className="block mb-2 text-sm">Previous Password</label>
+            <input
+              type="text"
+              className="border p-2 rounded-[2px] w-full mb-3 bg-gray-100"
+              value={changingPwUser?.password || ""}
+              readOnly
+            />
+
             <label className="block mb-2 text-sm">New Password</label>
             <input
               type="password"
               className="border p-2 rounded-[2px] w-full mb-3"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="At least 6 characters"
+              placeholder="At least 8 characters"
             />
 
             <label className="block mb-2 text-sm">Confirm Password</label>
@@ -437,8 +478,8 @@ const Users = () => {
               <button
                 onClick={async () => {
                   try {
-                    if (!newPassword || newPassword.length < 6) {
-                      alert("Password must be at least 6 characters");
+                    if (!newPassword || newPassword.length < 8) {
+                      alert("Password must be at least 8 characters");
                       return;
                     }
                     if (newPassword !== confirmPassword) {

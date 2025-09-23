@@ -37,7 +37,9 @@ const SignupPage = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(user?.isAdmin ? "/admin/dashboard" : "/", { replace: true });
+      navigate(user?.role === "admin" ? "/admin/dashboard" : "/", {
+        replace: true,
+      });
     }
   }, [isAuthenticated, user, navigate]);
 
@@ -191,7 +193,7 @@ const SignupPage = () => {
       toast.success("🎉 Account created successfully!");
 
       setTimeout(() => {
-        navigate(response?.isAdmin ? "/admin/dashboard" : "/", {
+        navigate(response?.role === "admin" ? "/admin/dashboard" : "/", {
           replace: true,
         });
       }, 1000);

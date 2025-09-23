@@ -34,7 +34,9 @@ const LoginPage = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(user?.isAdmin ? "/admin/dashboard" : "/", { replace: true });
+      navigate(user?.role === "admin" ? "/admin/dashboard" : "/", {
+        replace: true,
+      });
     }
   }, [isAuthenticated, user, navigate]);
 
@@ -146,7 +148,7 @@ const LoginPage = () => {
       toast.success("🎉 Login successful!");
 
       setTimeout(() => {
-        navigate(loggedInUser?.isAdmin ? "/admin/dashboard" : "/", {
+        navigate(loggedInUser?.role === "admin" ? "/admin/dashboard" : "/", {
           replace: true,
         });
       }, 1000);

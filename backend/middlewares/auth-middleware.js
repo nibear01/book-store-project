@@ -76,7 +76,7 @@ export const authorize = (...roles) => {
         }
 
         // Check if user has required role
-        if (roles.includes("admin") && !req.user.isAdmin) {
+        if (roles.length > 0 && !roles.includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
                 message: "User role is not authorized to access this route"
