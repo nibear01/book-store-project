@@ -14,7 +14,7 @@ import TermsPage from "./pages/TermsPage";
 import ContactPage from "./pages/ContactPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
-import Navbar from "./components/Navbar";
+import Navbar from "./components/homeComponents/Navbar";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import { CartProvider } from "./context/CartContext";

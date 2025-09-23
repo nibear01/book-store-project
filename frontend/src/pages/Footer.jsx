@@ -1,4 +1,4 @@
-import Join from "@/components/Join";
+import Join from "@/components/homeComponents/Join";
 import React from "react";
 import {
   FaFacebookF,

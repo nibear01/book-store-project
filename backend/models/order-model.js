@@ -18,6 +18,10 @@ const orderSchema = new mongoose.Schema({
             ref: 'Book',
             required: true
         },
+        book_title: {  // NEW: Store book title directly in order
+            type: String,
+            required: true
+        },
         quantity: {
             type: Number,
             required: true,
@@ -34,7 +38,7 @@ const orderSchema = new mongoose.Schema({
     },
     order_status: {
         type: String,
-        enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+        enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'], 
         default: 'pending'
     },
     shipping_address: {

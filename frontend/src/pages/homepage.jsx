@@ -1,8 +1,8 @@
-import Category from "@/components/category";
-import Feature from "@/components/Feature";
-import Hero from "@/components/Hero";
-import Deals from "@/components/Deals";
-import Book from "@/components/Book";
+import Category from "@/components/homeComponents/category";
+import Feature from "@/components/homeComponents/Feature";
+import Hero from "@/components/homeComponents/Hero";
+import Deals from "@/components/homeComponents/Deals";
+import Book from "@/components/homeComponents/Book";
 
 const homepage = () => {
   return (
