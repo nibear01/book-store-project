@@ -11,7 +11,7 @@ export const isAdmin = async (req, res, next) => {
             });
         }
 
-        if (!req.user.isAdmin) {
+        if (req.user.role !== "admin") {
             return res.status(403).json({
                 success: false,
                 message: "Admin access required. You don't have permission to access this resource."
@@ -35,7 +35,7 @@ export const canManageUser = async (req, res, next) => {
         const currentUserId = req.user._id.toString();
 
         // Admin can manage any user
-        if (req.user.isAdmin) {
+        if (req.user.role === "admin") {
             return next();
         }
 
@@ -60,7 +60,7 @@ export const canManageUser = async (req, res, next) => {
 // Check if user can delete other users (admin only)
 export const canDeleteUser = async (req, res, next) => {
     try {
-        if (!req.user.isAdmin) {
+        if (req.user.role !== "admin") {
             return res.status(403).json({
                 success: false,
                 message: "Only administrators can delete users"
@@ -91,7 +91,7 @@ export const canDeleteUser = async (req, res, next) => {
 // Check if user can change roles (admin only)
 export const canChangeRole = async (req, res, next) => {
     try {
-        if (!req.user.isAdmin) {
+        if (req.user.role !== "admin") {
             return res.status(403).json({
                 success: false,
                 message: "Only administrators can change user roles"
@@ -122,7 +122,7 @@ export const canChangeRole = async (req, res, next) => {
 // Check if user can change status (admin only)
 export const canChangeStatus = async (req, res, next) => {
     try {
-        if (!req.user.isAdmin) {
+        if (req.user.role !== "admin") {
             return res.status(403).json({
                 success: false,
                 message: "Only administrators can change user status"

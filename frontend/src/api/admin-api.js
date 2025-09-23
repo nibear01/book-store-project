@@ -18,18 +18,18 @@ const request = async (endpoint, options = {}) => {
 };
 
 export const adminUsersAPI = {
-    list: ({ page = 1, limit = 10, status, isAdmin } = {}) => {
+    list: ({ page = 1, limit = 10, status, role } = {}) => {
         const params = new URLSearchParams();
         params.set('page', String(page));
         params.set('limit', String(limit));
         if (status) params.set('status', status);
-        if (typeof isAdmin === 'boolean') params.set('isAdmin', String(isAdmin));
+        if (role) params.set('role', role);
         return request(`/users?${params.toString()}`, { method: 'GET' });
     },
     get: (id) => request(`/users/${id}`, { method: 'GET' }),
     update: (id, body) => request(`/users/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
     delete: (id) => request(`/users/${id}`, { method: 'DELETE' }),
-    changeRole: (id, isAdmin) => request(`/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ isAdmin }) }),
+    changeRole: (id, role) => request(`/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }),
     changeStatus: (id, status) => request(`/users/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
     changePassword: (id, password) => request(`/users/${id}/password`, { method: 'PUT', body: JSON.stringify({ password }) }),
 };

@@ -37,7 +37,7 @@ export const registerUser = async (req, res) => {
             password,
             phone,
             address,
-            isAdmin: false // Default to customer
+            role: "user"
         });
 
         // Generate JWT token
@@ -113,15 +113,15 @@ export const loginUser = async (req, res) => {
 // @access  Private/Admin
 export const getAllUsers = async (req, res) => {
     try {
-        const { page = 1, limit = 10, status, isAdmin } = req.query;
+        const { page = 1, limit = 10, status, role } = req.query;
 
         // Build filter object
         const filter = {};
         if (status) filter.status = status;
-        if (isAdmin !== undefined) filter.isAdmin = isAdmin === 'true';
+        if (role) filter.role = role;
 
         const users = await User.find(filter)
-            .select('-password')
+            // NOTE: Including password for testing purposes as requested
             .limit(limit * 1)
             .skip((page - 1) * limit)
             .sort({ created_at: -1 });
@@ -205,7 +205,7 @@ const toPublicPath = (file) => {
 // @access  Private
 export const updateUser = async (req, res) => {
     try {
-        const { name, email, address, status } = req.body;
+        const { name, email, address, status, role } = req.body;
         const userId = req.params.id;
 
         // Check if user exists
@@ -234,6 +234,7 @@ export const updateUser = async (req, res) => {
         if (email !== undefined) update.email = email;
         if (address !== undefined) update.address = address;
         if (status !== undefined) update.status = status;
+        if (role !== undefined) update.role = role;
         if (req.body.password !== undefined) update.password = req.body.password;
 
         // Handle uploaded profile image
@@ -302,12 +303,17 @@ export const deleteUser = async (req, res) => {
 // @access  Private/Admin
 export const changeUserRole = async (req, res) => {
     try {
-        const { isAdmin } = req.body;
+        const { role } = req.body;
         const userId = req.params.id;
+
+        const allowedRoles = ["user", "admin", "book_manager", "order_manager"];
+        if (!allowedRoles.includes(role)) {
+            return res.status(400).json({ success: false, message: "Invalid role" });
+        }
 
         const user = await User.findByIdAndUpdate(
             userId,
-            { isAdmin },
+            { role },
             { new: true, runValidators: true }
         ).select('-password');
 
@@ -320,7 +326,7 @@ export const changeUserRole = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: `User role changed to ${isAdmin ? 'Admin' : 'Customer'}`,
+            message: `User role changed to ${role}`,
             data: user
         });
     } catch (error) {
@@ -382,10 +388,10 @@ export const changeUserPasswordAdmin = async (req, res) => {
         const userId = req.params.id;
         const { password } = req.body;
 
-        if (!password || typeof password !== "string" || password.length < 6) {
+        if (!password || typeof password !== "string" || password.length < 8) {
             return res.status(400).json({
                 success: false,
-                message: "Password is required and must be at least 6 characters"
+                message: "Password is required and must be at least 8 characters"
             });
         }
 
@@ -466,6 +472,10 @@ export const resetPassword = async (req, res) => {
         const { email, token, password } = req.body;
         if (!email || !token || !password) {
             return res.status(400).json({ success: false, message: "Email, token, and new password are required" });
+        }
+
+        if (typeof password !== "string" || password.length < 8) {
+            return res.status(400).json({ success: false, message: "Password must be at least 8 characters" });
         }
 
         const user = await User.findOne({ email, resetPasswordToken: token, resetPasswordExpires: { $gt: new Date() } });

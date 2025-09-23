@@ -51,7 +51,10 @@ const AdminPage = () => {
   }
 
   // Redirect non-admins or unauthenticated users
-  if (!isAuthenticated || !user?.isAdmin) {
+  if (
+    !isAuthenticated ||
+    !["admin", "book_manager", "order_manager"].includes(user?.role)
+  ) {
     return <Navigate to="/" replace />;
   }
 

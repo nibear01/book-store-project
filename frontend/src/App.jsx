@@ -52,19 +52,27 @@ function AppContent() {
     return children;
   };
 
-  const RequireAdmin = ({ children }) => {
+  const RequireRole = ({ roles, children }) => {
     if (isLoading) return null;
-    if (!isAuthenticated || !user?.isAdmin) {
-      return <Navigate to="/" replace />;
-    }
+    if (!isAuthenticated)
+      return <Navigate to="/login" state={{ from: location }} replace />;
+    if (!roles.includes(user?.role)) return <Navigate to="/" replace />;
     return children;
   };
 
   const RequireGuest = ({ children }) => {
     if (isLoading) return null;
     if (isAuthenticated) {
-      // Admins go to dashboard, users go home/account
-      return <Navigate to={user?.isAdmin ? "/admin/dashboard" : "/"} replace />;
+      const role = user?.role;
+      const dest =
+        role === "admin"
+          ? "/admin/dashboard"
+          : role === "book_manager"
+          ? "/admin/books"
+          : role === "order_manager"
+          ? "/admin/orders"
+          : "/";
+      return <Navigate to={dest} replace />;
     }
     return children;
   };
@@ -77,10 +85,13 @@ function AppContent() {
   if (
     !isLoading &&
     isAuthenticated &&
-    user?.isAdmin &&
     !location.pathname.startsWith("/admin")
   ) {
-    return <Navigate to="/admin/dashboard" replace />;
+    const role = user?.role;
+    if (role === "admin") return <Navigate to="/admin/dashboard" replace />;
+    if (role === "book_manager") return <Navigate to="/admin/books" replace />;
+    if (role === "order_manager")
+      return <Navigate to="/admin/orders" replace />;
   }
 
   return (
@@ -96,17 +107,45 @@ function AppContent() {
         <Route
           path="/admin"
           element={
-            <RequireAdmin>
+            <RequireRole roles={["admin", "book_manager", "order_manager"]}>
               <AdminPage />
-            </RequireAdmin>
+            </RequireRole>
           }
         >
           <Route index element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="users" element={<Users />} />
-          <Route path="books" element={<Books />} />
-          <Route path="orders" element={<Order />} />
-          <Route path="settings" element={<Settings />} />
+          <Route
+            path="users"
+            element={
+              <RequireRole roles={["admin"]}>
+                <Users />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="books"
+            element={
+              <RequireRole roles={["admin", "book_manager"]}>
+                <Books />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="orders"
+            element={
+              <RequireRole roles={["admin", "order_manager"]}>
+                <Order />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="settings"
+            element={
+              <RequireRole roles={["admin"]}>
+                <Settings />
+              </RequireRole>
+            }
+          />
         </Route>
 
         <Route path="/cart" element={<CartPage />} />
