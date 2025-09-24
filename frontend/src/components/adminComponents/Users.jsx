@@ -108,6 +108,19 @@ const Users = () => {
         address: editingUser.address,
         status: editingUser.status,
       });
+      // Apply role changes via dedicated endpoint
+      const desiredRoles = Array.isArray(editingUser.roles)
+        ? editingUser.roles
+        : editingUser.role
+        ? [editingUser.role]
+        : null;
+      if (desiredRoles) {
+        try {
+          await adminUsersAPI.changeRole(editingUser._id, desiredRoles);
+        } catch (e) {
+          alert(e?.message || "Failed to change user roles");
+        }
+      }
       await fetchUsers();
       closeEditModal();
       alert(`✏️ User updated`);
@@ -135,6 +148,11 @@ const Users = () => {
           <option value="Admin">Admin</option>
           <option value="Book Manager">Book Manager</option>
           <option value="Order Manager">Order Manager</option>
+          <option value="Printing Manager">Printing Manager</option>
+          <option value="Delivery Manager">Delivery Manager</option>
+          <option value="Finance Manager">Finance Manager</option>
+          <option value="Customer Support">Customer Support</option>
+          <option value="Marketing Manager">Marketing Manager</option>
         </select>
 
         <select
@@ -418,6 +436,11 @@ const Users = () => {
               <option value="admin">Admin</option>
               <option value="book_manager">Book Manager</option>
               <option value="order_manager">Order Manager</option>
+              <option value="printing_manager">Printing Manager</option>
+              <option value="delivery_manager">Delivery Manager</option>
+              <option value="finance_manager">Finance Manager</option>
+              <option value="customer_support">Customer Support</option>
+              <option value="marketing_manager">Marketing Manager</option>
             </select>
 
             <label className="block mb-2 text-sm">Status</label>

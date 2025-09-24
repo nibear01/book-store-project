@@ -31,6 +31,11 @@ import Users from "./components/adminComponents/Users";
 import Books from "./components/adminComponents/Books";
 import Order from "./components/adminComponents/Order";
 import Settings from "./components/adminComponents/Settings";
+import Printing from "./components/adminComponents/Printing";
+import Delivery from "./components/adminComponents/Delivery";
+import Finance from "./components/adminComponents/Finance";
+import Support from "./components/adminComponents/Support";
+import Marketing from "./components/adminComponents/Marketing";
 import UserDashboard from "./pages/UserDashboard";
 import OrderSummaryPage from "./pages/OrderSummaryPage";
 import UserOrdersPage from "./pages/UserOrdersPage";
@@ -47,6 +52,11 @@ function AppContent() {
     if (role === "admin") return "/admin/dashboard";
     if (role === "book_manager") return "/admin/books";
     if (role === "order_manager") return "/admin/orders";
+    if (role === "printing_manager") return "/admin/printing";
+    if (role === "delivery_manager") return "/admin/delivery";
+    if (role === "finance_manager") return "/admin/finance";
+    if (role === "customer_support") return "/admin/support";
+    if (role === "marketing_manager") return "/admin/marketing";
     return "/account";
   };
 
@@ -70,6 +80,8 @@ function AppContent() {
       const dest = roleHome(
         activeRole || user?.roles?.[0] || user?.role || "user"
       );
+      // Prevent redirect loops by not navigating to the current path
+      if (dest === location.pathname) return null;
       return <Navigate to={dest} replace />;
     }
     return children;
@@ -111,7 +123,18 @@ function AppContent() {
         <Route
           path="/admin"
           element={
-            <RequireRole roles={["admin", "book_manager", "order_manager"]}>
+            <RequireRole
+              roles={[
+                "admin",
+                "book_manager",
+                "order_manager",
+                "printing_manager",
+                "delivery_manager",
+                "finance_manager",
+                "customer_support",
+                "marketing_manager",
+              ]}
+            >
               <AdminPage />
             </RequireRole>
           }
@@ -139,6 +162,46 @@ function AppContent() {
             element={
               <RequireRole roles={["admin", "order_manager"]}>
                 <Order />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="printing"
+            element={
+              <RequireRole roles={["admin", "printing_manager"]}>
+                <Printing />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="delivery"
+            element={
+              <RequireRole roles={["admin", "delivery_manager"]}>
+                <Delivery />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="finance"
+            element={
+              <RequireRole roles={["admin", "finance_manager"]}>
+                <Finance />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="support"
+            element={
+              <RequireRole roles={["admin", "customer_support"]}>
+                <Support />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="marketing"
+            element={
+              <RequireRole roles={["admin", "marketing_manager"]}>
+                <Marketing />
               </RequireRole>
             }
           />

@@ -368,7 +368,17 @@ export const changeUserRole = async (req, res) => {
         const { role, roles } = req.body;
         const userId = req.params.id;
 
-        const allowedRoles = ["user", "admin", "book_manager", "order_manager"];
+        const allowedRoles = [
+            "user",
+            "admin",
+            "book_manager",
+            "order_manager",
+            "printing_manager",
+            "delivery_manager",
+            "finance_manager",
+            "customer_support",
+            "marketing_manager",
+        ];
         let nextRoles;
         if (Array.isArray(roles)) {
             nextRoles = roles;

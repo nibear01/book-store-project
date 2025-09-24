@@ -87,11 +87,27 @@ const UserDashboard = () => {
   const onSwitchRole = () => {
     const ok = switchRole(selectedRole);
     if (!ok) return;
-    // Navigate to relevant area based on active role
-    if (selectedRole === "admin") navigate("/admin/dashboard");
-    else if (selectedRole === "book_manager") navigate("/admin/books");
-    else if (selectedRole === "order_manager") navigate("/admin/orders");
-    else navigate("/");
+    // Compute destination consistent with App.jsx roleHome
+    const dest =
+      selectedRole === "admin"
+        ? "/admin/dashboard"
+        : selectedRole === "book_manager"
+        ? "/admin/books"
+        : selectedRole === "order_manager"
+        ? "/admin/orders"
+        : selectedRole === "printing_manager"
+        ? "/admin/printing"
+        : selectedRole === "delivery_manager"
+        ? "/admin/delivery"
+        : selectedRole === "finance_manager"
+        ? "/admin/finance"
+        : selectedRole === "customer_support"
+        ? "/admin/support"
+        : selectedRole === "marketing_manager"
+        ? "/admin/marketing"
+        : "/account";
+    // Delay navigation one tick so guards see updated activeRole
+    setTimeout(() => navigate(dest), 0);
   };
 
   const formatDate = (dateString) => {

@@ -54,7 +54,16 @@ const AdminPage = () => {
   const roles = user?.roles || (user?.role ? [user.role] : []);
   if (
     !isAuthenticated ||
-    !["admin", "book_manager", "order_manager"].some((r) => roles.includes(r))
+    ![
+      "admin",
+      "book_manager",
+      "order_manager",
+      "printing_manager",
+      "delivery_manager",
+      "finance_manager",
+      "customer_support",
+      "marketing_manager",
+    ].some((r) => roles.includes(r))
   ) {
     return <Navigate to="/" replace />;
   }
