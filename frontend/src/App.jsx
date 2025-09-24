@@ -44,6 +44,7 @@ import { Navigate } from "react-router-dom";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 
+
 function AppContent() {
   const location = useLocation();
   const { isAuthenticated, user, isLoading, activeRole } = useAuth();
@@ -213,7 +214,16 @@ function AppContent() {
               </RequireRole>
             }
           />
+             <Route
+            path="Delivery"
+            element={
+              <RequireRole roles={["admin"]}>
+                <Delivery/>
+              </RequireRole>
+            }
+          />
         </Route>
+        
 
         <Route path="/cart" element={<CartPage />} />
         <Route

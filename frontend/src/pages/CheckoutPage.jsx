@@ -44,10 +44,7 @@ const CheckoutPage = () => {
     }
     return { discountAmount: Number(amount.toFixed(2)), discountLabel: label };
   })();
-  const payableTotal = Math.max(
-    0,
-    Number((subtotal + shipping - discountAmount).toFixed(2))
-  );
+  const payableTotal = Math.max(0, Number((subtotal + shipping - discountAmount).toFixed(2)));
   const [errors, setErrors] = useState({});
 
   // Prefill form with logged-in user details (non-destructive)
@@ -114,14 +111,20 @@ const CheckoutPage = () => {
 
     // Transform cart items to match backend model structure
     const orderItems = state.items.map((item) => ({
-      book: item.id, // Assuming item.id is the book ID
+      book: item.id, // book id
       quantity: item.quantity,
       price: item.price,
     }));
 
     const orderData = {
       items: orderItems,
-      total_amount: payableTotal,
+      // Provide server with pricing snapshot (server will recompute & validate)
+      subtotal_amount: subtotal,
+      discount_amount: discountAmount,
+      discount_label: discountLabel,
+      shipping_amount: shipping,
+      grand_total: payableTotal,
+      total_amount: payableTotal, // backward compatibility
       shipping_address: {
         fullName: form.fullName,
         email: form.email,
@@ -130,12 +133,9 @@ const CheckoutPage = () => {
         city: form.city,
         state: form.state,
         zipCode: form.zipCode,
-        country: form.country || "USA",
+        country: form.country || "Bangladesh",
       },
-      payment_info: {
-        method: form.paymentMethod,
-        status: "pending",
-      },
+      payment_info: { method: form.paymentMethod, status: "pending" },
     };
 
     try {

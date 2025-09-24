@@ -220,24 +220,17 @@ const OrderSummaryPage = () => {
                     className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg"
                   >
                     <div className="flex-shrink-0">
-                      {item.book?.image ? (
+                      {item.book_cover ? (
                         <img
-                          src={`${import.meta.env.VITE_BACKEND_URL || ""}${
-                            item.book.image
-                          }`}
-                          alt={item.book.title}
+                          src={`${import.meta.env.VITE_BACKEND_URL || ""}${item.book_cover}`}
+                          alt={item.book_title}
                           className="h-16 w-12 object-cover rounded"
-                          onError={(e) => {
-                            e.target.style.display = "none";
-                            e.target.nextSibling.style.display = "flex";
-                          }}
+                          onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
                         />
                       ) : null}
                       <div
                         className="h-16 w-12 bg-gray-200 rounded flex items-center justify-center"
-                        style={{
-                          display: item.book?.image ? "none" : "flex",
-                        }}
+                        style={{ display: item.book_cover ? 'none' : 'flex' }}
                       >
                         <svg
                           className="h-8 w-8 text-gray-400"
@@ -255,20 +248,14 @@ const OrderSummaryPage = () => {
                       </div>
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-800">
-                        {item.book?.title || "Book Title"}
-                      </h4>
+                      <h4 className="font-medium text-gray-800">{item.book_title || "Book Title"}</h4>
                       <p className="text-sm text-gray-600">
                         Quantity: {item.quantity}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gray-800">
-                        ${(item.price * item.quantity).toFixed(2)}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        ${item.price.toFixed(2)} each
-                      </p>
+                      <p className="font-semibold text-gray-800">৳{(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="text-sm text-gray-600">৳{item.price.toFixed(2)} each</p>
                     </div>
                   </div>
                 ))}
@@ -326,15 +313,21 @@ const OrderSummaryPage = () => {
               <div className="space-y-2">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal:</span>
-                  <span>${order.total_amount.toFixed(2)}</span>
+                  <span>৳{(order.subtotal_amount ?? order.total_amount).toFixed(2)}</span>
                 </div>
+                {order.discount_amount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Discount{order.discount_label ? ` (${order.discount_label})` : ''}</span>
+                    <span>- ৳{order.discount_amount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping:</span>
-                  <span>$5.00</span>
+                  <span>৳{(order.shipping_amount || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-lg font-semibold text-gray-800 border-t border-gray-200 pt-2">
                   <span>Total:</span>
-                  <span>${(order.total_amount + 5).toFixed(2)}</span>
+                  <span>৳{(order.grand_total ?? order.total_amount).toFixed(2)}</span>
                 </div>
               </div>
             </div>

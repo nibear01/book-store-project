@@ -697,7 +697,12 @@ export default function Order() {
                   </td>
 
                   <td className="p-2 sm:p-3 text-right hidden md:table-cell font-semibold">
-                    {formatCurrency(order.total_amount)}
+                    {formatCurrency(order.grand_total ?? order.total_amount)}
+                    {order.discount_amount > 0 && (
+                      <div className="text-[11px] text-green-600 font-normal mt-0.5">
+                        -{formatCurrency(order.discount_amount)}
+                      </div>
+                    )}
                   </td>
 
                   <td className="p-2 sm:p-3 hidden lg:table-cell">
@@ -943,7 +948,7 @@ export default function Order() {
                         {selectedOrder.shipping_address?.country}
                       </div>
                       <div>
-                        <strong>ZIP Code:</strong>{" "}
+                        <strong>Postal Code:</strong>{" "}
                         {selectedOrder.shipping_address?.zipCode}
                       </div>
                     </div>
@@ -983,18 +988,35 @@ export default function Order() {
                       </tbody>
                     </table>
                   </div>
-                  <div className="mt-3 flex justify-between items-center border-t pt-3">
-                    <div>
-                      <strong>Payment Method:</strong>{" "}
-                      {selectedOrder.payment_info?.method}
-                      <br />
-                      <strong>Order Date:</strong>{" "}
-                      {formatBangladeshDate(
-                        selectedOrder.created_at || selectedOrder.createdAt
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4 text-sm">
+                    <div className="space-y-1">
+                      <div>
+                        <strong>Payment Method:</strong> {selectedOrder.payment_info?.method}
+                      </div>
+                      <div>
+                        <strong>Order Date:</strong> {formatBangladeshDate(selectedOrder.created_at || selectedOrder.createdAt)}
+                      </div>
+                      {selectedOrder.discount_amount > 0 && (
+                        <div className="text-green-600">
+                          <strong>Discount Applied:</strong> {formatCurrency(selectedOrder.discount_amount)} {selectedOrder.discount_label && (<span className="italic">({selectedOrder.discount_label})</span>)}
+                        </div>
                       )}
                     </div>
-                    <div className="text-lg font-bold">
-                      Grand Total: {formatCurrency(selectedOrder.total_amount)}
+                    <div className="space-y-1 md:text-right">
+                      <div>
+                        <span className="font-medium">Subtotal:</span> {formatCurrency(selectedOrder.subtotal_amount ?? selectedOrder.total_amount)}
+                      </div>
+                      {selectedOrder.discount_amount > 0 && (
+                        <div>
+                          <span className="font-medium">Discount:</span> -{formatCurrency(selectedOrder.discount_amount)}
+                        </div>
+                      )}
+                      <div>
+                        <span className="font-medium">Shipping:</span> {formatCurrency(selectedOrder.shipping_amount || 0)}
+                      </div>
+                      <div className="text-base font-bold pt-1 border-t mt-2">
+                        Grand Total: {formatCurrency(selectedOrder.grand_total ?? selectedOrder.total_amount)}
+                      </div>
                     </div>
                   </div>
                 </div>
