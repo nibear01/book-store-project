@@ -43,7 +43,7 @@ import { useAuth } from "./context/AuthContext";
 import { Navigate } from "react-router-dom";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-import Delivery from "./components/deliveryComponents/Delivery";
+
 
 function AppContent() {
   const location = useLocation();
