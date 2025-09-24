@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
   X,
+  Truck 
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
@@ -45,6 +46,7 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
     { name: "Books Manuscripts", path: "/admin/books", icon: BookOpen },
     { name: "Orders", path: "/admin/orders", icon: ShoppingCart },
     { name: "Settings", path: "/admin/settings", icon: Settings },
+   { name: "Delivery", path: "/admin/Delivery", icon:   Truck},
     { name: "Logout", path: "/logout", icon: LogOut },
   ];
 

@@ -38,6 +38,7 @@ import { useAuth } from "./context/AuthContext";
 import { Navigate } from "react-router-dom";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import Delivery from "./components/deliveryComponents/Delivery";
 
 function AppContent() {
   const location = useLocation();
@@ -146,7 +147,16 @@ function AppContent() {
               </RequireRole>
             }
           />
+             <Route
+            path="Delivery"
+            element={
+              <RequireRole roles={["admin"]}>
+                <Delivery/>
+              </RequireRole>
+            }
+          />
         </Route>
+        
 
         <Route path="/cart" element={<CartPage />} />
         <Route
