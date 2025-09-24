@@ -2,13 +2,18 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
-import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import {
+  Bars3Icon,
+  XMarkIcon,
+  ChevronDownIcon,
+} from "@heroicons/react/24/outline";
 import { FaShoppingCart, FaUser, FaSignOutAlt } from "react-icons/fa";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const navigationLinks = [
     { name: "Home", path: "/" },
@@ -79,45 +84,75 @@ const Navbar = () => {
 
             {/* Auth Section */}
             {isAuthenticated ? (
-              <div className="flex items-center space-x-3">
-                {/* User Info */}
+              <div className="relative flex items-center gap-2">
+                {/* Avatar + name go to account */}
                 <Link
                   to="/account"
-                  className="flex items-center space-x-2 text-gray-700 hover:text-[var(--hover-color)]"
+                  className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-50"
                 >
-                  {user?.profile_image ? (
-                    // Ensure absolute URL if backend returns a relative path
-                    (() => {
-                      const src = String(user.profile_image || "");
-                      const absolute = /^https?:\/\//i.test(src)
+                  {(() => {
+                    const src = String(user?.profile_image || "");
+                    const absolute = src
+                      ? /^https?:\/\//i.test(src)
                         ? src
                         : `http://localhost:5000${
                             src.startsWith("/") ? src : `/${src}`
-                          }`;
-                      return (
-                        <img
-                          src={absolute}
-                          alt="Profile"
-                          className="h-6 w-6 rounded-full object-cover"
-                        />
-                      );
-                    })()
-                  ) : (
-                    <FaUser className="h-4 w-4" />
-                  )}
-                  <span className="text-sm font-medium">
+                          }`
+                      : "";
+                    return absolute ? (
+                      <img
+                        src={absolute}
+                        alt="Profile"
+                        className="h-8 w-8 rounded-full object-cover border"
+                      />
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                        <FaUser className="h-4 w-4" />
+                      </div>
+                    );
+                  })()}
+                  <span className="text-sm font-medium text-gray-700">
                     {user?.name || user?.email}
                   </span>
                 </Link>
 
-                {/* Logout Button */}
+                {/* Chevron button toggles dropdown */}
                 <button
-                  onClick={handleLogout}
-                  className="flex items-center space-x-1 px-3 py-2 text-sm font-medium text-gray-700 hover:text-red-600 transition-colors"
+                  onClick={() => setIsProfileOpen((v) => !v)}
+                  className="p-2 rounded hover:bg-gray-50"
+                  aria-label="Open menu"
                 >
-                  <FaSignOutAlt className="h-4 w-4" />
-                  <span>Logout</span>
+                  <ChevronDownIcon className="h-4 w-4 text-gray-700" />
                 </button>
+
+                {/* Dropdown (no Admin Panel link) */}
+                {isProfileOpen && (
+                  <div className="absolute right-0 top-[110%] w-48 bg-white border rounded shadow-md py-1 z-50">
+                    <Link
+                      to="/account"
+                      onClick={() => setIsProfileOpen(false)}
+                      className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      My Account
+                    </Link>
+                    <Link
+                      to="/orders"
+                      onClick={() => setIsProfileOpen(false)}
+                      className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      My Orders
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <FaSignOutAlt className="h-4 w-4" /> Logout
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               /* Auth Links */
@@ -282,7 +317,9 @@ const Navbar = () => {
                           </p>
                           <button
                             type="button"
-                            onClick={() => removeItem({ id: item._id || item.id })}
+                            onClick={() =>
+                              removeItem({ id: item._id || item.id })
+                            }
                             className="text-xs text-gray-500 hover:text-red-600"
                           >
                             Remove
