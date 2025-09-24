@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
@@ -12,8 +12,10 @@ import { FaShoppingCart, FaUser, FaSignOutAlt } from "react-icons/fa";
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, activeRole, switchRole } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isRolesOpen, setIsRolesOpen] = useState(false);
+  const rolesCloseTimer = useRef(null);
 
   const navigationLinks = [
     { name: "Home", path: "/" },
@@ -127,7 +129,7 @@ const Navbar = () => {
 
                 {/* Dropdown (no Admin Panel link) */}
                 {isProfileOpen && (
-                  <div className="absolute right-0 top-[110%] w-48 bg-white border rounded shadow-md py-1 z-50">
+                  <div className="absolute right-0 top-[110%] w-56 bg-white border rounded shadow-md py-2 z-50">
                     <Link
                       to="/account"
                       onClick={() => setIsProfileOpen(false)}
@@ -135,6 +137,92 @@ const Navbar = () => {
                     >
                       My Account
                     </Link>
+                    {/* Roles submenu header + side list */}
+                    <div
+                      className="relative"
+                      onMouseEnter={() => {
+                        if (rolesCloseTimer.current) {
+                          clearTimeout(rolesCloseTimer.current);
+                          rolesCloseTimer.current = null;
+                        }
+                        setIsRolesOpen(true);
+                      }}
+                      onMouseLeave={() => {
+                        if (rolesCloseTimer.current) {
+                          clearTimeout(rolesCloseTimer.current);
+                        }
+                        rolesCloseTimer.current = setTimeout(() => {
+                          setIsRolesOpen(false);
+                          rolesCloseTimer.current = null;
+                        }, 200);
+                      }}
+                    >
+                      <div className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-default">
+                        <span>
+                          Role:{" "}
+                          {(
+                            activeRole ||
+                            user?.roles?.[0] ||
+                            user?.role ||
+                            "user"
+                          ).replace("_", " ")}
+                        </span>
+                        <ChevronDownIcon
+                          className={`h-4 w-4 transition-transform ${
+                            isRolesOpen ? "rotate-270" : "rotate-0"
+                          }`}
+                        />
+                      </div>
+                      <div
+                        className={`absolute top-0 left-full ml-2 w-48 bg-white border rounded shadow-md py-1 z-50 ${
+                          isRolesOpen ? "block" : "hidden"
+                        }`}
+                      >
+                        {(() => {
+                          const roles =
+                            user?.roles ||
+                            (user?.role ? [user.role] : ["user"]);
+                          const current = activeRole || roles[0];
+                          const go = (r) => {
+                            const ok = switchRole(r);
+                            if (!ok) return;
+                            setIsRolesOpen(false);
+                            setIsProfileOpen(false);
+                            const dest =
+                              r === "admin"
+                                ? "/admin/dashboard"
+                                : r === "book_manager"
+                                ? "/admin/books"
+                                : r === "order_manager"
+                                ? "/admin/orders"
+                                : r === "printing_manager"
+                                ? "/admin/printing"
+                                : r === "delivery_manager"
+                                ? "/admin/delivery"
+                                : r === "finance_manager"
+                                ? "/admin/finance"
+                                : r === "customer_support"
+                                ? "/admin/support"
+                                : r === "marketing_manager"
+                                ? "/admin/marketing"
+                                : "/account";
+                            navigate(dest, { replace: true });
+                          };
+                          return roles.map((r) => (
+                            <button
+                              key={r}
+                              onClick={() => go(r)}
+                              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 capitalize ${
+                                current === r ? "font-semibold" : ""
+                              }`}
+                            >
+                              {r.replace("_", " ")}
+                              {current === r ? " (current)" : ""}
+                            </button>
+                          ));
+                        })()}
+                      </div>
+                    </div>
                     <Link
                       to="/orders"
                       onClick={() => setIsProfileOpen(false)}
