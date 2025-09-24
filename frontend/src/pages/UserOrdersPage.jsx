@@ -162,24 +162,20 @@ const UserOrdersPage = () => {
                     {order.items.map((item, index) => (
                       <div key={index} className="flex items-center space-x-4">
                         <div className="flex-shrink-0">
-                          {item.book?.image ? (
+                          {item.book_cover ? (
                             <img
-                              src={`${import.meta.env.VITE_BACKEND_URL || ""}${
-                                item.book.image
-                              }`}
-                              alt={item.book.title}
+                              src={`${import.meta.env.VITE_BACKEND_URL || ""}${item.book_cover}`}
+                              alt={item.book_title}
                               className="h-16 w-12 object-cover rounded"
                               onError={(e) => {
-                                e.target.style.display = "none";
-                                e.target.nextSibling.style.display = "flex";
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
                               }}
                             />
                           ) : null}
                           <div
                             className="h-16 w-12 bg-gray-200 rounded flex items-center justify-center"
-                            style={{
-                              display: item.book?.image ? "none" : "flex",
-                            }}
+                            style={{ display: item.book_cover ? 'none' : 'flex' }}
                           >
                             <svg
                               className="h-8 w-8 text-gray-400"
@@ -198,15 +194,11 @@ const UserOrdersPage = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-medium text-gray-900 truncate">
-                            {item.book?.title || "Unknown Book"}
+                            {item.book_title || 'Unknown Book'}
                           </h4>
-                          <p className="text-sm text-gray-600">
-                            Quantity: {item.quantity}
-                          </p>
+                          <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
                         </div>
-                        <div className="text-sm font-medium text-gray-900">
-                          ${(item.price * item.quantity).toFixed(2)}
-                        </div>
+                        <div className="text-sm font-medium text-gray-900">৳{(item.price * item.quantity).toFixed(2)}</div>
                       </div>
                     ))}
                   </div>
@@ -215,11 +207,13 @@ const UserOrdersPage = () => {
                 {/* Order Footer */}
                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                    <div className="text-sm text-gray-600">
-                      <p>
-                        <span className="font-medium">Total:</span> $
-                        {order.total_amount.toFixed(2)}
-                      </p>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p><span className="font-medium">Subtotal:</span> ৳{(order.subtotal_amount ?? order.total_amount).toFixed(2)}</p>
+                      {order.discount_amount > 0 && (
+                        <p className="text-green-600"><span className="font-medium">Discount:</span> -৳{order.discount_amount.toFixed(2)} {order.discount_label && (<span className="italic">({order.discount_label})</span>)}</p>
+                      )}
+                      <p><span className="font-medium">Shipping:</span> ৳{(order.shipping_amount || 0).toFixed(2)}</p>
+                      <p className="font-semibold"><span className="font-medium">Total:</span> ৳{(order.grand_total ?? order.total_amount).toFixed(2)}</p>
                       {order.shipping_address && (
                         <p className="mt-1">
                           <span className="font-medium">Shipping to:</span>{" "}

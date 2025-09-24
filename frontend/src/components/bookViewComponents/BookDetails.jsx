@@ -43,8 +43,18 @@ const BookDetails = ({ book }) => {
         </div>
       )}
 
-      {/* Price */}
-      <div className="text-2xl font-semibold mt-3">${book.price}</div>
+      {/* Price (supports configured price) */}
+      <div className="mt-3">
+        {book.configuredPrice && book.configuredPrice !== book.price ? (
+          <div className="flex flex-col">
+            <span className="text-sm text-gray-500 line-through">৳{Number(book.price).toFixed(2)}</span>
+            <span className="text-2xl font-semibold">৳{Number(book.configuredPrice).toFixed(2)}</span>
+            <span className="text-xs text-gray-500 mt-1">Price reflects selected printing options.</span>
+          </div>
+        ) : (
+          <div className="text-2xl font-semibold">৳{Number(book.price).toFixed(2)}</div>
+        )}
+      </div>
 
       {/* Stock Status */}
       {/* <div className={`text-sm font-medium ${book.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>

@@ -21,11 +21,7 @@ import {
   Cell,
   ResponsiveContainer,
 } from "recharts";
-import {
-  adminUsersAPI,
-  adminBooksAPI,
-  adminOrdersAPI,
-} from "../../api/admin-api";
+import { adminOrdersAPI } from "../../api/admin-api";
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -52,45 +48,14 @@ const Dashboard = () => {
         setLoading(true);
         setError("");
 
-        const usersPromise = adminUsersAPI.list({ page: 1, limit: 1 });
-        const booksPromise = adminBooksAPI.list({ limit: 100 });
-        const statsPromise = adminOrdersAPI.stats();
-
-        const [usersRes, booksRes, statsRes] = await Promise.allSettled([
-          usersPromise,
-          booksPromise,
-          statsPromise,
-        ]);
+        const statsRes = await adminOrdersAPI.stats();
 
         if (!mounted) return;
 
-        if (usersRes.status === "fulfilled") {
-          const total = usersRes.value?.pagination?.totalUsers;
-          setTotalUsers(
-            typeof total === "number"
-              ? total
-              : usersRes.value?.data?.length || 0
-          );
-        }
-
-        if (booksRes.status === "fulfilled") {
-          const total = booksRes.value?.pagination?.totalBooks;
-          setTotalBooks(
-            typeof total === "number"
-              ? total
-              : booksRes.value?.data?.length || 0
-          );
-          const b = booksRes.value?.data || [];
-          setTopBooks(
-            b.slice(0, 6).map((x) => ({
-              name: x.title,
-              sales: Number(x.sales || x.stock || 0),
-            }))
-          );
-        }
-
-        if (statsRes.status === "fulfilled") {
-          const s = statsRes.value?.data || statsRes.value || {};
+        if (statsRes) {
+          const s = statsRes.data || statsRes || {};
+          if (typeof s.totalUsers === "number") setTotalUsers(s.totalUsers);
+          if (typeof s.totalBooks === "number") setTotalBooks(s.totalBooks);
           const sales = s.salesOverTime || s.revenueOverTime || [];
           setSalesData(
             sales.map((p) => ({
@@ -113,6 +78,15 @@ const Dashboard = () => {
           if (typeof s.pendingManuscripts === "number")
             setPendingManuscripts(s.pendingManuscripts);
           if (Array.isArray(s.activities)) setActivities(s.activities);
+          if (Array.isArray(s.topBooks)) {
+            setTopBooks(
+              s.topBooks.map((b) => ({
+                name: b.name,
+                sales: b.sales,
+                revenue: b.revenue,
+              }))
+            );
+          }
         }
       } catch (e) {
         if (!mounted) return;
@@ -205,15 +179,26 @@ const Dashboard = () => {
           <h2 className="text-lg font-semibold text-gray-800 mb-4">
             Top-Selling Books
           </h2>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={topBooks}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="sales" fill="#3b82f6" />
-            </BarChart>
-          </ResponsiveContainer>
+          {topBooks.length ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={topBooks}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip
+                  formatter={(value, name) => [
+                    value,
+                    name === "sales" ? "Units Sold" : name,
+                  ]}
+                />
+                <Bar dataKey="sales" fill="#3b82f6" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="text-sm text-gray-500 h-[250px] flex items-center justify-center">
+              Sales aggregation for books not yet implemented.
+            </div>
+          )}
         </div>
 
         {/* Orders By Status */}

@@ -569,55 +569,37 @@ const UserDashboard = () => {
                   <div className="mt-1">
                     <p className="text-sm text-gray-600">
                       {order.items.length} item
-                      {order.items.length !== 1 ? "s" : ""} • Total: $
-                      {order.total_amount.toFixed(2)}
+                      {order.items.length !== 1 ? 's' : ''} • Total: ৳{(order.grand_total ?? order.total_amount).toFixed(2)}
                     </p>
+                    {order.discount_amount > 0 && (
+                      <p className="text-xs text-green-600">
+                        Discount: -৳{order.discount_amount.toFixed(2)} {order.discount_label && (<span className="italic">({order.discount_label})</span>)}
+                      </p>
+                    )}
                     {/* Book Details */}
                     <div className="mt-2 space-y-1">
                       {order.items.slice(0, 2).map((item, itemIndex) => (
-                        <div
-                          key={itemIndex}
-                          className="flex items-center gap-2 text-xs text-gray-500"
-                        >
+                        <div key={itemIndex} className="flex items-center gap-2 text-xs text-gray-500">
                           <div className="flex-shrink-0">
-                            {item.book?.image ? (
+                            {item.book_cover ? (
                               <img
-                                src={`${baseUrl}${item.book.image}`}
-                                alt={item.book.title}
+                                src={`${baseUrl}${item.book_cover}`}
+                                alt={item.book_title}
                                 className="h-8 w-6 object-cover rounded"
-                                onError={(e) => {
-                                  e.target.style.display = "none";
-                                  e.target.nextSibling.style.display = "flex";
-                                }}
+                                onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
                               />
                             ) : null}
                             <div
                               className="h-8 w-6 bg-gray-200 rounded flex items-center justify-center"
-                              style={{
-                                display: item.book?.image ? "none" : "flex",
-                              }}
+                              style={{ display: item.book_cover ? 'none' : 'flex' }}
                             >
-                              <svg
-                                className="h-4 w-4 text-gray-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={1}
-                                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                                />
+                              <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                               </svg>
                             </div>
                           </div>
-                          <span className="truncate">
-                            {item.book?.title || "Unknown Book"}
-                          </span>
-                          <span className="text-gray-400">
-                            ×{item.quantity}
-                          </span>
+                          <span className="truncate">{item.book_title || 'Unknown Book'}</span>
+                          <span className="text-gray-400">×{item.quantity}</span>
                         </div>
                       ))}
                       {order.items.length > 2 && (

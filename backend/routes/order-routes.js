@@ -7,7 +7,8 @@ import {
   getOrderById,
   updateOrderStatus,
   importOrdersFromCSV,
-  deleteOrder, // Add this import
+  deleteOrder,
+  getOrderStats,
 } from "../controllers/order-controllers.js";
 
 import { protect } from "../middlewares/auth-middleware.js";
@@ -23,6 +24,7 @@ router.get("/details/:id", protect, getOrderById);
 
 // Admin Routes
 router.get("/admin/all", protect, isAdmin, getAllOrders);
+router.get("/admin/stats", protect, isAdmin, getOrderStats);
 router.put("/admin/:id/status", protect, isAdmin, updateOrderStatus);
 router.delete("/admin/:id", protect, isAdmin, deleteOrder); // Add this route
 router.post(

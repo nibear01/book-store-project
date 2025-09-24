@@ -116,7 +116,15 @@ const RelatedBooksPanel = ({ book }) => {
   }
 
   if (!relatedBooks || relatedBooks.length === 0) {
-    return null;
+    return (
+      <div className="mt-12 border-t pt-8">
+        <h3 className="text-2xl font-bold mb-6 text-gray-900">You Might Also Like</h3>
+        <div className="text-center py-10 text-gray-500 bg-gray-50 rounded-[2px] border border-dashed border-gray-200">
+          <p className="font-medium">No related books with the current book.</p>
+          <p className="text-sm mt-1">Try exploring other categories or authors.</p>
+        </div>
+      </div>
+    );
   }
 
   return (

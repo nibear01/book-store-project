@@ -1,5 +1,5 @@
 // src/pages/Admin/OrdersPage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getAllOrders, updateOrderStatus, importOrdersFromCSV } from '../../api/order-api';
 import OrderTable from '../../components/OrderTable';
 import OrderFilters from '../../components/OrderFilters';
@@ -20,7 +20,7 @@ const OrdersPage = () => {
   });
   const [totalPages, setTotalPages] = useState(1);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -33,11 +33,11 @@ const OrdersPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
   useEffect(() => {
     fetchOrders();
-  }, [filters]); // Fetch when filters change
+  }, [fetchOrders]); // Fetch when filters change
 
   const handleFilterChange = (newFilters) => {
     setFilters(prev => ({ ...prev, ...newFilters, page: 1 })); // Reset to page 1 on filter change
@@ -55,7 +55,7 @@ const OrdersPage = () => {
       );
       toast.success('Order status updated');
     } catch (err) {
-      toast.error('Failed to update order status');
+      toast.error(`Failed to update order status: ${err.message}`);
     }
   };
 

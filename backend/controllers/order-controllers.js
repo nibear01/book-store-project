@@ -262,3 +262,74 @@ export const deleteOrder = async (req, res) => {
         });
     }
 };
+
+// GET /api/orders/admin/stats
+// Returns aggregated metrics for dashboard
+export const getOrderStats = async (req, res) => {
+    try {
+        const now = new Date();
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+        // Parallel queries (add topBooks pipeline)
+        const [orders, countsByStatus, revenueByMonth, recentOrders, totalActiveBooks, totalUsers, topBooksAgg] = await Promise.all([
+            Order.find({}, 'order_status grand_total createdAt').lean(),
+            Order.aggregate([{ $group: { _id: '$order_status', count: { $sum: 1 } } }]),
+            Order.aggregate([
+                { $match: { createdAt: { $gte: startOfYear } } },
+                { $group: { _id: { $month: '$createdAt' }, total: { $sum: '$grand_total' } } },
+                { $sort: { '_id': 1 } }
+            ]),
+            Order.find().sort({ createdAt: -1 }).limit(10).select('order_number grand_total order_status createdAt').lean(),
+            (await import('../models/book-model.js')).default.countDocuments({ is_active: true }),
+            (await import('../models/user-model.js')).default.countDocuments({}),
+            Order.aggregate([
+                { $unwind: '$items' },
+                { $group: { _id: { book: '$items.book', title: '$items.book_title' }, qty: { $sum: '$items.quantity' }, revenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } } } },
+                { $sort: { qty: -1 } },
+                { $limit: 3 },
+                { $project: { _id: 0, book: '$_id.book', title: '$_id.title', quantity: '$qty', revenue: { $round: ['$revenue', 2] } } }
+            ])
+        ]);
+
+        const ordersInProgress = orders.filter(o => ['pending','processing','shipped'].includes(o.order_status)).length;
+        const ordersByStatus = countsByStatus.reduce((acc, cur) => { acc[cur._id] = cur.count; return acc; }, {});
+
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const salesOverTime = revenueByMonth.map(r => ({ month: monthNames[r._id - 1], sales: Number(r.total.toFixed(2)) }));
+
+        // Placeholder / future metrics
+        const activePromotions = 0; // requires promotions model
+        const refundRequests = 0; // requires refunds feature
+        const pendingManuscripts = 0; // requires manuscript workflow
+
+        const activities = recentOrders.map(ro => ({
+            id: ro._id,
+            type: 'Order',
+            detail: `Order ${ro.order_number} - ${ro.order_status}`,
+            date: ro.createdAt.toISOString()
+        }));
+
+        return res.json({
+            success: true,
+            data: {
+                totalUsers,
+                totalBooks: totalActiveBooks,
+                ordersInProgress,
+                activePromotions,
+                refundRequests,
+                pendingManuscripts,
+                ordersByStatus,
+                salesOverTime,
+                activities,
+                topBooks: topBooksAgg.map(tb => ({
+                    id: tb.book,
+                    name: tb.title,
+                    sales: tb.quantity,
+                    revenue: tb.revenue
+                }))
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to fetch stats', error: error.message });
+    }
+};

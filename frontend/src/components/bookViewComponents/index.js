@@ -7,3 +7,4 @@ export { default as BookSEO } from './BookSEO';
 export { default as BookLoadingSkeleton } from './BookLoadingSkeleton';
 export { default as BookError } from './BookError';
 export { default as RelatedBooksPanel } from './RelatedBooksPanel'; // Add this line
+export { default as BookPrintConfig } from './BookPrintConfig';

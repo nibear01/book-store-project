@@ -12,7 +12,8 @@ import {
   BookDetails,
   BookActions,
   BookTabs,
-  RelatedBooksPanel, // Add this import
+  RelatedBooksPanel,
+  BookPrintConfig,
 } from "../components/bookViewComponents";
 
 const BookViewPage = () => {
@@ -26,6 +27,7 @@ const BookViewPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
+  const [printConfig, setPrintConfig] = useState(null);
   const [activeTab, setActiveTab] = useState("description");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -79,15 +81,38 @@ const BookViewPage = () => {
 
             {/* Details & Actions */}
             <div className="md:w-3/5 flex flex-col gap-4">
-              <BookDetails book={book} />
+              <BookDetails book={{ ...book, configuredPrice: printConfig?.price }} />
+
+              <BookPrintConfig
+                basePrice={Number(book.price || 0)}
+                value={printConfig}
+                onChange={setPrintConfig}
+              />
 
               <BookActions
-                book={book}
+                book={{ ...book, price: printConfig?.price || book.price, _printConfig: printConfig }}
                 quantity={quantity}
                 setQuantity={setQuantity}
                 isAuthenticated={isAuthenticated}
                 navigate={navigate}
-                addToCart={addToCart}
+                addToCart={(payload) => {
+                  // payload.item shape from BookActions
+                  const variant = printConfig ? {
+                    paperQuality: printConfig.paperQuality,
+                    printSide: printConfig.printSide,
+                    paperSize: printConfig.paperSize,
+                    colorMode: printConfig.colorMode,
+                  } : undefined;
+                  addToCart({
+                    item: {
+                      ...payload.item,
+                      variant,
+                      unit_price: payload.item.price,
+                      configured: !!printConfig,
+                    },
+                    quantity: payload.quantity,
+                  });
+                }}
               />
             </div>
           </div>
