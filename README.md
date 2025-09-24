@@ -45,11 +45,8 @@ frontend/
 
 Setup project
 
--> Install React + Vite
 
--> Install Tailwind
 
--> Setup Router (React Router DOM)
 
 ### Core Pages
 
@@ -110,3 +107,71 @@ Setup project
 #### CartContext.jsx → Cart state & functions
 
 #### useAuth.js, useCart.js
+
+### Categories Feature
+
+The project now supports dynamic categories stored in MongoDB.
+
+Endpoints:
+- `GET /api/categories` – list categories with `book_count` (uses book `genre` array values).
+	- Query params:
+		- `includeEmpty=true|false` (default false) – include categories with zero books.
+		- `status=all|active|inactive` (default active).
+- `GET /api/categories/:slug` – fetch a single category.
+- `POST /api/categories` (admin) – create a category `{ name, description?, image?, synonyms? }`.
+- `PUT /api/categories/:id` (admin) – update category.
+- `DELETE /api/categories/:id?hard=false` (admin) – hard delete by default, soft delete with `hard=false`.
+
+Seeding:
+Set environment variable `SEED_CATEGORIES=true` on first run to seed default categories. This will not overwrite existing data.
+
+Frontend Hook (`useCategories`):
+The hook now fetches categories from the API instead of computing from the books array. It returns:
+```
+categories: [ { id, title, slug, count, item } ]
+categoriesLoading: boolean
+categoriesError: string | null
+```
+
+Ensure your book documents' `genre` values exactly match category names for counts to appear.
+
+### Admin: Managing Categories
+
+In the Admin panel under the Books section, a Category Management interface has been added (scroll below the books table). From there you can:
+- Create a new category (Name required; optional description & order).
+- Edit existing categories.
+- Delete categories (hard delete).
+
+Notes:
+- Category `name` should align with book `genre` entries for counts to update.
+- `order` can be used to control display sequence in future UI components.
+- Deletion currently performs a permanent removal; switch to soft delete by adjusting the API call (`?hard=false`).
+
+### Multi-Genre Support
+
+Books now support multiple genres stored as an array. When importing or editing:
+- CSV or manual inputs like `Fantasy, Adventure, Epic` are split on commas.
+- Frontend category filtering matches a book if ANY of its genres equals the selected category (case-insensitive).
+- Category counts aggregate across all books where the category name appears in the `genre` array.
+
+Migration for legacy data:
+Run the script below to normalize old string-based `genre` fields into arrays.
+
+```bash
+node backend/scripts/migrate-genres-to-array.js
+```
+
+Ensure your environment variable `MONGO_URI` (or `DATABASE_URL`) is set before running. The script safely skips already-normalized documents.
+
+### Category Case-Insensitivity & Pagination
+
+- Category to book matching is now case-insensitive (e.g. `science` matches category `Science`).
+- Admin Category Manager paginates when more than 10 categories exist; navigation appears at the bottom of the table.
+
+### Category Manager Enhancements
+
+Added features:
+- Search box (client-side, case-insensitive) filters categories by name.
+- Sorting options: Name A→Z, Name Z→A, Books High→Low, Books Low→High, Newest First, Oldest First.
+- Created date column shows when a category was added (uses `created_at`).
+- Sorting & searching reset pagination to the first page.

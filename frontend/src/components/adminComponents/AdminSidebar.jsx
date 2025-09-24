@@ -18,7 +18,7 @@ import { useAuth } from "../../context/AuthContext";
 const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -40,7 +40,10 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
     };
   }, [setIsCollapsed]);
 
+  const roles = user?.roles || (user?.role ? [user.role] : []);
+  const isAdmin = roles.includes("admin");
   const menuItems = [
+
     { name: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
     { name: "Users", path: "/admin/users", icon: Users },
     { name: "Books Manuscripts", path: "/admin/books", icon: BookOpen },
@@ -49,6 +52,65 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
    { name: "Delivery", path: "/admin/Delivery", icon:   Truck},
     { name: "Logout", path: "/logout", icon: LogOut },
   ];
+
+    {
+      name: "Dashboard",
+      path: "/admin/dashboard",
+      icon: LayoutDashboard,
+      show: isAdmin || roles.length > 0,
+    },
+    { name: "Users", path: "/admin/users", icon: Users, show: isAdmin },
+    {
+      name: "Books Manuscripts",
+      path: "/admin/books",
+      icon: BookOpen,
+      show: isAdmin || roles.includes("book_manager"),
+    },
+    {
+      name: "Orders",
+      path: "/admin/orders",
+      icon: ShoppingCart,
+      show: isAdmin || roles.includes("order_manager"),
+    },
+    {
+      name: "Printing",
+      path: "/admin/printing",
+      icon: Tag,
+      show: isAdmin || roles.includes("printing_manager"),
+    },
+    {
+      name: "Delivery",
+      path: "/admin/delivery",
+      icon: Tag,
+      show: isAdmin || roles.includes("delivery_manager"),
+    },
+    {
+      name: "Finance",
+      path: "/admin/finance",
+      icon: Tag,
+      show: isAdmin || roles.includes("finance_manager"),
+    },
+    {
+      name: "Support",
+      path: "/admin/support",
+      icon: Tag,
+      show: isAdmin || roles.includes("customer_support"),
+    },
+    {
+      name: "Marketing",
+      path: "/admin/marketing",
+      icon: Tag,
+      show: isAdmin || roles.includes("marketing_manager"),
+    },
+    {
+      name: "Settings",
+      path: "/admin/settings",
+      icon: Settings,
+      show: isAdmin,
+    },
+    { name: "Logout", path: "/logout", icon: LogOut, show: true },
+  ].filter((i) => i.show);
+>>>>>>> fa3309cfd77b82ab92c8e30307ab0e22fe56ea56
 
   // Close mobile sidebar when a link is clicked
   const handleLinkClick = () => {

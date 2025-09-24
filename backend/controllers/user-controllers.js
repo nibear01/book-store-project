@@ -37,7 +37,7 @@ export const registerUser = async (req, res) => {
             password,
             phone,
             address,
-            role: "user"
+            roles: ["user"]
         });
 
         // Generate JWT token
@@ -167,12 +167,13 @@ export const loginUserByPhone = async (req, res) => {
 // @access  Private/Admin
 export const getAllUsers = async (req, res) => {
     try {
-        const { page = 1, limit = 10, status, role } = req.query;
+        const { page = 1, limit = 10, status, role, roles } = req.query;
 
         // Build filter object
         const filter = {};
         if (status) filter.status = status;
-        if (role) filter.role = role;
+        if (roles) filter.roles = { $in: Array.isArray(roles) ? roles : [roles] };
+        if (role) filter.roles = role; // backward compat
 
         const users = await User.find(filter)
             // NOTE: Including password for testing purposes as requested
@@ -259,7 +260,7 @@ const toPublicPath = (file) => {
 // @access  Private
 export const updateUser = async (req, res) => {
     try {
-        const { name, email, address, status, role } = req.body;
+        const { name, email, address, status, role, roles } = req.body;
         const userId = req.params.id;
 
         // Check if user exists
@@ -282,13 +283,20 @@ export const updateUser = async (req, res) => {
             }
         }
 
+        // Do not allow role changes through this endpoint
+        if (roles !== undefined || role !== undefined) {
+            return res.status(403).json({
+                success: false,
+                message: "Role changes are not allowed here. Use PUT /api/users/:id/role",
+            });
+        }
+
         // Build update payload only with provided fields
         const update = {};
         if (name !== undefined) update.name = name;
         if (email !== undefined) update.email = email;
         if (address !== undefined) update.address = address;
         if (status !== undefined) update.status = status;
-        if (role !== undefined) update.role = role;
         if (req.body.password !== undefined) update.password = req.body.password;
 
         // Handle uploaded profile image
@@ -357,17 +365,36 @@ export const deleteUser = async (req, res) => {
 // @access  Private/Admin
 export const changeUserRole = async (req, res) => {
     try {
-        const { role } = req.body;
+        const { role, roles } = req.body;
         const userId = req.params.id;
 
-        const allowedRoles = ["user", "admin", "book_manager", "order_manager"];
-        if (!allowedRoles.includes(role)) {
-            return res.status(400).json({ success: false, message: "Invalid role" });
+        const allowedRoles = [
+            "user",
+            "admin",
+            "book_manager",
+            "order_manager",
+            "printing_manager",
+            "delivery_manager",
+            "finance_manager",
+            "customer_support",
+            "marketing_manager",
+        ];
+        let nextRoles;
+        if (Array.isArray(roles)) {
+            nextRoles = roles;
+        } else if (role) {
+            nextRoles = [role];
+        } else {
+            return res.status(400).json({ success: false, message: "role(s) required" });
+        }
+
+        if (!nextRoles.every((r) => allowedRoles.includes(r))) {
+            return res.status(400).json({ success: false, message: "Invalid role in roles" });
         }
 
         const user = await User.findByIdAndUpdate(
             userId,
-            { role },
+            { roles: nextRoles },
             { new: true, runValidators: true }
         ).select('-password');
 

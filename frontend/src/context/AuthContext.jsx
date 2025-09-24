@@ -1,5 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { userAPI } from "../api/user-api";
 
 const AuthContext = createContext();
@@ -15,6 +21,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [activeRole, setActiveRole] = useState("user");
 
   const [loading, setLoading] = useState(false); // renamed for consistency
   const [error, setError] = useState(null);
@@ -37,17 +44,31 @@ export const AuthProvider = ({ children }) => {
 
   // Check if user is logged in on app load
   useEffect(() => {
-    fetchData(async () => {
-      if (userAPI.isAuthenticated()) {
-        return await userAPI.getMe();
+    fetchData(
+      async () => {
+        if (userAPI.isAuthenticated()) {
+          return await userAPI.getMe();
+        }
+        return null;
+      },
+      (userData) => {
+        if (userData) {
+          setUser(userData.data);
+          setIsAuthenticated(true);
+          const roles =
+            userData.data?.roles ||
+            (userData.data?.role ? [userData.data.role] : []);
+          const stored = localStorage.getItem("activeRole");
+          const initial =
+            stored && roles.includes(stored)
+              ? stored
+              : roles.includes("user")
+              ? "user"
+              : roles[0] || "user";
+          setActiveRole(initial);
+        }
       }
-      return null;
-    }, (userData) => {
-      if (userData) {
-        setUser(userData.data);
-        setIsAuthenticated(true);
-      }
-    });
+    );
   }, [fetchData]);
 
   // Login function
@@ -60,6 +81,12 @@ export const AuthProvider = ({ children }) => {
       (userData) => {
         setUser(userData.data);
         setIsAuthenticated(true);
+        const roles =
+          userData.data?.roles ||
+          (userData.data?.role ? [userData.data.role] : []);
+        const initial = roles.includes("user") ? "user" : roles[0] || "user";
+        setActiveRole(initial);
+        localStorage.setItem("activeRole", initial);
       }
     );
 
@@ -86,6 +113,21 @@ export const AuthProvider = ({ children }) => {
   // Update user profile
   const updateUser = (updatedUser) => {
     setUser(updatedUser);
+    const roles =
+      updatedUser?.roles || (updatedUser?.role ? [updatedUser.role] : []);
+    if (!roles.includes(activeRole)) {
+      const next = roles.includes("user") ? "user" : roles[0] || "user";
+      setActiveRole(next);
+      localStorage.setItem("activeRole", next);
+    }
+  };
+
+  const switchRole = (role) => {
+    const roles = user?.roles || (user?.role ? [user.role] : []);
+    if (!roles.includes(role)) return false;
+    setActiveRole(role);
+    localStorage.setItem("activeRole", role);
+    return true;
   };
 
   const value = {
@@ -97,6 +139,8 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateUser,
+    activeRole,
+    switchRole,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

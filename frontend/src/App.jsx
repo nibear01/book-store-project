@@ -31,6 +31,11 @@ import Users from "./components/adminComponents/Users";
 import Books from "./components/adminComponents/Books";
 import Order from "./components/adminComponents/Order";
 import Settings from "./components/adminComponents/Settings";
+import Printing from "./components/adminComponents/Printing";
+import Delivery from "./components/adminComponents/Delivery";
+import Finance from "./components/adminComponents/Finance";
+import Support from "./components/adminComponents/Support";
+import Marketing from "./components/adminComponents/Marketing";
 import UserDashboard from "./pages/UserDashboard";
 import OrderSummaryPage from "./pages/OrderSummaryPage";
 import UserOrdersPage from "./pages/UserOrdersPage";
@@ -42,7 +47,19 @@ import Delivery from "./components/deliveryComponents/Delivery";
 
 function AppContent() {
   const location = useLocation();
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { isAuthenticated, user, isLoading, activeRole } = useAuth();
+
+  const roleHome = (role) => {
+    if (role === "admin") return "/admin/dashboard";
+    if (role === "book_manager") return "/admin/books";
+    if (role === "order_manager") return "/admin/orders";
+    if (role === "printing_manager") return "/admin/printing";
+    if (role === "delivery_manager") return "/admin/delivery";
+    if (role === "finance_manager") return "/admin/finance";
+    if (role === "customer_support") return "/admin/support";
+    if (role === "marketing_manager") return "/admin/marketing";
+    return "/account";
+  };
 
   // Route guards
   const RequireAuth = ({ children }) => {
@@ -57,22 +74,31 @@ function AppContent() {
     if (isLoading) return null;
     if (!isAuthenticated)
       return <Navigate to="/login" state={{ from: location }} replace />;
-    if (!roles.includes(user?.role)) return <Navigate to="/" replace />;
+    const effectiveRoles = activeRole
+      ? [activeRole]
+      : user?.roles || (user?.role ? [user.role] : []);
+    if (!roles.some((r) => effectiveRoles.includes(r))) {
+      const dest = roleHome(
+        activeRole || user?.roles?.[0] || user?.role || "user"
+      );
+      // Prevent redirect loops by not navigating to the current path
+      if (dest === location.pathname) return null;
+      return <Navigate to={dest} replace />;
+    }
     return children;
   };
 
   const RequireGuest = ({ children }) => {
     if (isLoading) return null;
     if (isAuthenticated) {
-      const role = user?.role;
-      const dest =
-        role === "admin"
-          ? "/admin/dashboard"
-          : role === "book_manager"
-          ? "/admin/books"
-          : role === "order_manager"
-          ? "/admin/orders"
-          : "/";
+      const roles = user?.roles || (user?.role ? [user.role] : []);
+      const dest = roles.includes("admin")
+        ? "/admin/dashboard"
+        : roles.includes("book_manager")
+        ? "/admin/books"
+        : roles.includes("order_manager")
+        ? "/admin/orders"
+        : "/";
       return <Navigate to={dest} replace />;
     }
     return children;
@@ -83,17 +109,7 @@ function AppContent() {
 
   // If the user is an authenticated admin and tries to access any non-admin route,
   // redirect them to the admin dashboard (covers refreshes and direct navigation)
-  if (
-    !isLoading &&
-    isAuthenticated &&
-    !location.pathname.startsWith("/admin")
-  ) {
-    const role = user?.role;
-    if (role === "admin") return <Navigate to="/admin/dashboard" replace />;
-    if (role === "book_manager") return <Navigate to="/admin/books" replace />;
-    if (role === "order_manager")
-      return <Navigate to="/admin/orders" replace />;
-  }
+  // Do not auto-redirect based on roles; respect active role and user navigation
 
   return (
     <>
@@ -108,7 +124,18 @@ function AppContent() {
         <Route
           path="/admin"
           element={
-            <RequireRole roles={["admin", "book_manager", "order_manager"]}>
+            <RequireRole
+              roles={[
+                "admin",
+                "book_manager",
+                "order_manager",
+                "printing_manager",
+                "delivery_manager",
+                "finance_manager",
+                "customer_support",
+                "marketing_manager",
+              ]}
+            >
               <AdminPage />
             </RequireRole>
           }
@@ -136,6 +163,46 @@ function AppContent() {
             element={
               <RequireRole roles={["admin", "order_manager"]}>
                 <Order />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="printing"
+            element={
+              <RequireRole roles={["admin", "printing_manager"]}>
+                <Printing />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="delivery"
+            element={
+              <RequireRole roles={["admin", "delivery_manager"]}>
+                <Delivery />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="finance"
+            element={
+              <RequireRole roles={["admin", "finance_manager"]}>
+                <Finance />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="support"
+            element={
+              <RequireRole roles={["admin", "customer_support"]}>
+                <Support />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="marketing"
+            element={
+              <RequireRole roles={["admin", "marketing_manager"]}>
+                <Marketing />
               </RequireRole>
             }
           />

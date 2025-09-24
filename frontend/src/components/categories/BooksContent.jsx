@@ -49,7 +49,7 @@ const BooksContent = ({
 
   if (filteredBooks.length === 0) {
     return (
-      <div className="bg-white rounded-md shadow-sm p-6 sm:p-8 text-center mt-6 sm:mt-8">
+      <div className="bg-white rounded-md w-full shadow-sm p-6 sm:p-8 text-center mt-6 sm:mt-8">
         <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">
           No books found
         </h3>

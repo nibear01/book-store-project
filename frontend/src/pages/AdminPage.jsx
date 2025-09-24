@@ -2,9 +2,8 @@ import AdminSidebar from "@/components/adminComponents/AdminSidebar";
 import { Outlet } from "react-router";
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { toast } from "react-toastify";
 
 const AdminPage = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -51,9 +50,19 @@ const AdminPage = () => {
   }
 
   // Redirect non-admins or unauthenticated users
+  const roles = user?.roles || (user?.role ? [user.role] : []);
   if (
     !isAuthenticated ||
-    !["admin", "book_manager", "order_manager"].includes(user?.role)
+    ![
+      "admin",
+      "book_manager",
+      "order_manager",
+      "printing_manager",
+      "delivery_manager",
+      "finance_manager",
+      "customer_support",
+      "marketing_manager",
+    ].some((r) => roles.includes(r))
   ) {
     return <Navigate to="/" replace />;
   }
@@ -112,6 +121,14 @@ const AdminPage = () => {
               <p className="text-sm text-gray-600 mt-1">
                 Manage your bookstore from here.
               </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                to="/account"
+                className="px-3 py-2 text-sm rounded-[2px] border border-gray-300 hover:bg-gray-50"
+              >
+                My Account
+              </Link>
             </div>
           </header>
 

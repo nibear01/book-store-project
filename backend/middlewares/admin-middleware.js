@@ -11,7 +11,7 @@ export const isAdmin = async (req, res, next) => {
             });
         }
 
-        if (req.user.role !== "admin") {
+        if (!Array.isArray(req.user.roles) || !req.user.roles.includes("admin")) {
             return res.status(403).json({
                 success: false,
                 message: "Admin access required. You don't have permission to access this resource."
@@ -35,7 +35,7 @@ export const canManageUser = async (req, res, next) => {
         const currentUserId = req.user._id.toString();
 
         // Admin can manage any user
-        if (req.user.role === "admin") {
+        if (Array.isArray(req.user.roles) && req.user.roles.includes("admin")) {
             return next();
         }
 
@@ -60,7 +60,7 @@ export const canManageUser = async (req, res, next) => {
 // Check if user can delete other users (admin only)
 export const canDeleteUser = async (req, res, next) => {
     try {
-        if (req.user.role !== "admin") {
+        if (!Array.isArray(req.user.roles) || !req.user.roles.includes("admin")) {
             return res.status(403).json({
                 success: false,
                 message: "Only administrators can delete users"
@@ -91,14 +91,36 @@ export const canDeleteUser = async (req, res, next) => {
 // Check if user can change roles (admin only)
 export const canChangeRole = async (req, res, next) => {
     try {
-        if (req.user.role !== "admin") {
+        if (!Array.isArray(req.user.roles) || !req.user.roles.includes("admin")) {
             return res.status(403).json({
                 success: false,
                 message: "Only administrators can change user roles"
             });
         }
 
-        // Note: Self role changes allowed for this project setup
+        const targetUserId = req.params.id;
+        const currentUserId = req.user._id.toString();
+
+        // Prevent admin from changing their own roles
+        if (targetUserId === currentUserId) {
+            return res.status(400).json({
+                success: false,
+                message: "You cannot change your own roles"
+            });
+        }
+
+        // Prevent changing roles of another admin
+        const targetUser = await User.findById(targetUserId).select("roles");
+        if (!targetUser) {
+            return res.status(404).json({ success: false, message: "Target user not found" });
+        }
+        const targetRoles = Array.isArray(targetUser.roles) ? targetUser.roles : (targetUser.role ? [targetUser.role] : []);
+        if (targetRoles.includes("admin")) {
+            return res.status(403).json({
+                success: false,
+                message: "You cannot change roles of another admin"
+            });
+        }
 
         next();
     } catch (error) {
@@ -113,7 +135,7 @@ export const canChangeRole = async (req, res, next) => {
 // Check if user can change status (admin only)
 export const canChangeStatus = async (req, res, next) => {
     try {
-        if (req.user.role !== "admin") {
+        if (!Array.isArray(req.user.roles) || !req.user.roles.includes("admin")) {
             return res.status(403).json({
                 success: false,
                 message: "Only administrators can change user status"
