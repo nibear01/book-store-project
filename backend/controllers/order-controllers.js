@@ -3,47 +3,73 @@ import Book from '../models/book-model.js'; // Import Book model
 import csv from 'csv-parser';
 import fs from 'fs';
 
+// Utility: compute discount based on subtotal & itemCount (mirrors frontend rules)
+const computeDiscount = (subtotal, itemCount) => {
+    let amount = 0; let label = '';
+    if (subtotal >= 200) { amount = subtotal * 0.15; label = '15% off orders $200+'; }
+    else if (subtotal >= 100) { amount = subtotal * 0.10; label = '10% off orders $100+'; }
+    else if (itemCount >= 5) { amount = subtotal * 0.05; label = '5% multi-item discount (5+ items)'; }
+    return { discountAmount: Number(amount.toFixed(2)), discountLabel: label };
+};
+
 // Create new order
 export const createOrder = async (req, res) => {
     try {
+        if (!Array.isArray(req.body.items) || !req.body.items.length) {
+            return res.status(400).json({ success: false, message: 'No order items provided' });
+        }
+
         // Generate unique order number
         const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
-        // NEW: Fetch book titles for each item
-        const itemsWithTitles = await Promise.all(
+        // Fetch book snapshots
+        const itemsWithSnapshots = await Promise.all(
             req.body.items.map(async (item) => {
                 try {
-                    const book = await Book.findById(item.book);
+                    const book = await Book.findById(item.book).lean();
                     return {
-                        ...item,
-                        book_title: book ? book.title : 'Unknown Book'
+                        book: item.book,
+                        book_title: book ? book.title : 'Unknown Book',
+                        book_cover: Array.isArray(book?.cover_image) && book.cover_image.length ? book.cover_image[0] : null,
+                        quantity: item.quantity,
+                        price: item.price,
                     };
-                } catch (error) {
-                    console.error(`Error fetching book title for ID ${item.book}:`, error);
+                } catch (err) {
                     return {
-                        ...item,
-                        book_title: 'Error Loading Book Title'
+                        book: item.book,
+                        book_title: 'Error Loading Book Title',
+                        book_cover: null,
+                        quantity: item.quantity,
+                        price: item.price,
                     };
                 }
             })
         );
 
+        const subtotal = itemsWithSnapshots.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+        const itemCount = itemsWithSnapshots.reduce((sum, i) => sum + i.quantity, 0);
+        const { discountAmount, discountLabel } = computeDiscount(subtotal, itemCount);
+        const providedShipping = Number(req.body.shipping_amount);
+        const shipping = Number.isFinite(providedShipping) && providedShipping >= 0 ? providedShipping : 0;
+        const grand = Math.max(0, Number((subtotal - discountAmount + shipping).toFixed(2)));
+
         const order = await Order.create({
-            ...req.body,
-            items: itemsWithTitles, // Use items with titles
             order_number: orderNumber,
-            user: req.user._id
+            user: req.user._id,
+            items: itemsWithSnapshots,
+            subtotal_amount: Number(subtotal.toFixed(2)),
+            discount_amount: discountAmount,
+            discount_label: discountLabel,
+            shipping_amount: shipping,
+            grand_total: grand,
+            total_amount: grand, // maintain old field
+            shipping_address: req.body.shipping_address || {},
+            payment_info: req.body.payment_info || { method: 'Unknown', status: 'pending' },
         });
-        
-        res.status(201).json({
-            success: true,
-            data: order
-        });
+
+        res.status(201).json({ success: true, data: order });
     } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message
-        });
+        res.status(400).json({ success: false, message: error.message });
     }
 };
 
