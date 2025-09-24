@@ -21,9 +21,14 @@ const Books = () => {
   const [books, setBooks] = useState(initialBooks);
 
   // UI State
-  const [filters, setFilters] = useState({ genre: "all", sortPrice: "none", stock: "all", sortDate: "none" });
+  const [filters, setFilters] = useState({
+    genre: "all",
+    sortPrice: "none",
+    stock: "all",
+    sortDate: "none",
+  });
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 20;
+  const pageSize = 10;
 
   // Add: search state
   const [search, setSearch] = useState("");
@@ -36,7 +41,11 @@ const Books = () => {
 
   // Bulk import state
   const [importing, setImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState({ done: 0, total: 0, errors: 0 });
+  const [importProgress, setImportProgress] = useState({
+    done: 0,
+    total: 0,
+    errors: 0,
+  });
   const csvInputRef = useRef(null);
 
   // NEW: Bulk assets upload modal state
@@ -148,7 +157,12 @@ const Books = () => {
       if (altCoverMany) fd.append("cover_image_urls", altCoverMany);
 
       // booleans/numbers
-      const bools = ["is_active", "is_featured", "is_on_sale", "is_deal_of_the_week"];
+      const bools = [
+        "is_active",
+        "is_featured",
+        "is_on_sale",
+        "is_deal_of_the_week",
+      ];
       bools.forEach((k) => {
         const v = get(k);
         if (v !== "") fd.append(k, /^true|1|yes$/i.test(v));
@@ -190,6 +204,8 @@ const Books = () => {
   useEffect(() => {
     const fetchData = async () => {
       const data = await fetchBooks({ status: "all" });
+      console.log(data.data);
+      
       setBooks(data.data);
     };
     fetchData();
@@ -201,7 +217,9 @@ const Books = () => {
   // Genre options
   const genreOptions = useMemo(() => {
     const set = new Set();
-    (books || []).forEach((b) => toGenreArray(b?.genre).forEach((g) => set.add(g)));
+    (books || []).forEach((b) =>
+      toGenreArray(b?.genre).forEach((g) => set.add(g))
+    );
     return Array.from(set);
   }, [books]);
 
@@ -235,7 +253,11 @@ const Books = () => {
           genres.includes(q)
         );
       })
-      .filter((b) => (filters.genre === "all" ? true : toGenreArray(b?.genre).includes(filters.genre)))
+      .filter((b) =>
+        filters.genre === "all"
+          ? true
+          : toGenreArray(b?.genre).includes(filters.genre)
+      )
       .filter((b) =>
         filters.stock === "all"
           ? true
@@ -252,14 +274,26 @@ const Books = () => {
         if (filters.sortDate && filters.sortDate !== "none") {
           const ta = safeTime(a);
           const tb = safeTime(b);
-          const aMs = ta === null ? (filters.sortDate === "newest" ? -Infinity : Infinity) : ta;
-          const bMs = tb === null ? (filters.sortDate === "newest" ? -Infinity : Infinity) : tb;
+          const aMs =
+            ta === null
+              ? filters.sortDate === "newest"
+                ? -Infinity
+                : Infinity
+              : ta;
+          const bMs =
+            tb === null
+              ? filters.sortDate === "newest"
+                ? -Infinity
+                : Infinity
+              : tb;
           const cmpDate = filters.sortDate === "newest" ? bMs - aMs : aMs - bMs;
           if (cmpDate !== 0) return cmpDate;
         }
         // Price sort (secondary)
-        if (filters.sortPrice === "asc") return (Number(a.price) || 0) - (Number(b.price) || 0);
-        if (filters.sortPrice === "desc") return (Number(b.price) || 0) - (Number(a.price) || 0);
+        if (filters.sortPrice === "asc")
+          return (Number(a.price) || 0) - (Number(b.price) || 0);
+        if (filters.sortPrice === "desc")
+          return (Number(b.price) || 0) - (Number(a.price) || 0);
         return 0;
       });
   }, [books, filters, search]);
@@ -269,7 +303,14 @@ const Books = () => {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(currentPage, totalPages);
   const startIdx = (safePage - 1) * pageSize;
-  const currentPageBooks = filteredSortedBooks.slice(startIdx, startIdx + pageSize);
+  const currentPageBooks = filteredSortedBooks.slice(
+    startIdx,
+    startIdx + pageSize
+  );
+
+  // console.log("Total books after filtering:", filteredSortedBooks.length);
+  // console.log("Total pages:", totalPages);
+  // console.log("Current page:", safePage);
 
   // Actions
   const openAddModal = () => {
@@ -292,7 +333,9 @@ const Books = () => {
       const editingId = String(selectedForEdit._id || selectedForEdit.id);
       setBooks((prev) =>
         prev.map((b) =>
-          String(b._id || b.id) === editingId ? { ...b, ...normalized, _id: raw?._id ?? b._id } : b
+          String(b._id || b.id) === editingId
+            ? { ...b, ...normalized, _id: raw?._id ?? b._id }
+            : b
         )
       );
       toast.success("Book updated successfully!");
@@ -306,13 +349,20 @@ const Books = () => {
 
   // Fix: missing delete confirm helpers
   const openDeleteConfirm = (book) =>
-    setConfirm({ open: true, id: book._id || book.id, title: book.title || "this book" });
-  const closeDeleteConfirm = () => setConfirm({ open: false, id: null, title: "" });
+    setConfirm({
+      open: true,
+      id: book._id || book.id,
+      title: book.title || "this book",
+    });
+  const closeDeleteConfirm = () =>
+    setConfirm({ open: false, id: null, title: "" });
   const confirmDelete = async () => {
     if (!confirm.id) return;
     try {
       await deleteBook(confirm.id);
-      setBooks((prev) => prev.filter((b) => String(b._id || b.id) !== String(confirm.id)));
+      setBooks((prev) =>
+        prev.filter((b) => String(b._id || b.id) !== String(confirm.id))
+      );
       toast.success("Book deleted permanently!");
     } catch {
       toast.error("Failed to delete book!");
@@ -363,8 +413,12 @@ const Books = () => {
         .map((s) => s.trim())
         .filter(Boolean);
 
-    const imagesNames = imagesNamesText.trim() ? toNamesArray(imagesNamesText) : null;
-    const filesNames = filesNamesText.trim() ? toNamesArray(filesNamesText) : null;
+    const imagesNames = imagesNamesText.trim()
+      ? toNamesArray(imagesNamesText)
+      : null;
+    const filesNames = filesNamesText.trim()
+      ? toNamesArray(filesNamesText)
+      : null;
 
     const fd = new FormData();
     bulkImages.forEach((f) => fd.append("bulk_images", f));
@@ -393,9 +447,15 @@ const Books = () => {
         }
       );
 
-      const imgCount = Array.isArray(data?.data?.images) ? data.data.images.length : 0;
-      const fileCount = Array.isArray(data?.data?.files) ? data.data.files.length : 0;
-      toast.success(`Bulk upload successful. Images: ${imgCount}, Files: ${fileCount}.`);
+      const imgCount = Array.isArray(data?.data?.images)
+        ? data.data.images.length
+        : 0;
+      const fileCount = Array.isArray(data?.data?.files)
+        ? data.data.files.length
+        : 0;
+      toast.success(
+        `Bulk upload successful. Images: ${imgCount}, Files: ${fileCount}.`
+      );
       setShowBulkModal(false);
     } catch (err) {
       const msg =
@@ -440,7 +500,10 @@ const Books = () => {
           >
             Import CSV
           </button>
-          <button className="bg-slate-950 text-white px-5 py-2 rounded shadow hover:bg-slate-800 transition" onClick={openAddModal}>
+          <button
+            className="bg-slate-950 text-white px-5 py-2 rounded shadow hover:bg-slate-800 transition"
+            onClick={openAddModal}
+          >
             + Add Book
           </button>
         </div>
@@ -448,7 +511,8 @@ const Books = () => {
 
       {importing && (
         <div className="mb-3 text-sm text-gray-600">
-          Importing {importProgress.done}/{importProgress.total} &middot; Errors: {importProgress.errors}
+          Importing {importProgress.done}/{importProgress.total} &middot;
+          Errors: {importProgress.errors}
         </div>
       )}
 
@@ -467,7 +531,14 @@ const Books = () => {
         filters={filters}
         setFilters={setFilters}
         genreOptions={genreOptions}
-        onClear={() => setFilters({ genre: "all", sortPrice: "none", stock: "all", sortDate: "none" })}
+        onClear={() =>
+          setFilters({
+            genre: "all",
+            sortPrice: "none",
+            stock: "all",
+            sortDate: "none",
+          })
+        }
       />
 
       <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -488,7 +559,7 @@ const Books = () => {
             currentPage={safePage}
             onPrev={() => setCurrentPage((p) => Math.max(1, p - 1))}
             onNext={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            onGoto={setCurrentPage}
+            onGoto={setCurrentPage} // Make sure this is included
           />
         </div>
       </div>
@@ -505,14 +576,21 @@ const Books = () => {
 
       {/* NEW: Bulk upload modal */}
       {showBulkModal && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50" onClick={closeBulkModal}>
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50"
+          onClick={closeBulkModal}
+        >
           <div
             className="bg-white rounded-[2px] shadow-xl w-full max-w-2xl p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Bulk Upload Assets</h3>
-              <button className="text-gray-600" onClick={closeBulkModal} disabled={uploadingBulk}>
+              <button
+                className="text-gray-600"
+                onClick={closeBulkModal}
+                disabled={uploadingBulk}
+              >
                 ✕
               </button>
             </div>
@@ -523,23 +601,33 @@ const Books = () => {
                   type="file"
                   accept="image/*"
                   multiple
-                  onChange={(e) => setBulkImages(Array.from(e.target.files || []))}
+                  onChange={(e) =>
+                    setBulkImages(Array.from(e.target.files || []))
+                  }
                   disabled={uploadingBulk}
                   className="w-full border px-3 py-2 rounded-[2px]"
                 />
-                <p className="text-xs text-gray-500 mt-1">{bulkImages.length} selected</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {bulkImages.length} selected
+                </p>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Book Files (PDF/EPUB)</label>
+                <label className="block text-sm font-medium mb-1">
+                  Book Files (PDF/EPUB)
+                </label>
                 <input
                   type="file"
                   accept="application/pdf,application/epub+zip,.pdf,.epub"
                   multiple
-                  onChange={(e) => setBulkFiles(Array.from(e.target.files || []))}
+                  onChange={(e) =>
+                    setBulkFiles(Array.from(e.target.files || []))
+                  }
                   disabled={uploadingBulk}
                   className="w-full border px-3 py-2 rounded-[2px]"
                 />
-                <p className="text-xs text-gray-500 mt-1">{bulkFiles.length} selected</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {bulkFiles.length} selected
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium">
@@ -606,7 +694,13 @@ const Books = () => {
 
       <ToastContainer position="top-center" autoClose={3000} hideProgressBar />
 
-      {detailsBook && <DetailsModal book={detailsBook} toGenreArray={toGenreArray} onClose={() => setDetailsBook(null)} />}
+      {detailsBook && (
+        <DetailsModal
+          book={detailsBook}
+          toGenreArray={toGenreArray}
+          onClose={() => setDetailsBook(null)}
+        />
+      )}
 
       {confirm.open && (
         <DeleteConfirmModal
@@ -621,4 +715,3 @@ const Books = () => {
 };
 
 export default Books;
-

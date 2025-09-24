@@ -47,9 +47,9 @@ const BookDetails = ({ book }) => {
       <div className="text-2xl font-semibold mt-3">${book.price}</div>
 
       {/* Stock Status */}
-      <div className={`text-sm font-medium ${book.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+      {/* <div className={`text-sm font-medium ${book.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
         {book.stock > 0 ? `${book.stock} in stock` : 'Out of stock'}
-      </div>
+      </div> */}
 
       {/* Additional Info */}
       <div className="mt-6 grid grid-cols-2 gap-4 text-sm text-gray-600">
