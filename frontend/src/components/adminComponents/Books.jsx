@@ -11,6 +11,7 @@ import DeleteConfirmModal from "./books/DeleteConfirmModal";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { toGenreArray, normalizeBook } from "./books/utils";
+import CategoryManager from "./categories/CategoryManager";
 
 const API_BASE = "http://localhost:5000"; // added
 
@@ -710,6 +711,12 @@ const Books = () => {
           onConfirm={confirmDelete}
         />
       )}
+
+      {/* Category Management Section */}
+      <div className="mt-16">
+        <hr className="my-10" />
+        <CategoryManager />
+      </div>
     </div>
   );
 };
