@@ -6,7 +6,13 @@ import { getUserOrders } from "../api/order-api";
 
 const UserDashboard = () => {
   const navigate = useNavigate();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, activeRole, switchRole } = useAuth();
+  const roles = (user?.roles && user.roles.length
+    ? user.roles
+    : user?.role
+    ? [user.role]
+    : ["user"]) || ["user"];
+  const [selectedRole, setSelectedRole] = useState(activeRole || roles[0]);
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", address: "" });
   const [passwordForm, setPasswordForm] = useState({
@@ -71,6 +77,22 @@ const UserDashboard = () => {
       fetchRecentOrders();
     }
   }, [user, fetchRecentOrders, baseUrl]);
+
+  // Keep local selection in sync with activeRole
+  useEffect(() => {
+    if (activeRole) setSelectedRole(activeRole);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRole]);
+
+  const onSwitchRole = () => {
+    const ok = switchRole(selectedRole);
+    if (!ok) return;
+    // Navigate to relevant area based on active role
+    if (selectedRole === "admin") navigate("/admin/dashboard");
+    else if (selectedRole === "book_manager") navigate("/admin/books");
+    else if (selectedRole === "order_manager") navigate("/admin/orders");
+    else navigate("/");
+  };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -314,6 +336,41 @@ const UserDashboard = () => {
               Change Password
             </button>
           </div>
+          {/* Role Switcher */}
+          {roles.length > 1 && (
+            <div className="mt-4 p-3 border border-gray-200 rounded-[2px] bg-gray-50">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <div className="flex-1">
+                  <span className="block text-sm text-gray-600">
+                    Active Role
+                  </span>
+                  <div className="mt-1 flex items-center gap-2">
+                    <select
+                      value={selectedRole}
+                      onChange={(e) => setSelectedRole(e.target.value)}
+                      className="border p-2 rounded-[2px]"
+                    >
+                      {roles.map((r) => (
+                        <option key={r} value={r} className="capitalize">
+                          {r.replace("_", " ")}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={onSwitchRole}
+                      className="px-3 py-2 bg-gray-900 text-white rounded-[2px] hover:bg-gray-800"
+                    >
+                      Switch Role
+                    </button>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    You currently have access to:{" "}
+                    {roles.join(", ").replaceAll("_", " ")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <form

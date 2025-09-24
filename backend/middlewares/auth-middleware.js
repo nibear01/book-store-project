@@ -75,14 +75,23 @@ export const authorize = (...roles) => {
             });
         }
 
-        // Check if user has required role
-        if (roles.length > 0 && !roles.includes(req.user.role)) {
-            return res.status(403).json({
-                success: false,
-                message: "User role is not authorized to access this route"
-            });
+        // Check if user has required role (supports multi-roles)
+        if (roles.length > 0) {
+            const userRoles = Array.isArray(req.user.roles) ? req.user.roles : (req.user.role ? [req.user.role] : []);
+            const hasRole = roles.some((r) => userRoles.includes(r));
+            if (!hasRole) {
+                return res.status(403).json({
+                    success: false,
+                    message: "User role is not authorized to access this route"
+                });
+            }
         }
+        return res.status(403).json({
+            success: false,
+            message: "User role is not authorized to access this route"
+        });
+    }
 
-        next();
-    };
+    next();
 };
+

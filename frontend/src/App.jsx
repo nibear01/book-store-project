@@ -41,7 +41,14 @@ import ResetPassword from "./pages/ResetPassword";
 
 function AppContent() {
   const location = useLocation();
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { isAuthenticated, user, isLoading, activeRole } = useAuth();
+
+  const roleHome = (role) => {
+    if (role === "admin") return "/admin/dashboard";
+    if (role === "book_manager") return "/admin/books";
+    if (role === "order_manager") return "/admin/orders";
+    return "/account";
+  };
 
   // Route guards
   const RequireAuth = ({ children }) => {
@@ -56,22 +63,29 @@ function AppContent() {
     if (isLoading) return null;
     if (!isAuthenticated)
       return <Navigate to="/login" state={{ from: location }} replace />;
-    if (!roles.includes(user?.role)) return <Navigate to="/" replace />;
+    const effectiveRoles = activeRole
+      ? [activeRole]
+      : user?.roles || (user?.role ? [user.role] : []);
+    if (!roles.some((r) => effectiveRoles.includes(r))) {
+      const dest = roleHome(
+        activeRole || user?.roles?.[0] || user?.role || "user"
+      );
+      return <Navigate to={dest} replace />;
+    }
     return children;
   };
 
   const RequireGuest = ({ children }) => {
     if (isLoading) return null;
     if (isAuthenticated) {
-      const role = user?.role;
-      const dest =
-        role === "admin"
-          ? "/admin/dashboard"
-          : role === "book_manager"
-          ? "/admin/books"
-          : role === "order_manager"
-          ? "/admin/orders"
-          : "/";
+      const roles = user?.roles || (user?.role ? [user.role] : []);
+      const dest = roles.includes("admin")
+        ? "/admin/dashboard"
+        : roles.includes("book_manager")
+        ? "/admin/books"
+        : roles.includes("order_manager")
+        ? "/admin/orders"
+        : "/";
       return <Navigate to={dest} replace />;
     }
     return children;
@@ -82,17 +96,7 @@ function AppContent() {
 
   // If the user is an authenticated admin and tries to access any non-admin route,
   // redirect them to the admin dashboard (covers refreshes and direct navigation)
-  if (
-    !isLoading &&
-    isAuthenticated &&
-    !location.pathname.startsWith("/admin")
-  ) {
-    const role = user?.role;
-    if (role === "admin") return <Navigate to="/admin/dashboard" replace />;
-    if (role === "book_manager") return <Navigate to="/admin/books" replace />;
-    if (role === "order_manager")
-      return <Navigate to="/admin/orders" replace />;
-  }
+  // Do not auto-redirect based on roles; respect active role and user navigation
 
   return (
     <>
