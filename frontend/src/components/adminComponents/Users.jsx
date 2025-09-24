@@ -27,7 +27,7 @@ const Users = () => {
       const params = { page, limit: pageSize };
       if (statusFilter !== "All") params.status = statusFilter.toLowerCase();
       if (roleFilter !== "All")
-        params.role = roleFilter.toLowerCase().replace(" ", "_");
+        params.roles = roleFilter.toLowerCase().replace(" ", "_");
       const res = await adminUsersAPI.list(params);
       const list = res.data || [];
       const pag = res.pagination || {
@@ -108,15 +108,24 @@ const Users = () => {
         address: editingUser.address,
         status: editingUser.status,
       });
-      // Also update role if changed
-      if (editingUser.role) {
-        await adminUsersAPI.changeRole(editingUser._id, editingUser.role);
+      // Apply role changes via dedicated endpoint
+      const desiredRoles = Array.isArray(editingUser.roles)
+        ? editingUser.roles
+        : editingUser.role
+        ? [editingUser.role]
+        : null;
+      if (desiredRoles) {
+        try {
+          await adminUsersAPI.changeRole(editingUser._id, desiredRoles);
+        } catch (e) {
+          alert(e?.message || "Failed to change user roles");
+        }
       }
       await fetchUsers();
       closeEditModal();
       alert(`✏️ User updated`);
     } catch (e) {
-      alert("Failed to update user");
+      alert(e?.message || "Failed to update user");
     }
   };
 
@@ -139,6 +148,11 @@ const Users = () => {
           <option value="Admin">Admin</option>
           <option value="Book Manager">Book Manager</option>
           <option value="Order Manager">Order Manager</option>
+          <option value="Printing Manager">Printing Manager</option>
+          <option value="Delivery Manager">Delivery Manager</option>
+          <option value="Finance Manager">Finance Manager</option>
+          <option value="Customer Support">Customer Support</option>
+          <option value="Marketing Manager">Marketing Manager</option>
         </select>
 
         <select
@@ -188,11 +202,17 @@ const Users = () => {
                     <td className="px-4 py-2">{user.email}</td>
                     <td className="px-4 py-2">{user.phone}</td>
                     <td className="px-4 py-2 capitalize">
-                      {(user.role || "user").replace("_", " ")}
+                      {Array.isArray(user.roles) && user.roles.length
+                        ? user.roles.join(", ").replaceAll("_", " ")
+                        : (user.role || "user").replace("_", " ")}
                     </td>
                     <td className="px-4 py-2 capitalize">{user.status}</td>
                     <td className="px-4 py-2 flex gap-2 flex-wrap">
-                      {user.role !== "admin" && (
+                      {!(
+                        (Array.isArray(user.roles) &&
+                          user.roles.includes("admin")) ||
+                        user.role === "admin"
+                      ) && (
                         <>
                           <Button
                             className="rounded-[2px]"
@@ -223,7 +243,11 @@ const Users = () => {
                       >
                         Change PW
                       </Button>
-                      {user.role !== "admin" && (
+                      {!(
+                        (Array.isArray(user.roles) &&
+                          user.roles.includes("admin")) ||
+                        user.role === "admin"
+                      ) && (
                         <Button
                           onClick={() => handleDelete(user._id)}
                           size="sm"
@@ -270,7 +294,9 @@ const Users = () => {
                     </div>
                     <div className="text-right">
                       <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-[2px] capitalize">
-                        {(user.role || "user").replace("_", " ")}
+                        {Array.isArray(user.roles) && user.roles.length
+                          ? user.roles.join(", ").replaceAll("_", " ")
+                          : (user.role || "user").replace("_", " ")}
                       </span>
                       <span className={`block mt-1 text-xs capitalize`}>
                         {user.status}
@@ -278,7 +304,11 @@ const Users = () => {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    {user.role !== "admin" && (
+                    {!(
+                      (Array.isArray(user.roles) &&
+                        user.roles.includes("admin")) ||
+                      user.role === "admin"
+                    ) && (
                       <>
                         <Button
                           onClick={() =>
@@ -304,7 +334,11 @@ const Users = () => {
                     >
                       Change PW
                     </Button>
-                    {user.role !== "admin" && (
+                    {!(
+                      (Array.isArray(user.roles) &&
+                        user.roles.includes("admin")) ||
+                      user.role === "admin"
+                    ) && (
                       <Button
                         onClick={() => handleDelete(user._id)}
                         size="sm"
@@ -373,27 +407,40 @@ const Users = () => {
               }
             />
 
-            <label className="block mb-1 text-sm">Role</label>
+            <label className="block mb-1 text-sm">Roles</label>
             <div className="text-xs text-gray-600 mb-1">
-              Current role:{" "}
-              <span className="capitalize">
-                {(editingUser.role || "user").replace("_", " ")}
-              </span>
+              Current roles:{" "}
+              {Array.isArray(editingUser.roles) && editingUser.roles.length
+                ? editingUser.roles.join(", ").replaceAll("_", " ")
+                : (editingUser.role || "user").replace("_", " ")}
             </div>
             <select
+              multiple
               className="border p-2 rounded-[2px] w-full mb-4"
-              value={editingUser.role || "user"}
-              onChange={(e) =>
+              value={
+                Array.isArray(editingUser.roles) && editingUser.roles.length
+                  ? editingUser.roles
+                  : [editingUser.role || "user"]
+              }
+              onChange={(e) => {
+                const selected = Array.from(e.target.selectedOptions).map(
+                  (o) => o.value
+                );
                 setEditingUser({
                   ...editingUser,
-                  role: e.target.value,
-                })
-              }
+                  roles: selected.length ? selected : ["user"],
+                });
+              }}
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
               <option value="book_manager">Book Manager</option>
               <option value="order_manager">Order Manager</option>
+              <option value="printing_manager">Printing Manager</option>
+              <option value="delivery_manager">Delivery Manager</option>
+              <option value="finance_manager">Finance Manager</option>
+              <option value="customer_support">Customer Support</option>
+              <option value="marketing_manager">Marketing Manager</option>
             </select>
 
             <label className="block mb-2 text-sm">Status</label>
