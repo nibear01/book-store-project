@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/user-model.js";
+import { resolvePolicy } from "../utils/policy-builder.js";
 
 // Generate JWT Token
 export const generateToken = (userId) => {
@@ -49,6 +50,7 @@ export const protect = async (req, res, next) => {
             }
 
             req.user = user;
+            req.policy = resolvePolicy({ user });
             next();
         } catch (error) {
             return res.status(401).json({

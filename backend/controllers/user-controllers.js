@@ -1,4 +1,5 @@
 import User from "../models/user-model.js";
+import { RolesBuilder, allowedRoles } from "../utils/roles-builder.js";
 import Cart from "../models/cart-model.js";
 import { generateToken } from "../middlewares/auth-middleware.js";
 import crypto from "crypto";
@@ -31,13 +32,14 @@ export const registerUser = async (req, res) => {
         }
 
         // Create new user
+        const roles = new RolesBuilder().set("user").enforce().build();
         const user = await User.create({
             name,
             email,
             password,
             phone,
             address,
-            roles: ["user"]
+            roles,
         });
 
         // Generate JWT token
@@ -368,17 +370,6 @@ export const changeUserRole = async (req, res) => {
         const { role, roles } = req.body;
         const userId = req.params.id;
 
-        const allowedRoles = [
-            "user",
-            "admin",
-            "book_manager",
-            "order_manager",
-            "printing_manager",
-            "delivery_manager",
-            "finance_manager",
-            "customer_support",
-            "marketing_manager",
-        ];
         let nextRoles;
         if (Array.isArray(roles)) {
             nextRoles = roles;
@@ -388,13 +379,27 @@ export const changeUserRole = async (req, res) => {
             return res.status(400).json({ success: false, message: "role(s) required" });
         }
 
-        if (!nextRoles.every((r) => allowedRoles.includes(r))) {
-            return res.status(400).json({ success: false, message: "Invalid role in roles" });
+        // Build & enforce with builder
+        const target = await User.findById(userId).select("roles");
+        if (!target) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        let builtRoles;
+        try {
+            builtRoles = new RolesBuilder()
+                .withExisting(target)
+                .withActor(req.user?._id)
+                .set(nextRoles)
+                .enforce()
+                .build();
+        } catch (e) {
+            return res.status(403).json({ success: false, message: e.message || "Invalid role change" });
         }
 
         const user = await User.findByIdAndUpdate(
             userId,
-            { roles: nextRoles },
+            { roles: builtRoles },
             { new: true, runValidators: true }
         ).select('-password');
 
