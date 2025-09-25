@@ -117,24 +117,52 @@ export const updateCategory = async (req, res) => {
 };
 
 // DELETE /api/categories/:id (hard delete or soft via ?hard=false)
+// Updated to enforce protection: cannot hard delete if books reference the category.
 export const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
     const { hard } = req.query;
-    if (!mongoose.isValidObjectId(id)) return res.status(400).json({ success: false, message: "Invalid category id" });
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ success: false, message: "Invalid category id" });
+    }
 
     const doHardDelete = String(hard ?? "true").toLowerCase() !== "false";
+
+    // Load category first (needed for name-based book lookup)
+    const category = await Category.findById(id);
+    if (!category) {
+      return res.status(404).json({ success: false, message: "Category not found" });
+    }
+
     if (doHardDelete) {
-      const deleted = await Category.findByIdAndDelete(id);
-      if (!deleted) return res.status(404).json({ success: false, message: "Category not found" });
+      // Check if any book references this category by name (case-insensitive)
+      const hasBook = await Book.exists({
+        genre: { $elemMatch: { $regex: new RegExp(`^${escapeRegExp(category.name)}$`, "i") } },
+      });
+
+      if (hasBook) {
+        return res.status(409).json({
+          success: false,
+          code: "CATEGORY_HAS_BOOKS",
+          message: "Cannot delete category that has books. Reassign or remove books first.",
+        });
+      }
+
+      await category.deleteOne();
       return res.json({ success: true, message: "Category permanently deleted" });
     }
 
-    const updated = await Category.findByIdAndUpdate(id, { $set: { is_active: false } }, { new: true });
-    if (!updated) return res.status(404).json({ success: false, message: "Category not found" });
-    return res.json({ success: true, message: "Category deactivated", data: updated });
+    // Soft deactivate
+    if (!category.is_active) {
+      return res.json({ success: true, message: "Category already inactive", data: category });
+    }
+    category.is_active = false;
+    await category.save();
+    return res.json({ success: true, message: "Category deactivated", data: category });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to delete category", error: error.message });
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to delete category", error: error.message });
   }
 };
 
@@ -179,6 +207,9 @@ const sanitizeCategoryPayload = (body = {}, isCreate = false) => {
   }
   return out;
 };
+
+// Escape regex special chars (used for safe exact name match in deleteCategory)
+const escapeRegExp = (s = "") => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const ensureUniqueSlug = async (slug, excludeId) => {
   if (!slug) return undefined;

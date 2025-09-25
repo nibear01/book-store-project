@@ -80,6 +80,11 @@ const CategoryManager = () => {
   };
 
   const handleDelete = async (cat) => {
+    // Prevent deleting categories that still have books
+    if ((cat.book_count ?? 0) > 0) {
+      toast.error('Cannot delete a category that has books. Reassign or remove its books first.');
+      return;
+    }
     if (!window.confirm(`Delete category "${cat.name}"? This cannot be undone (hard delete).`)) return;
     try {
       await categoryAPI.remove(cat._id, true);
@@ -191,7 +196,13 @@ const CategoryManager = () => {
                   </button>
                   <button
                     onClick={() => handleDelete(c)}
-                    className="px-3 py-1 border rounded-[2px] text-red-600 hover:bg-red-50"
+                    disabled={(c.book_count ?? 0) > 0}
+                    title={(c.book_count ?? 0) > 0 ? 'Cannot delete: category has books' : 'Delete category'}
+                    className={`px-3 py-1 border rounded-[2px] ${
+                      (c.book_count ?? 0) > 0
+                        ? 'text-gray-400 cursor-not-allowed opacity-60'
+                        : 'text-red-600 hover:bg-red-50'
+                    }`}
                   >
                     Delete
                   </button>
