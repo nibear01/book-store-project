@@ -14,6 +14,7 @@ import {
     forgotPassword,
     resetPassword
 } from "../controllers/user-controllers.js";
+import { getAllowedRoles } from "../controllers/user-controllers.js";
 import { protect, authorize } from "../middlewares/auth-middleware.js";
 import {
     isAdmin,
@@ -31,6 +32,7 @@ const router = express.Router();
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/login-phone", loginUserByPhone);
+router.get("/roles", protect, isAdmin, getAllowedRoles);
 
 // Public password reset routes
 router.post("/forgot-password", forgotPassword);

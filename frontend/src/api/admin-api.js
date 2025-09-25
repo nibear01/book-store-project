@@ -18,6 +18,7 @@ const request = async (endpoint, options = {}) => {
 };
 
 export const adminUsersAPI = {
+    roles: () => request(`/users/roles`, { method: 'GET' }),
     list: ({ page = 1, limit = 10, status, role, roles } = {}) => {
         const params = new URLSearchParams();
         params.set('page', String(page));

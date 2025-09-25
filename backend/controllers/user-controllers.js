@@ -6,6 +6,17 @@ import crypto from "crypto";
 import nodemailer from "nodemailer";
 import path from "path"; // added
 
+// @desc    Get allowed roles (Admin only)
+// @route   GET /api/users/roles
+// @access  Private/Admin
+export const getAllowedRoles = async (req, res) => {
+    try {
+        return res.status(200).json({ success: true, data: allowedRoles });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Error fetching roles", error: error.message });
+    }
+};
+
 // @desc    Register a new user
 // @route   POST /api/users/register
 // @access  Public

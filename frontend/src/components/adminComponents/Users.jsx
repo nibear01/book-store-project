@@ -20,14 +20,20 @@ const Users = () => {
     totalUsers: 0,
   });
   const pageSize = 20;
+  const [rolesOptions, setRolesOptions] = useState([]);
+
+  const roleLabel = (r) =>
+    (r || "")
+      .split("_")
+      .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+      .join(" ");
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       const params = { page, limit: pageSize };
       if (statusFilter !== "All") params.status = statusFilter.toLowerCase();
-      if (roleFilter !== "All")
-        params.roles = roleFilter.toLowerCase().replace(" ", "_");
+      if (roleFilter !== "All") params.roles = roleFilter;
       const res = await adminUsersAPI.list(params);
       const list = res.data || [];
       const pag = res.pagination || {
@@ -54,6 +60,20 @@ const Users = () => {
     fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, roleFilter, statusFilter]);
+
+  // Load allowed roles for dynamic rendering
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await adminUsersAPI.roles();
+        const arr = Array.isArray(res?.data) ? res.data : [];
+        setRolesOptions(arr);
+      } catch (e) {
+        console.error("Failed to load roles", e);
+        setRolesOptions([]);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => fetchUsers(), 300);
@@ -144,15 +164,11 @@ const Users = () => {
           }}
         >
           <option value="All">All Roles</option>
-          <option value="User">User</option>
-          <option value="Admin">Admin</option>
-          <option value="Book Manager">Book Manager</option>
-          <option value="Order Manager">Order Manager</option>
-          <option value="Printing Manager">Printing Manager</option>
-          <option value="Delivery Manager">Delivery Manager</option>
-          <option value="Finance Manager">Finance Manager</option>
-          <option value="Customer Support">Customer Support</option>
-          <option value="Marketing Manager">Marketing Manager</option>
+          {rolesOptions.map((r) => (
+            <option key={r} value={r}>
+              {roleLabel(r)}
+            </option>
+          ))}
         </select>
 
         <select
@@ -432,15 +448,11 @@ const Users = () => {
                 });
               }}
             >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-              <option value="book_manager">Book Manager</option>
-              <option value="order_manager">Order Manager</option>
-              <option value="printing_manager">Printing Manager</option>
-              <option value="delivery_manager">Delivery Manager</option>
-              <option value="finance_manager">Finance Manager</option>
-              <option value="customer_support">Customer Support</option>
-              <option value="marketing_manager">Marketing Manager</option>
+              {rolesOptions.map((r) => (
+                <option key={r} value={r}>
+                  {roleLabel(r)}
+                </option>
+              ))}
             </select>
 
             <label className="block mb-2 text-sm">Status</label>

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
@@ -16,6 +16,13 @@ const Navbar = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isRolesOpen, setIsRolesOpen] = useState(false);
   const rolesCloseTimer = useRef(null);
+  const containerRef = useRef(null);
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.innerWidth >= 768; // Tailwind md breakpoint
+  });
+  const rolesHeaderRef = useRef(null);
+  const [rolesOpenLeft, setRolesOpenLeft] = useState(false);
 
   const navigationLinks = [
     { name: "Home", path: "/" },
@@ -40,8 +47,51 @@ const Navbar = () => {
     setIsMenuOpen(false);
   };
 
+  // Handle resize to toggle desktop/mobile behaviors
+  useEffect(() => {
+    const onResize = () => setIsDesktop(window.innerWidth >= 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // Close dropdowns on outside click or ESC
+  useEffect(() => {
+    const onClick = (e) => {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(e.target)) {
+        setIsProfileOpen(false);
+        setIsRolesOpen(false);
+      }
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        setIsProfileOpen(false);
+        setIsRolesOpen(false);
+        setIsMenuOpen(false);
+        setIsCartOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  const computeRolesSide = () => {
+    // On mobile, always open to the left so it stays on-screen
+    if (!isDesktop) return true;
+    const el = rolesHeaderRef.current;
+    if (!el) return false;
+    const rect = el.getBoundingClientRect();
+    const spaceRight = window.innerWidth - rect.right;
+    // If less than submenu width (~220px), open to the left
+    return spaceRight < 220;
+  };
+
   return (
-    <nav className="bg-white shadow-md sticky top-0 z-50">
+    <nav ref={containerRef} className="bg-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-5">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -118,7 +168,7 @@ const Navbar = () => {
                   </span>
                 </Link>
 
-                {/* Chevron button toggles dropdown */}
+                {/* Chevron button toggles dropdown (click on both desktop/mobile) */}
                 <button
                   onClick={() => setIsProfileOpen((v) => !v)}
                   className="p-2 rounded hover:bg-gray-50"
@@ -137,17 +187,20 @@ const Navbar = () => {
                     >
                       My Account
                     </Link>
-                    {/* Roles submenu header + side list */}
+                    {/* Roles submenu header + side list (hover on desktop, click toggle on mobile) */}
                     <div
                       className="relative"
                       onMouseEnter={() => {
+                        if (!isDesktop) return;
                         if (rolesCloseTimer.current) {
                           clearTimeout(rolesCloseTimer.current);
                           rolesCloseTimer.current = null;
                         }
                         setIsRolesOpen(true);
+                        setRolesOpenLeft(computeRolesSide());
                       }}
                       onMouseLeave={() => {
+                        if (!isDesktop) return;
                         if (rolesCloseTimer.current) {
                           clearTimeout(rolesCloseTimer.current);
                         }
@@ -157,7 +210,10 @@ const Navbar = () => {
                         }, 200);
                       }}
                     >
-                      <div className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-default">
+                      <div
+                        ref={rolesHeaderRef}
+                        className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-default"
+                      >
                         <span>
                           Role:{" "}
                           {(
@@ -167,14 +223,31 @@ const Navbar = () => {
                             "user"
                           ).replace("_", " ")}
                         </span>
-                        <ChevronDownIcon
-                          className={`h-4 w-4 transition-transform ${
-                            isRolesOpen ? "rotate-270" : "rotate-0"
-                          }`}
-                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = !isRolesOpen;
+                            setIsRolesOpen(next);
+                            if (next) setRolesOpenLeft(computeRolesSide());
+                          }}
+                          className="p-1 rounded hover:bg-gray-100"
+                          aria-label="Toggle roles"
+                        >
+                          <ChevronDownIcon
+                            className={`h-4 w-4 transition-transform ${
+                              isRolesOpen
+                                ? rolesOpenLeft
+                                  ? "rotate-90"
+                                  : "rotate-270"
+                                : "rotate-0"
+                            }`}
+                          />
+                        </button>
                       </div>
                       <div
-                        className={`absolute top-0 left-full ml-2 w-48 bg-white border rounded shadow-md py-1 z-50 ${
+                        className={`absolute top-0 ${
+                          rolesOpenLeft ? "right-full mr-2" : "left-full ml-2"
+                        } w-48 bg-white border rounded shadow-md py-1 z-50 ${
                           isRolesOpen ? "block" : "hidden"
                         }`}
                       >
@@ -205,6 +278,8 @@ const Navbar = () => {
                                 ? "/admin/support"
                                 : r === "marketing_manager"
                                 ? "/admin/marketing"
+                                : r === "operations_manager"
+                                ? "/admin/dashboard"
                                 : "/account";
                             navigate(dest, { replace: true });
                           };
@@ -338,6 +413,57 @@ const Navbar = () => {
                       {user?.name || user?.email}
                     </span>
                   </Link>
+
+                  {/* Roles (mobile) */}
+                  <div className="px-3">
+                    <div className="text-xs text-gray-500 mb-1">Roles</div>
+                    <div className="flex flex-wrap gap-2">
+                      {(() => {
+                        const roles =
+                          user?.roles || (user?.role ? [user.role] : ["user"]);
+                        const current = activeRole || roles[0];
+                        const go = (r) => {
+                          const ok = switchRole(r);
+                          if (!ok) return;
+                          setIsMenuOpen(false);
+                          const dest =
+                            r === "admin"
+                              ? "/admin/dashboard"
+                              : r === "book_manager"
+                              ? "/admin/books"
+                              : r === "order_manager"
+                              ? "/admin/orders"
+                              : r === "printing_manager"
+                              ? "/admin/printing"
+                              : r === "delivery_manager"
+                              ? "/admin/delivery"
+                              : r === "finance_manager"
+                              ? "/admin/finance"
+                              : r === "customer_support"
+                              ? "/admin/support"
+                              : r === "marketing_manager"
+                              ? "/admin/marketing"
+                              : r === "operations_manager"
+                              ? "/admin/dashboard"
+                              : "/account";
+                          navigate(dest, { replace: true });
+                        };
+                        return roles.map((r) => (
+                          <button
+                            key={r}
+                            onClick={() => go(r)}
+                            className={`px-2 py-1 text-xs rounded border ${
+                              current === r
+                                ? "bg-black text-white border-black"
+                                : "bg-white text-gray-700 border-gray-300"
+                            }`}
+                          >
+                            {r.replace("_", " ")}
+                          </button>
+                        ));
+                      })()}
+                    </div>
+                  </div>
 
                   {/* Logout Button */}
                   <button
