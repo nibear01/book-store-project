@@ -32,7 +32,7 @@ import Books from "./components/adminComponents/Books";
 import Order from "./components/adminComponents/Order";
 import Settings from "./components/adminComponents/Settings";
 import Printing from "./components/adminComponents/Printing";
-import Delivery from "./components/adminComponents/Delivery";
+import Delivery from "./components/deliveryComponents/Delivery";
 import Finance from "./components/adminComponents/Finance";
 import Support from "./components/adminComponents/Support";
 import Marketing from "./components/adminComponents/Marketing";
