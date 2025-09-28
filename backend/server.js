@@ -23,7 +23,7 @@ app.use(express.json());
 app.use(cors());
 
 // Serve static files from uploads directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
 app.use("/api/users", userRoutes);
@@ -34,12 +34,12 @@ app.use("/api/categories", categoryRoutes);
 
 const startServer = async () => {
   await connectDb();
-  if (process.env.SEED_CATEGORIES === 'true') {
+  if (process.env.SEED_CATEGORIES === "true") {
     try {
       const result = await seedDefaultCategories();
       console.log(`Category seed: ${result.message}`);
     } catch (e) {
-      console.warn('Category seeding failed:', e.message);
+      console.warn("Category seeding failed:", e.message);
     }
   }
   app.listen(PORT, () => {

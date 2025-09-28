@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import StatusTimeline from "./StatusTimeline";
+import StatusTimeline from "./statusTimeline";
 import { FaCheckCircle, FaUserCheck, FaInfoCircle, FaMoneyCheckAlt, FaBoxOpen } from "react-icons/fa";
 import { updateOrderStatus } from "@/api/order-api";
 
@@ -43,7 +43,7 @@ const OrderCard = ({ order, refreshOrders }) => {
     <div className="border p-4 rounded shadow mb-4 bg-white">
       <div className="flex justify-between items-center">
         <h3 className="font-bold text-lg flex items-center gap-2">
-          {statusStyles[order.order_status]?.icon} Order ID: {order._id}
+          {statusStyles[order.order_status]?.icon} Order ID: {order.order_number}
         </h3>
         {status === "DELIVERED" && (
           <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-semibold flex items-center gap-1">

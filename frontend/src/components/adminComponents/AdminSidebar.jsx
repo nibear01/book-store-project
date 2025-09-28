@@ -66,6 +66,18 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
       show: isAdmin || roles.includes("order_manager"),
     },
     {
+      name: "Support",
+      path: "/admin/support",
+      icon: Headphones,
+      show: isAdmin || roles.includes("customer_support"),
+    },
+    {
+      name: "Finance",
+      path: "/admin/finance",
+      icon: Banknote,
+      show: isAdmin || roles.includes("finance_manager"),
+    },
+    {
       name: "Printing",
       path: "/admin/printing",
       icon: Printer,
@@ -77,18 +89,7 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
       icon: Truck,
       show: isAdmin || roles.includes("delivery_manager"),
     },
-    {
-      name: "Finance",
-      path: "/admin/finance",
-      icon: Banknote,
-      show: isAdmin || roles.includes("finance_manager"),
-    },
-    {
-      name: "Support",
-      path: "/admin/support",
-      icon: Headphones,
-      show: isAdmin || roles.includes("customer_support"),
-    },
+
     {
       name: "Marketing",
       path: "/admin/marketing",

@@ -1,17 +1,17 @@
 import { Link } from "react-router-dom";
 
-const BookActions = ({ 
-  book, 
-  quantity, 
-  setQuantity, 
-  isAuthenticated, 
-  navigate, 
-  addToCart 
+const BookActions = ({
+  book,
+  quantity,
+  setQuantity,
+  isAuthenticated,
+  navigate,
+  addToCart,
 }) => {
   const handleIncrement = () => {
     if (book?.stock && quantity < book.stock) setQuantity(quantity + 1);
   };
-  
+
   const handleDecrement = () => {
     if (quantity > 1) setQuantity(quantity - 1);
   };
@@ -21,7 +21,7 @@ const BookActions = ({
       navigate("/login");
       return;
     }
-    
+
     addToCart({
       item: {
         id: book._id,
@@ -37,7 +37,7 @@ const BookActions = ({
       navigate("/login");
       return;
     }
-    
+
     // TODO: Implement buy now functionality
     console.log("Buy now clicked");
   };
@@ -71,7 +71,7 @@ const BookActions = ({
         >
           Add to Cart
         </button>
-        <button 
+        <button
           className="bg-red-500 text-white hover:bg-red-600 px-6 py-2 transition rounded-[2px] disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={handleBuyNow}
           disabled={book.stock === 0}
@@ -82,7 +82,11 @@ const BookActions = ({
         {/* Show login prompt only when not authenticated */}
         {!isAuthenticated && (
           <p className="text-sm text-gray-500 mt-2">
-            🔒 You'll need to <Link to="/login" className="text-red-500 underline">login</Link> to complete your purchase.
+            🔒 You'll need to{" "}
+            <Link to="/login" className="text-red-500 underline">
+              login
+            </Link>{" "}
+            to complete your purchase.
           </p>
         )}
       </div>

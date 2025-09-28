@@ -1,5 +1,5 @@
 // RolesBuilder: a focused builder for constructing and validating user roles
-
+import User from "../models/user-model.js";
 const ALLOWED_ROLES = [
     "user",
     "admin",
@@ -11,6 +11,8 @@ const ALLOWED_ROLES = [
     "customer_support",
     "marketing_manager",
 ];
+
+// const ALLOWED_ROLES = User.schema.path("roles").enum;
 
 export class RolesBuilder {
     constructor() {
