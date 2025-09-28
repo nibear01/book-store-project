@@ -9,10 +9,10 @@ import { isValidPhoneNumber } from "libphonenumber-js";
 // Icons (You can use Material-UI or Lucide React)
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import Person from "@mui/icons-material/Person";
-import Email from "@mui/icons-material/Email";
-import Lock from "@mui/icons-material/Lock";
-import LocationOn from "@mui/icons-material/LocationOn";
+// import Person from "@mui/icons-material/Person";
+// import Email from "@mui/icons-material/Email";
+// import Lock from "@mui/icons-material/Lock";
+// import LocationOn from "@mui/icons-material/LocationOn";
 import CheckCircle from "@mui/icons-material/CheckCircle";
 import ErrorOutline from "@mui/icons-material/ErrorOutline";
 
@@ -642,7 +642,7 @@ const SignupPage = () => {
             </form>
 
             {/* Divider */}
-            <div
+            {/* <div
               variants={itemVariants}
               className="relative flex items-center py-6"
             >
@@ -651,10 +651,10 @@ const SignupPage = () => {
                 or continue with
               </span>
               <div className="flex-grow border-t border-gray-200"></div>
-            </div>
+            </div> */}
 
             {/* Social Login */}
-            <div variants={itemVariants}>
+            {/* <div variants={itemVariants}>
               <button
                 type="button"
                 className="w-full flex items-center justify-center gap-3 border-1 border-gray-200 bg-white text-gray-700 font-medium p-2 rounded-md hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
@@ -666,7 +666,7 @@ const SignupPage = () => {
                 />
                 <span>Sign up with Google</span>
               </button>
-            </div>
+            </div> */}
 
             {/* Login Link */}
             <div variants={itemVariants} className="text-center mt-6">

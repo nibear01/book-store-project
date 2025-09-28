@@ -14,12 +14,12 @@ import TermsPage from "./pages/TermsPage";
 import ContactPage from "./pages/ContactPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
-import Navbar from "./components/homeComponents/Navbar";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import { CartProvider } from "./context/CartContext";
 import { AuthProvider } from "./context/AuthContext";
 import { BooksContextProvider } from "./context/BooksContext";
+import { WishlistProvider } from "./context/WishlistContext";
 import AdminPage from "./pages/AdminPage";
 import Footer from "./pages/Footer";
 import BookViewPage from "./pages/BookViewPage";
@@ -43,6 +43,10 @@ import { useAuth } from "./context/AuthContext";
 import { Navigate } from "react-router-dom";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import Navbar from "./components/NavbarComponents/Nabvar";
+import TopNavbar from "./components/NavbarComponents/Subnav/TopNavbar";
+import AuthorPage from "./pages/AuthorPage";
+import WishlistPage from "./pages/WishlistPage";
 
 function AppContent() {
   const location = useLocation();
@@ -112,14 +116,37 @@ function AppContent() {
 
   return (
     <>
+      {!hideNavbarFooter && <TopNavbar />}
       {!hideNavbarFooter && <Navbar />}
 
       <Routes>
+        {/* Frontend */}
         <Route path="/" element={<Homepage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/categories" element={<CategoriesPage />} />
         <Route path="/shop" element={<ShopPage />} />
+        <Route path="/author" element={<AuthorPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route
+          path="/wishlist"
+          element={
+            <RequireAuth>
+              <WishlistPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/checkout"
+          element={
+            <RequireAuth>
+              <CheckoutPage />
+            </RequireAuth>
+          }
+        />
 
+        {/* Admin Route */}
         <Route
           path="/admin"
           element={
@@ -215,17 +242,6 @@ function AppContent() {
           />
         </Route>
 
-        <Route path="/cart" element={<CartPage />} />
-        <Route
-          path="/checkout"
-          element={
-            <RequireAuth>
-              <CheckoutPage />
-            </RequireAuth>
-          }
-        />
-        <Route path="/terms" element={<TermsPage />} />
-        <Route path="/contact" element={<ContactPage />} />
         <Route
           path="/login"
           element={
@@ -310,11 +326,13 @@ function App() {
       {/* <HelmetProvider> */}
       <AuthProvider>
         <BooksContextProvider>
-          <CartProvider>
-            <div className="min-h-screen bg-gray-50">
-              <AppContent />
-            </div>
-          </CartProvider>
+          <WishlistProvider>
+            <CartProvider>
+              <div className="min-h-screen bg-gray-50">
+                <AppContent />
+              </div>
+            </CartProvider>
+          </WishlistProvider>
         </BooksContextProvider>
       </AuthProvider>
       {/* </HelmetProvider> */}

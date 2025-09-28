@@ -3,6 +3,7 @@ import Feature from "@/components/homeComponents/Feature";
 import Hero from "@/components/homeComponents/Hero";
 import Deals from "@/components/homeComponents/Deals";
 import Book from "@/components/homeComponents/Book";
+import Join from "@/components/homeComponents/Join";
 
 const homepage = () => {
   return (
@@ -12,6 +13,7 @@ const homepage = () => {
       <Feature />
       <Deals />
       <Book />
+      <Join />
     </div>
   );
 };

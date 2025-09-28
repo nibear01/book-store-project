@@ -15,6 +15,7 @@ import {
   RelatedBooksPanel,
   BookPrintConfig,
 } from "../components/bookViewComponents";
+import { useWishlist } from "../context/WishlistContext";
 
 const BookViewPage = () => {
   const [book, setBook] = useState(null);
@@ -22,6 +23,7 @@ const BookViewPage = () => {
   const { slug } = useParams();
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
+  const { isInWishlist, add: addWishlist, remove: removeWishlist } = useWishlist();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
@@ -46,6 +48,12 @@ const BookViewPage = () => {
     };
     fetchBook();
   }, [slug, getBookBySlug]);
+
+  useEffect(() => {
+    if (book?._id) {
+      setIsWishlisted(isInWishlist(book._id));
+    }
+  }, [book?._id, isInWishlist]);
 
   // Handle loading state
   if (loading) return <BookLoadingSkeleton />;
@@ -74,7 +82,19 @@ const BookViewPage = () => {
               currentImageIndex={currentImageIndex}
               setCurrentImageIndex={setCurrentImageIndex}
               isWishlisted={isWishlisted}
-              setIsWishlisted={setIsWishlisted}
+              setIsWishlisted={async (v) => {
+                if (!isAuthenticated) { navigate('/login'); return; }
+                try {
+                  if (v) {
+                    await addWishlist(book._id);
+                  } else {
+                    await removeWishlist(book._id);
+                  }
+                  setIsWishlisted(v);
+                } catch {
+                  // no-op
+                }
+              }}
               isAuthenticated={isAuthenticated}
               navigate={navigate}
             />

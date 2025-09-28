@@ -184,207 +184,197 @@ const CheckoutPage = () => {
     }
   };
 
+  const hasItems = state.items && state.items.length > 0;
+
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10">
-      <h1 className="text-3xl font-bold">Checkout</h1>
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8">
-        <form onSubmit={placeOrder} className="md:col-span-2 space-y-4">
-          <div>
-            <label className="block text-sm font-medium">Full Name</label>
-            <input
-              name="fullName"
-              value={form.fullName}
-              onChange={handleChange}
-              className={`mt-1 w-full border rounded px-3 py-2 ${
-                errors.fullName ? "border-red-500" : ""
-              }`}
-              required
-            />
-            {errors.fullName && (
-              <p className="mt-1 text-sm text-red-600">{errors.fullName}</p>
-            )}
-          </div>
+    <div className="max-w-6xl mx-auto px-4 sm:px-5 py-6 sm:py-10">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4 sm:mb-6 flex-wrap gap-3">
+        <h1 className="text-xl sm:text-2xl font-semibold">Checkout{hasItems ? ` (${state.items.length})` : ''}</h1>
+      </div>
 
-          <div>
-            <label className="block text-sm font-medium">Email</label>
-            <input
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              className={`mt-1 w-full border rounded px-3 py-2 ${
-                errors.email ? "border-red-500" : ""
-              }`}
-              required
-            />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-            )}
+      {!hasItems ? (
+        <div className="bg-white p-8 min-h-[50vh] rounded-[2px] shadow-sm text-center text-gray-600">
+          Your cart is empty.
+          <div className="mt-4">
+            <button onClick={() => navigate('/cart')} className="text-red-600 hover:underline">Go to cart</button>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium">Phone Number</label>
-            <input
-              name="phone"
-              type="tel"
-              value={form.phone}
-              onChange={handleChange}
-              placeholder="+1 (555) 123-4567"
-              className={`mt-1 w-full border rounded px-3 py-2 ${
-                errors.phone ? "border-red-500" : ""
-              }`}
-              required
-            />
-            {errors.phone && (
-              <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">Street Address</label>
-            <input
-              name="street"
-              
-              onChange={handleChange}
-              className={`mt-1 w-full border rounded px-3 py-2 ${
-                errors.street ? "border-red-500" : ""
-              }`}
-              required
-            />
-            {errors.street && (
-              <p className="mt-1 text-sm text-red-600">{errors.street}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Form */}
+          <form onSubmit={placeOrder} className="md:col-span-2 bg-white rounded-[2px] shadow-sm p-5 sm:p-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium">City</label>
+              <label className="block text-sm font-medium">Full Name</label>
               <input
-                name="city"
-                value={form.city}
+                name="fullName"
+                value={form.fullName}
                 onChange={handleChange}
-                className={`mt-1 w-full border rounded px-3 py-2 ${
-                  errors.city ? "border-red-500" : ""
-                }`}
+                className={`mt-1 w-full border border-gray-300 rounded-[2px] px-3 py-2 ${errors.fullName ? 'border-red-500' : ''}`}
                 required
               />
-              {errors.city && (
-                <p className="mt-1 text-sm text-red-600">{errors.city}</p>
-              )}
+              {errors.fullName && <p className="mt-1 text-sm text-red-600">{errors.fullName}</p>}
             </div>
+
             <div>
-              <label className="block text-sm font-medium">State</label>
+              <label className="block text-sm font-medium">Email</label>
               <input
-                name="state"
-                value={form.state}
+                name="email"
+                type="email"
+                value={form.email}
                 onChange={handleChange}
-                className={`mt-1 w-full border rounded px-3 py-2 ${
-                  errors.state ? "border-red-500" : ""
-                }`}
+                className={`mt-1 w-full border border-gray-300 rounded-[2px] px-3 py-2 ${errors.email ? 'border-red-500' : ''}`}
                 required
               />
-              {errors.state && (
-                <p className="mt-1 text-sm text-red-600">{errors.state}</p>
-              )}
+              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
             </div>
+
             <div>
-              <label className="block text-sm font-medium">ZIP Code</label>
+              <label className="block text-sm font-medium">Phone Number</label>
               <input
-                name="zipCode"
-                value={form.zipCode}
+                name="phone"
+                type="tel"
+                value={form.phone}
                 onChange={handleChange}
-                className={`mt-1 w-full border rounded px-3 py-2 ${
-                  errors.zipCode ? "border-red-500" : ""
-                }`}
+                placeholder="+1 (555) 123-4567"
+                className={`mt-1 w-full border border-gray-300 rounded-[2px] px-3 py-2 ${errors.phone ? 'border-red-500' : ''}`}
                 required
               />
-              {errors.zipCode && (
-                <p className="mt-1 text-sm text-red-600">{errors.zipCode}</p>
-              )}
+              {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium">Country</label>
-            <input
-              name="country"
-              value={form.country}
-              onChange={handleChange}
-              className="mt-1 w-full border rounded px-3 py-2"
-              placeholder="Bangladesh"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">Payment Method</label>
-            <select
-              name="paymentMethod"
-              value={form.paymentMethod}
-              onChange={handleChange}
-              className={`mt-1 w-full border rounded px-3 py-2 ${
-                errors.paymentMethod ? "border-red-500" : ""
-              }`}
-              required
-            >
-              <option value="">Select Payment Method</option>
-              <option value="COD">Cash on Delivery</option>
-              <option value="Card">Card Payment</option>
-              <option value="Paypal">Paypal</option>
-            </select>
-            {errors.paymentMethod && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.paymentMethod}
-              </p>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            className={`bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 ${
-              loading ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-            disabled={loading}
-          >
-            {loading ? "Placing Order..." : "Place Order"}
-          </button>
-        </form>
-
-        <div className="border rounded-lg p-4 h-fit">
-          <h2 className="text-lg font-semibold">Order Summary</h2>
-          <ul className="mt-4 text-sm space-y-1">
-            {state.items.map((i) => (
-              <li key={i.id} className="flex justify-between">
-                <span>
-                  {i.title} × {i.quantity}
-                </span>
-                <span>৳{(i.price * i.quantity).toFixed(2)}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-4 space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span>Subtotal</span>
-              <span>৳{subtotal.toFixed(2)}</span>
+            <div>
+              <label className="block text-sm font-medium">Street Address</label>
+              <input
+                name="street"
+                value={form.street}
+                onChange={handleChange}
+                className={`mt-1 w-full border border-gray-300 rounded-[2px] px-3 py-2 ${errors.street ? 'border-red-500' : ''}`}
+                required
+              />
+              {errors.street && <p className="mt-1 text-sm text-red-600">{errors.street}</p>}
             </div>
-            <div className="flex justify-between">
-              <span>Shipping</span>
-              <span>৳{shipping.toFixed(2)}</span>
-            </div>
-            {discountAmount > 0 && (
-              <div className="flex justify-between text-green-600">
-                <span>
-                  Discount{discountLabel ? ` (${discountLabel})` : ""}
-                </span>
-                <span>- ৳{discountAmount.toFixed(2)}</span>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium">City</label>
+                <input
+                  name="city"
+                  value={form.city}
+                  onChange={handleChange}
+                  className={`mt-1 w-full border border-gray-300 rounded-[2px] px-3 py-2 ${errors.city ? 'border-red-500' : ''}`}
+                  required
+                />
+                {errors.city && <p className="mt-1 text-sm text-red-600">{errors.city}</p>}
               </div>
-            )}
-            <div className="flex justify-between font-semibold text-base pt-2 border-t">
-              <span>Total</span>
-              <span>৳{payableTotal.toFixed(2)}</span>
+              <div>
+                <label className="block text-sm font-medium">State</label>
+                <input
+                  name="state"
+                  value={form.state}
+                  onChange={handleChange}
+                  className={`mt-1 w-full border border-gray-300 rounded-[2px] px-3 py-2 ${errors.state ? 'border-red-500' : ''}`}
+                  required
+                />
+                {errors.state && <p className="mt-1 text-sm text-red-600">{errors.state}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium">ZIP Code</label>
+                <input
+                  name="zipCode"
+                  value={form.zipCode}
+                  onChange={handleChange}
+                  className={`mt-1 w-full border border-gray-300 rounded-[2px] px-3 py-2 ${errors.zipCode ? 'border-red-500' : ''}`}
+                  required
+                />
+                {errors.zipCode && <p className="mt-1 text-sm text-red-600">{errors.zipCode}</p>}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium">Country</label>
+              <input
+                name="country"
+                value={form.country}
+                onChange={handleChange}
+                className="mt-1 w-full border border-gray-300 rounded-[2px] px-3 py-2"
+                placeholder="Bangladesh"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium">Payment Method</label>
+              <select
+                name="paymentMethod"
+                value={form.paymentMethod}
+                onChange={handleChange}
+                className={`mt-1 w-full border border-gray-300 rounded-[2px] px-3 py-2 ${errors.paymentMethod ? 'border-red-500' : ''}`}
+                required
+              >
+                <option value="">Select Payment Method</option>
+                <option value="COD">Cash on Delivery</option>
+                <option value="Card">Card Payment</option>
+                <option value="Paypal">Paypal</option>
+              </select>
+              {errors.paymentMethod && <p className="mt-1 text-sm text-red-600">{errors.paymentMethod}</p>}
+            </div>
+
+            <button
+              type="submit"
+              className={`w-full sm:w-auto bg-black text-white px-5 py-3 rounded-[2px] hover:bg-gray-800 transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={loading}
+            >
+              {loading ? 'Placing Order...' : 'Place Order'}
+            </button>
+          </form>
+
+          {/* Summary */}
+          <div className="bg-white rounded-[2px] shadow-sm p-6 h-fit">
+            <h2 className="text-lg font-semibold text-gray-800">Order Summary</h2>
+            <ul className="mt-4 text-sm space-y-1">
+              {state.items.map((i) => (
+                <li key={i.id} className="flex justify-between">
+                  <span>
+                    {i.title} × {i.quantity}
+                  </span>
+                  <span>৳{(i.price * i.quantity).toFixed(2)}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-4 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Subtotal</span>
+                <span className="text-gray-800">৳{subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Shipping</span>
+                <span className="text-gray-800">৳{shipping.toFixed(2)}</span>
+              </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>
+                    Discount{discountLabel ? ` (${discountLabel})` : ''}
+                  </span>
+                  <span>- ৳{discountAmount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-semibold text-base pt-3 border-t border-gray-200">
+                <span className="text-gray-800">Total</span>
+                <span className="text-black">৳{payableTotal.toFixed(2)}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Continue shopping */}
+      {hasItems && (
+        <div className="mt-6 text-center md:text-right">
+          <button onClick={() => navigate('/shop')} className="inline-block px-4 py-2 text-sm border border-gray-300 rounded-[2px] hover:bg-gray-50">
+            Continue shopping
+          </button>
+        </div>
+      )}
     </div>
   );
 };

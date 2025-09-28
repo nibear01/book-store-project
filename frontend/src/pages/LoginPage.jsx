@@ -10,9 +10,9 @@ import { isValidPhoneNumber } from "libphonenumber-js";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import Email from "@mui/icons-material/Email";
-import Lock from "@mui/icons-material/Lock";
+// import Lock from "@mui/icons-material/Lock";
 import ErrorOutline from "@mui/icons-material/ErrorOutline";
-import CheckCircle from "@mui/icons-material/CheckCircle";
+// import CheckCircle from "@mui/icons-material/CheckCircle";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -376,16 +376,16 @@ const LoginPage = () => {
             </form>
 
             {/* Divider */}
-            <div className="relative flex items-center py-6">
+            {/* <div className="relative flex items-center py-6">
               <div className="flex-grow border-t border-gray-200"></div>
               <span className="flex-shrink mx-4 text-gray-400 text-sm">
                 or continue with
               </span>
               <div className="flex-grow border-t border-gray-200"></div>
-            </div>
+            </div> */}
 
             {/* Social Login */}
-            <div>
+            {/* <div>
               <button
                 type="button"
                 className="w-full flex items-center justify-center gap-3 border border-gray-200 bg-white text-gray-700 font-medium p-3 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
@@ -397,7 +397,7 @@ const LoginPage = () => {
                 />
                 <span>Sign in with Google</span>
               </button>
-            </div>
+            </div> */}
 
             {/* Signup Link */}
             <div className="text-center mt-6">
