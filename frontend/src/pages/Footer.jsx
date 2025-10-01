@@ -30,13 +30,10 @@ const Footer = () => {
             <h3 className="font-semibold mb-3">Customer Service</h3>
             <ul className="space-y-2 text-gray-300">
               <li className="hover:text-white cursor-pointer">Help Center</li>
-              <li className="hover:text-white cursor-pointer">Returns</li>
               <li className="hover:text-white cursor-pointer">
                 Product Recalls
               </li>
-              <li className="hover:text-white cursor-pointer">Accessibility</li>
               <li className="hover:text-white cursor-pointer">Contact Us</li>
-              <li className="hover:text-white cursor-pointer">Store Pickup</li>
             </ul>
           </div>
 
@@ -44,7 +41,6 @@ const Footer = () => {
           <div>
             <h3 className="font-semibold mb-3">Policy</h3>
             <ul className="space-y-2 text-gray-300">
-              <li className="hover:text-white cursor-pointer">Return Policy</li>
               <li className="hover:text-white cursor-pointer">Terms Of Use</li>
               <li className="hover:text-white cursor-pointer">Security</li>
               <li className="hover:text-white cursor-pointer">Privacy</li>
@@ -79,7 +75,7 @@ const Footer = () => {
               >
                 <FaFacebookF />
               </Link>
-              <Link
+              {/* <Link
                 to="/"
                 href="https://twitter.com"
                 target="_blank"
@@ -87,8 +83,8 @@ const Footer = () => {
                 className="hover:text-blue-400 transition-colors text-xl"
               >
                 <FaTwitter />
-              </Link>
-              <Link
+              </Link> */}
+              {/* <Link
                 to="/"
                 href="https://instagram.com"
                 target="_blank"
@@ -96,7 +92,7 @@ const Footer = () => {
                 className="hover:text-pink-400 transition-colors text-xl"
               >
                 <FaInstagram />
-              </Link>
+              </Link> */}
               <Link
                 to="/"
                 href="https://linkedin.com"
@@ -111,8 +107,9 @@ const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-gray-700 mt-8 pt-4 text-center pb-5 text-gray-400 text-[12px]">
+        <div className="border-t text-[14px] border-gray-700 mt-8 pt-4 text-center pb-5 text-gray-400">
           © {new Date().getFullYear()} BookStop. All rights reserved.
+          <span className="text-green-600">imranslab Team</span>
         </div>
       </footer>
     </div>

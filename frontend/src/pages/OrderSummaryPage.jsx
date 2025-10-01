@@ -66,7 +66,7 @@ const OrderSummaryPage = () => {
           </p>
           <button
             onClick={() => navigate("/")}
-            className="bg-black text-white px-6 py-3 rounded-[2px] hover:bg-gray-800 transition-colors"
+            className="bg-black text-white px-6 py-3 rounded-md hover:bg-gray-800 transition-colors"
           >
             Continue Shopping
           </button>
@@ -182,7 +182,7 @@ const OrderSummaryPage = () => {
         </div>
 
         {/* Order Details */}
-        <div className="bg-white rounded-[2px] border border-gray-200 overflow-hidden print-area">
+        <div className="bg-white rounded-md border border-gray-200 overflow-hidden print-area">
           {/* Order Header */}
           <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -222,15 +222,20 @@ const OrderSummaryPage = () => {
                     <div className="flex-shrink-0">
                       {item.book_cover ? (
                         <img
-                          src={`${import.meta.env.VITE_BACKEND_URL || ""}${item.book_cover}`}
+                          src={`${import.meta.env.VITE_BACKEND_URL || ""}${
+                            item.book_cover
+                          }`}
                           alt={item.book_title}
                           className="h-16 w-12 object-cover rounded"
-                          onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
+                          onError={(e) => {
+                            e.target.style.display = "none";
+                            e.target.nextSibling.style.display = "flex";
+                          }}
                         />
                       ) : null}
                       <div
                         className="h-16 w-12 bg-gray-200 rounded flex items-center justify-center"
-                        style={{ display: item.book_cover ? 'none' : 'flex' }}
+                        style={{ display: item.book_cover ? "none" : "flex" }}
                       >
                         <svg
                           className="h-8 w-8 text-gray-400"
@@ -248,14 +253,20 @@ const OrderSummaryPage = () => {
                       </div>
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-800">{item.book_title || "Book Title"}</h4>
+                      <h4 className="font-medium text-gray-800">
+                        {item.book_title || "Book Title"}
+                      </h4>
                       <p className="text-sm text-gray-600">
                         Quantity: {item.quantity}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gray-800">৳{(item.price * item.quantity).toFixed(2)}</p>
-                      <p className="text-sm text-gray-600">৳{item.price.toFixed(2)} each</p>
+                      <p className="font-semibold text-gray-800">
+                        ৳{(item.price * item.quantity).toFixed(2)}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        ৳{item.price.toFixed(2)} each
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -313,11 +324,16 @@ const OrderSummaryPage = () => {
               <div className="space-y-2">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal:</span>
-                  <span>৳{(order.subtotal_amount ?? order.total_amount).toFixed(2)}</span>
+                  <span>
+                    ৳{(order.subtotal_amount ?? order.total_amount).toFixed(2)}
+                  </span>
                 </div>
                 {order.discount_amount > 0 && (
                   <div className="flex justify-between text-green-600">
-                    <span>Discount{order.discount_label ? ` (${order.discount_label})` : ''}</span>
+                    <span>
+                      Discount
+                      {order.discount_label ? ` (${order.discount_label})` : ""}
+                    </span>
                     <span>- ৳{order.discount_amount.toFixed(2)}</span>
                   </div>
                 )}
@@ -327,7 +343,9 @@ const OrderSummaryPage = () => {
                 </div>
                 <div className="flex justify-between text-lg font-semibold text-gray-800 border-t border-gray-200 pt-2">
                   <span>Total:</span>
-                  <span>৳{(order.grand_total ?? order.total_amount).toFixed(2)}</span>
+                  <span>
+                    ৳{(order.grand_total ?? order.total_amount).toFixed(2)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -338,19 +356,19 @@ const OrderSummaryPage = () => {
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center no-print">
           <button
             onClick={() => navigate("/")}
-            className="bg-black text-white px-8 py-3 rounded-[2px] hover:bg-gray-800 transition-colors"
+            className="bg-black text-white px-8 py-3 rounded-md hover:bg-gray-800 transition-colors"
           >
             Continue Shopping
           </button>
           <button
             onClick={() => navigate("/orders")}
-            className="border border-gray-300 text-gray-700 px-8 py-3 rounded-[2px] hover:bg-gray-50 transition-colors"
+            className="border border-gray-300 text-gray-700 px-8 py-3 rounded-md hover:bg-gray-50 transition-colors"
           >
             View All Orders
           </button>
           <button
             onClick={handlePrint}
-            className="bg-red-600 text-white px-8 py-3 rounded-[2px] hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+            className="bg-red-600 text-white px-8 py-3 rounded-md hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
           >
             <svg
               className="w-5 h-5"

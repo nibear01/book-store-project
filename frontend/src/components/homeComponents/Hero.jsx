@@ -9,6 +9,8 @@ import img1 from "../../assets/images/img1-12 (4).png";
 import img2 from "../../assets/pexels-pixabay-159866.jpg";
 import img3 from "../../assets/pexels-minan1398-694740.jpg";
 import img4 from "../../assets/images/img1-12 (4).png";
+import ButtonFill from "@/Button/ButtonFill";
+import { Link } from "react-router-dom";
 
 /**
  * Responsive notes:
@@ -212,12 +214,9 @@ const Hero = ({
               talking about this month.
             </p>
 
-            <button
-              className="mt-4 sm:mt-6 md:mt-8 bg-indigo-600 text-white px-4 sm:px-6 md:px-8 py-2 md:py-3 rounded-md hover:bg-indigo-500 transition-colors"
-              aria-label="See more featured books"
-            >
-              See More
-            </button>
+            <Link to="/shop" className="mt-6 inline-block">
+              <ButtonFill>Shop Now</ButtonFill>
+            </Link>
           </div>
         </div>
 

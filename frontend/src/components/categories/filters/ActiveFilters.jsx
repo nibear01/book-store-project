@@ -20,7 +20,7 @@ const ActiveFilters = ({
     languageFilter !== "All" ||
     availabilityFilter !== "all" ||
     priceRange[0] > 0 ||
-    priceRange[1] < 50 ||
+    priceRange[1] < 1500 ||
     searchQuery;
 
   if (!hasActiveFilters) return null;
@@ -34,7 +34,7 @@ const ActiveFilters = ({
             {selectedCategory}
             <button
               onClick={() => onCategorySelect("All")}
-              className="ml-1.5 rounded-[2px] p-0.5 hover:bg-gray-200"
+              className="ml-1.5 rounded-md p-0.5 hover:bg-gray-200"
               aria-label={`Remove ${selectedCategory} filter`}
             >
               ×
@@ -46,7 +46,7 @@ const ActiveFilters = ({
             {ratingFilter}+ Stars
             <button
               onClick={() => onRatingFilterChange(0)}
-              className="ml-1.5 rounded-[2px] p-0.5 hover:bg-gray-200"
+              className="ml-1.5 rounded-md p-0.5 hover:bg-gray-200"
               aria-label={`Remove ${ratingFilter}+ stars filter`}
             >
               ×
@@ -58,7 +58,7 @@ const ActiveFilters = ({
             {languageFilter}
             <button
               onClick={() => onLanguageFilterChange("All")}
-              className="ml-1.5 rounded-[2px] p-0.5 hover:bg-gray-200"
+              className="ml-1.5 rounded-md p-0.5 hover:bg-gray-200"
               aria-label={`Remove ${languageFilter} language filter`}
             >
               ×
@@ -70,7 +70,7 @@ const ActiveFilters = ({
             {availabilityFilter === "inStock" ? "In Stock" : "Out of Stock"}
             <button
               onClick={() => onAvailabilityFilterChange("all")}
-              className="ml-1.5 rounded-[2px] p-0.5 hover:bg-gray-200"
+              className="ml-1.5 rounded-md p-0.5 hover:bg-gray-200"
               aria-label={`Remove ${
                 availabilityFilter === "inStock" ? "In Stock" : "Out of Stock"
               } filter`}
@@ -84,7 +84,7 @@ const ActiveFilters = ({
             ${priceRange[0]}+
             <button
               onClick={() => onPriceRangeChange([0, priceRange[1]])}
-              className="ml-1.5 rounded-[2px] p-0.5 hover:bg-gray-200"
+              className="ml-1.5 rounded-md p-0.5 hover:bg-gray-200"
               aria-label={`Remove minimum price filter`}
             >
               ×
@@ -96,7 +96,7 @@ const ActiveFilters = ({
             Under ${priceRange[1]}
             <button
               onClick={() => onPriceRangeChange([priceRange[0], 50])}
-              className="ml-1.5 rounded-[2px] p-0.5 hover:bg-gray-200"
+              className="ml-1.5 rounded-md p-0.5 hover:bg-gray-200"
               aria-label={`Remove maximum price filter`}
             >
               ×
@@ -108,7 +108,7 @@ const ActiveFilters = ({
             "{searchQuery}"
             <button
               onClick={() => onSearchQueryChange("")}
-              className="ml-1.5 rounded-[2px] p-0.5 hover:bg-gray-200"
+              className="ml-1.5 rounded-md p-0.5 hover:bg-gray-200"
               aria-label={`Remove search query "${searchQuery}"`}
             >
               ×

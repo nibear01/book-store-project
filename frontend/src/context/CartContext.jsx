@@ -210,6 +210,7 @@ export function CartProvider({ children }) {
       state,
       dispatch,
       ...totals,
+      isInCart: (id) => state.items.some((i) => String(i.id) === String(id)),
       addToCart,
       updateQuantity,
       removeItem,

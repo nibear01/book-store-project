@@ -34,7 +34,7 @@ const DesktopNav = ({
           <Link
             key={link.name}
             to={link.path}
-            className="text-gray-700 hover:text[var(--hover-color)] hover:text-[var(--hover-color)] transition-colors text-[16px] font-medium"
+            className="text-gray-700 hover:text[var(--hover-color)] hover:text-[var(--hover-color)] transition-colors text-[15px] font-medium"
           >
             {link.name}
           </Link>
@@ -46,7 +46,7 @@ const DesktopNav = ({
         {/* Wishlist */}
         <button
           type="button"
-          onClick={() => navigate('/wishlist')}
+          onClick={() => navigate("/wishlist")}
           className="relative text-gray-700 hover:text-[var(--hover-color)] transition"
           aria-label="Open wishlist"
         >

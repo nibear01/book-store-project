@@ -5,7 +5,7 @@ const FilterSection = ({ title, children, sectionId, isOpen, onToggle }) => (
     <button
       type="button"
       onClick={() => onToggle(sectionId)}
-      className="w-full flex justify-between items-center text-left"
+      className="w-full flex justify-between rounded-md items-center text-left"
       aria-expanded={isOpen}
       aria-controls={`filter-section-${sectionId}`}
     >

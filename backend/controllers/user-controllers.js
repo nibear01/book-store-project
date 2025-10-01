@@ -6,6 +6,9 @@ import { generateToken } from "../middlewares/auth-middleware.js";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import path from "path"; // added
+import mongoose from "mongoose";
+import Review from "../models/review-model.js";
+import Book from "../models/book-model.js";
 
 // @desc    Get allowed roles (Admin only)
 // @route   GET /api/users/roles
@@ -364,6 +367,30 @@ export const deleteUser = async (req, res) => {
             await Wishlist.deleteOne({ user: user._id });
         } catch (e) {
             console.error("Failed to delete wishlist for user", user._id, e?.message);
+        }
+
+        // Cascade: delete reviews by this user and refresh affected books' stats
+        try {
+            // Find all books this user has reviewed
+            const reviewedBookIds = await Review.find({ user: user._id }).distinct("book");
+            // Delete all their reviews
+            await Review.deleteMany({ user: user._id });
+            // Recompute rating and num_reviews for each affected book
+            for (const bId of reviewedBookIds) {
+                try {
+                    const agg = await Review.aggregate([
+                        { $match: { book: new mongoose.Types.ObjectId(bId) } },
+                        { $group: { _id: "$book", avg: { $avg: "$rating" }, count: { $sum: 1 } } },
+                    ]);
+                    const avg = agg[0]?.avg || 0;
+                    const count = agg[0]?.count || 0;
+                    await Book.findByIdAndUpdate(bId, { $set: { rating: Number(avg.toFixed(2)), num_reviews: count } });
+                } catch (e) {
+                    console.error("Failed to refresh book stats after user review delete", String(bId), e?.message);
+                }
+            }
+        } catch (e) {
+            console.error("Failed to delete user reviews", user._id, e?.message);
         }
 
         res.status(200).json({

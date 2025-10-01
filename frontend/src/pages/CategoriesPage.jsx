@@ -4,6 +4,7 @@ import { BooksContext } from "@/context/BooksContext";
 import { useCategories } from "../hooks/useCategories";
 import FiltersSidebar from "../components/categories/FiltersSidebar";
 import BooksContent from "../components/categories/BooksContent";
+import ButtonFill from "@/Button/ButtonFill";
 
 const CategoriesPage = () => {
   const { url, books, loading, error, fetchBooks } = useContext(BooksContext);
@@ -95,21 +96,17 @@ const CategoriesPage = () => {
   const currentPage = books?.pagination?.page || page;
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Breadcrumb */}
-      <div className="max-w-6xl mx-auto pt-6 px-5">
-        <nav className="flex items-center text-[12px] text-gray-600 space-x-2">
-          <Link to="/" className="hover:text-gray-800 transition-colors">
-            Home
-          </Link>
-          <span>/</span>
-          <span className="text-gray-900 font-medium">Categories</span>
-        </nav>
+    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      {/* Button */}
+      <div className="flex justify-center md:justify-end">
+        <Link to="/bookrequest">
+          <ButtonFill>Request Book</ButtonFill>
+        </Link>
       </div>
 
-      <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <div>
         {/* Main layout with sidebar and content */}
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col lg:flex-row gap-8 mt-6">
           {/* Left sidebar - filters */}
           <FiltersSidebar
             selectedCategory={selectedCategory}
@@ -156,7 +153,7 @@ const CategoriesPage = () => {
         {totalPages > 1 && (
           <div className="mt-8 flex items-center justify-center gap-2">
             <button
-              className="px-3 py-2 border border-gray-300 rounded-[2px] text-sm disabled:opacity-50"
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm disabled:opacity-50"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={currentPage <= 1}
             >
@@ -170,7 +167,7 @@ const CategoriesPage = () => {
                   <button
                     key={pageNum}
                     onClick={() => setPage(pageNum)}
-                    className={`px-3 py-2 border rounded-[2px] text-sm ${
+                    className={`px-3 py-2 border rounded-md text-sm ${
                       currentPage === pageNum
                         ? "bg-black text-white border-black"
                         : "border-gray-300 hover:border-black"
@@ -181,7 +178,7 @@ const CategoriesPage = () => {
                 );
               })}
             <button
-              className="px-3 py-2 border border-gray-300 rounded-[2px] text-sm disabled:opacity-50"
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm disabled:opacity-50"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages}
             >

@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useEffect, useState } from "react";
 import { adminUsersAPI } from "../../api/admin-api";
-import { Button } from "../ui/button.jsx";
+import { Button } from "../../Button/button.jsx";
 
 const Users = () => {
   const [users, setUsers] = useState([]);

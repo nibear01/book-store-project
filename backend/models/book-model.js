@@ -23,6 +23,8 @@ const bookSchema = new mongoose.Schema(
     is_featured: { type: Boolean, default: false },
     publisher: { type: String, trim: true }, // added
     pages: { type: Number, default: 0 }, // added
+    // isSourced: { type: Boolean, default: false }, // added
+    // isPrintOnDemand: { type: Boolean, default: false }, // added
 
     // On sale / most viewed / deals of the week
     is_on_sale: { type: Boolean, default: false },

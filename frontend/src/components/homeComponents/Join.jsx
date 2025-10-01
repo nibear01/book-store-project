@@ -1,3 +1,4 @@
+import ButtonFill from "@/Button/ButtonFill";
 import React, { useState } from "react";
 
 const Join = () => {
@@ -134,14 +135,13 @@ const Join = () => {
                 value="Newsletter Signup — Books"
               />
 
-              <button
+              <ButtonFill
                 type="submit"
                 disabled={submitting}
-                className="flex items-center justify-center w-full gap-2 px-6 py-3 text-white transition-colors bg-green-700 sm:w-auto hover:bg-green-800 rounded-xl sm:rounded-lg disabled:opacity-70 disabled:cursor-not-allowed"
                 aria-busy={submitting ? "true" : "false"}
               >
-                {submitting ? "Subscribing…" : "Subscribe"}
-              </button>
+                {submitting ? "Sending.." : "Subscribe"}
+              </ButtonFill>
             </form>
 
             {/* Messages */}

@@ -1,11 +1,8 @@
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  useLocation,
-} from "react-router-dom";
+import React, { useEffect } from "react";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
 import Homepage from "./pages/homepage";
 import AboutPage from "./pages/AboutPage";
 import CategoriesPage from "./pages/CategoriesPage";
@@ -16,16 +13,10 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
-import { CartProvider } from "./context/CartContext";
-import { AuthProvider } from "./context/AuthContext";
-import { BooksContextProvider } from "./context/BooksContext";
-import { WishlistProvider } from "./context/WishlistContext";
 import AdminPage from "./pages/AdminPage";
 import Footer from "./pages/Footer";
 import BookViewPage from "./pages/BookViewPage";
-// import { HelmetProvider } from 'react-helmet-async';
 
-// Admin components
 import Dashboard from "./components/adminComponents/Dashboard";
 import Users from "./components/adminComponents/Users";
 import Books from "./components/adminComponents/Books";
@@ -36,17 +27,49 @@ import Delivery from "./components/deliveryComponents/Delivery";
 import Finance from "./components/adminComponents/Finance";
 import Support from "./components/adminComponents/Support";
 import Marketing from "./components/adminComponents/Marketing";
+
 import UserDashboard from "./pages/UserDashboard";
 import OrderSummaryPage from "./pages/OrderSummaryPage";
 import UserOrdersPage from "./pages/UserOrdersPage";
-import { useAuth } from "./context/AuthContext";
-import { Navigate } from "react-router-dom";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-import Navbar from "./components/NavbarComponents/Nabvar";
+
+// If your file is actually Navbar.jsx, use this:
+// If your folder/file is literally named "Nabvar", swap the line above:
+// import Navbar from "./components/NavbarComponents/Nabvar";
+
 import TopNavbar from "./components/NavbarComponents/Subnav/TopNavbar";
 import AuthorPage from "./pages/AuthorPage";
 import WishlistPage from "./pages/WishlistPage";
+
+import { useAuth } from "./context/AuthContext";
+import Navbar from "./components/NavbarComponents/Navbar";
+import AuthorDetails from "./components/authorComponents/AuthorDetails";
+import AuthorRequestForm from "./Form/AuthorRequestForm";
+import BookRequestForm from "./Form/BookRequestForm";
+
+// 404 Page
+function NotFound() {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center text-center p-8">
+      <div>
+        <h1 className="text-3xl font-semibold mb-2">404 — Page not found</h1>
+        <p className="text-gray-600">
+          The page you’re looking for doesn’t exist.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Scroll to top on route change
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 function AppContent() {
   const location = useLocation();
@@ -64,7 +87,7 @@ function AppContent() {
     return "/account";
   };
 
-  // Route guards
+  // Guards
   const RequireAuth = ({ children }) => {
     if (isLoading) return null;
     if (!isAuthenticated) {
@@ -75,17 +98,17 @@ function AppContent() {
 
   const RequireRole = ({ roles, children }) => {
     if (isLoading) return null;
-    if (!isAuthenticated)
+    if (!isAuthenticated) {
       return <Navigate to="/login" state={{ from: location }} replace />;
+    }
     const effectiveRoles = activeRole
       ? [activeRole]
       : user?.roles || (user?.role ? [user.role] : []);
-    if (!roles.some((r) => effectiveRoles.includes(r))) {
+    if (!roles.some((r) => effectiveRoles?.includes(r))) {
       const dest = roleHome(
         activeRole || user?.roles?.[0] || user?.role || "user"
       );
-      // Prevent redirect loops by not navigating to the current path
-      if (dest === location.pathname) return null;
+      if (dest === location.pathname) return null; // avoid loop
       return <Navigate to={dest} replace />;
     }
     return children;
@@ -94,25 +117,16 @@ function AppContent() {
   const RequireGuest = ({ children }) => {
     if (isLoading) return null;
     if (isAuthenticated) {
-      const roles = user?.roles || (user?.role ? [user.role] : []);
-      const dest = roles.includes("admin")
-        ? "/admin/dashboard"
-        : roles.includes("book_manager")
-        ? "/admin/books"
-        : roles.includes("order_manager")
-        ? "/admin/orders"
-        : "/";
+      const dest = roleHome(
+        activeRole || user?.roles?.[0] || user?.role || "user"
+      );
       return <Navigate to={dest} replace />;
     }
     return children;
   };
 
-  // Hide Navbar and Footer for /admin and all nested routes
+  // Hide chrome on admin
   const hideNavbarFooter = location.pathname.startsWith("/admin");
-
-  // If the user is an authenticated admin and tries to access any non-admin route,
-  // redirect them to the admin dashboard (covers refreshes and direct navigation)
-  // Do not auto-redirect based on roles; respect active role and user navigation
 
   return (
     <>
@@ -120,7 +134,7 @@ function AppContent() {
       {!hideNavbarFooter && <Navbar />}
 
       <Routes>
-        {/* Frontend */}
+        {/* Public */}
         <Route path="/" element={<Homepage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/categories" element={<CategoriesPage />} />
@@ -129,6 +143,46 @@ function AppContent() {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/cart" element={<CartPage />} />
+        <Route path="/authordetails" element={<AuthorDetails />} />
+        <Route path="/authorrequest" element={<AuthorRequestForm />} />
+        <Route path="/bookrequest" element={<BookRequestForm />} />
+        <Route path="/bookview/:slug" element={<BookViewPage />} />
+
+        {/* Guest-only */}
+        <Route
+          path="/login"
+          element={
+            <RequireGuest>
+              <LoginPage />
+            </RequireGuest>
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            <RequireGuest>
+              <SignupPage />
+            </RequireGuest>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <RequireGuest>
+              <ForgotPassword />
+            </RequireGuest>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <RequireGuest>
+              <ResetPassword />
+            </RequireGuest>
+          }
+        />
+
+        {/* Auth-only */}
         <Route
           path="/wishlist"
           element={
@@ -145,8 +199,32 @@ function AppContent() {
             </RequireAuth>
           }
         />
+        <Route
+          path="/account"
+          element={
+            <RequireAuth>
+              <UserDashboard />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/order-summary/:orderId"
+          element={
+            <RequireAuth>
+              <OrderSummaryPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/orders"
+          element={
+            <RequireAuth>
+              <UserOrdersPage />
+            </RequireAuth>
+          }
+        />
 
-        {/* Admin Route */}
+        {/* Admin (ensure <AdminPage /> renders an <Outlet />) */}
         <Route
           path="/admin"
           element={
@@ -242,68 +320,12 @@ function AppContent() {
           />
         </Route>
 
-        <Route
-          path="/login"
-          element={
-            <RequireGuest>
-              <LoginPage />
-            </RequireGuest>
-          }
-        />
-        <Route
-          path="/signup"
-          element={
-            <RequireGuest>
-              <SignupPage />
-            </RequireGuest>
-          }
-        />
-        <Route
-          path="/forgot-password"
-          element={
-            <RequireGuest>
-              <ForgotPassword />
-            </RequireGuest>
-          }
-        />
-        <Route
-          path="/reset-password"
-          element={
-            <RequireGuest>
-              <ResetPassword />
-            </RequireGuest>
-          }
-        />
-        <Route path="/bookview/:slug" element={<BookViewPage />} />
-        <Route
-          path="/account"
-          element={
-            <RequireAuth>
-              <UserDashboard />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/order-summary/:orderId"
-          element={
-            <RequireAuth>
-              <OrderSummaryPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/orders"
-          element={
-            <RequireAuth>
-              <UserOrdersPage />
-            </RequireAuth>
-          }
-        />
+        {/* 404 */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
 
       {!hideNavbarFooter && <Footer />}
 
-      {/* Toast Container */}
       <ToastContainer
         position="top-right"
         autoClose={5000}
@@ -320,24 +342,13 @@ function AppContent() {
   );
 }
 
-function App() {
+export default function App() {
   return (
-    <Router>
-      {/* <HelmetProvider> */}
-      <AuthProvider>
-        <BooksContextProvider>
-          <WishlistProvider>
-            <CartProvider>
-              <div className="min-h-screen bg-gray-50">
-                <AppContent />
-              </div>
-            </CartProvider>
-          </WishlistProvider>
-        </BooksContextProvider>
-      </AuthProvider>
-      {/* </HelmetProvider> */}
-    </Router>
+    <>
+      <ScrollToTop />
+      <div className="min-h-screen bg-white">
+        <AppContent />
+      </div>
+    </>
   );
 }
-
-export default App;

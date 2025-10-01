@@ -28,7 +28,7 @@ const ForgotPassword = () => {
 
   return (
     <div className="flex justify-center py-15">
-      <div className="h-auto w-[400px] min-w-[350px] bg-white shadow-md pb-10 flex-col justify-center items-center rounded-[2px]">
+      <div className="w-[400px] min-w-[350px] bg-white shadow-md pb-10 flex-col justify-center items-center rounded-[2px]">
         <div className="py-6 w-full flex-col justify-center">
           <h1 className="text-[25px] text-center">Forgot Password</h1>
           <h3 className="text-center">Enter your email to reset password</h3>

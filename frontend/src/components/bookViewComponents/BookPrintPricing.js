@@ -46,7 +46,7 @@ export function computeConfiguredPrice(basePrice, cfg) {
 
 export const defaultPrintState = {
   paperQuality: QUALITIES[0].id,
-  printSide: SIDES[1].id,
-  paperSize: SIZES[0].id,
+  printSide: SIDES[0].id,
+  paperSize: SIZES[1].id,
   colorMode: COLOR[0].id,
 };

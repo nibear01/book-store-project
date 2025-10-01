@@ -12,7 +12,7 @@ const CategoriesFilter = ({
     <button
       type="button"
       onClick={() => onToggle("categories")}
-      className="w-full flex justify-between items-center text-left"
+      className="w-full flex justify-between rounded-md items-center text-left"
       aria-expanded={isOpen}
       aria-controls="filter-section-categories"
     >
@@ -38,18 +38,18 @@ const CategoriesFilter = ({
         isOpen ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
       }`}
     >
-      <div className="space-y-2">
+      <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
         {categories.map((category) => (
           <div
             key={category.id}
-            className={`flex items-center p-2 rounded-[2px] cursor-pointer transition-colors ${
+            className={`flex items-center p-2 cursor-pointer transition-colors ${
               selectedCategory === category.title
                 ? "bg-gray-100 text-black font-medium"
                 : "hover:bg-gray-50"
             }`}
             onClick={() => onCategorySelect(category.title)}
           >
-            <span className="flex-1">{category.title}</span>
+            <span className="flex-1 text-sm">{category.title}</span>
             <span className="text-xs text-gray-500">{category.item}</span>
           </div>
         ))}

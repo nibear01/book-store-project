@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { useCart } from "../../context/CartContext";
+import { toast } from "react-toastify";
 
 const BookActions = ({
   book,
@@ -8,6 +10,7 @@ const BookActions = ({
   navigate,
   addToCart,
 }) => {
+  const { isInCart } = useCart();
   const handleIncrement = () => {
     if (book?.stock && quantity < book.stock) setQuantity(quantity + 1);
   };
@@ -22,9 +25,15 @@ const BookActions = ({
       return;
     }
 
+    const id = book?._id || book?.id;
+    if (isInCart && id && isInCart(id)) {
+      toast.info("Already added to cart.");
+      return;
+    }
+
     addToCart({
       item: {
-        id: book._id,
+        id,
         title: book.title,
         price: Number(book.price || 0),
       },

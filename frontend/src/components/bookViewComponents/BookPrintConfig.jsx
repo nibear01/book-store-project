@@ -1,5 +1,12 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
-import { QUALITIES, SIDES, SIZES, COLOR, computeConfiguredPrice, defaultPrintState } from './BookPrintPricing';
+import { useEffect, useMemo, useState, useRef } from "react";
+import {
+  QUALITIES,
+  SIDES,
+  SIZES,
+  COLOR,
+  computeConfiguredPrice,
+  defaultPrintState,
+} from "./BookPrintPricing";
 
 /*
   BookPrintConfig: allows user to configure physical copy pricing.
@@ -25,10 +32,18 @@ const BookPrintConfig = ({ basePrice = 0, value, onChange }) => {
   if (initialRef.current === null) {
     const v = value || {};
     initialRef.current = {
-      paperQuality: QUALITIES.some(q=>q.id===v.paperQuality) ? v.paperQuality : defaultPrintState.paperQuality,
-      printSide: SIDES.some(s=>s.id===v.printSide) ? v.printSide : defaultPrintState.printSide,
-      paperSize: SIZES.some(z=>z.id===v.paperSize) ? v.paperSize : defaultPrintState.paperSize,
-      colorMode: COLOR.some(c=>c.id===v.colorMode) ? v.colorMode : defaultPrintState.colorMode,
+      paperQuality: QUALITIES.some((q) => q.id === v.paperQuality)
+        ? v.paperQuality
+        : defaultPrintState.paperQuality,
+      printSide: SIDES.some((s) => s.id === v.printSide)
+        ? v.printSide
+        : defaultPrintState.printSide,
+      paperSize: SIZES.some((z) => z.id === v.paperSize)
+        ? v.paperSize
+        : defaultPrintState.paperSize,
+      colorMode: COLOR.some((c) => c.id === v.colorMode)
+        ? v.colorMode
+        : defaultPrintState.colorMode,
     };
   }
 
@@ -37,7 +52,10 @@ const BookPrintConfig = ({ basePrice = 0, value, onChange }) => {
   // Clamp / sanitize base price
   const safeBase = Number.isFinite(basePrice) && basePrice >= 0 ? basePrice : 0;
 
-  const price = useMemo(() => computeConfiguredPrice(safeBase, local), [safeBase, local]);
+  const price = useMemo(
+    () => computeConfiguredPrice(safeBase, local),
+    [safeBase, local]
+  );
 
   // Emit changes only when derived output or selection changes (avoid loops)
   const lastEmitted = useRef(null);
@@ -51,24 +69,30 @@ const BookPrintConfig = ({ basePrice = 0, value, onChange }) => {
   }, [local, price, onChange]);
 
   const makeSetter = (key) => (id) => {
-    setLocal(prev => prev[key] === id ? prev : { ...prev, [key]: id });
+    setLocal((prev) => (prev[key] === id ? prev : { ...prev, [key]: id }));
   };
 
   const Section = ({ title, options, activeId, setActive }) => (
     <div>
       <h4 className="text-sm font-semibold text-gray-700 mb-2">{title}</h4>
       <div className="flex flex-wrap gap-2">
-        {options.map(opt => {
+        {options.map((opt) => {
           const active = opt.id === activeId;
           return (
             <button
               type="button"
               key={opt.id}
               onClick={() => setActive(opt.id)}
-              className={`px-3 py-1 text-sm rounded-[2px] border transition ${active ? 'bg-black text-white border-black' : 'bg-white hover:bg-gray-100 border-gray-300 text-gray-700'}`}
+              className={`px-3 py-1 text-sm rounded-[2px] border transition ${
+                active
+                  ? "bg-black text-white border-black"
+                  : "bg-white hover:bg-gray-100 border-gray-300 text-gray-700"
+              }`}
             >
               <div className="font-medium">{opt.label}</div>
-              {opt.note && <div className="text-[9px] opacity-70 mt-0.5">{opt.note}</div>}
+              {opt.note && (
+                <div className="text-[9px] opacity-70 mt-0.5">{opt.note}</div>
+              )}
             </button>
           );
         })}
@@ -78,15 +102,30 @@ const BookPrintConfig = ({ basePrice = 0, value, onChange }) => {
 
   return (
     <div className="mt-4 space-y-6">
-  <Section title="Paper Quality" options={QUALITIES} activeId={local.paperQuality} setActive={makeSetter('paperQuality')} />
-  <Section title="Print Side" options={SIDES} activeId={local.printSide} setActive={makeSetter('printSide')} />
-  <Section title="Paper Size" options={SIZES} activeId={local.paperSize} setActive={makeSetter('paperSize')} />
-  <Section title="Color Mode" options={COLOR} activeId={local.colorMode} setActive={makeSetter('colorMode')} />
-
-      <div className="p-4 bg-gray-50 rounded-[2px] border text-sm flex items-center justify-between">
-        <span className="text-gray-600">Configured Price</span>
-        <span className="text-lg font-semibold">৳{price}</span>
-      </div>
+      <Section
+        title="Paper Quality"
+        options={QUALITIES}
+        activeId={local.paperQuality}
+        setActive={makeSetter("paperQuality")}
+      />
+      <Section
+        title="Print Side"
+        options={SIDES}
+        activeId={local.printSide}
+        setActive={makeSetter("printSide")}
+      />
+      <Section
+        title="Paper Size"
+        options={SIZES}
+        activeId={local.paperSize}
+        setActive={makeSetter("paperSize")}
+      />
+      <Section
+        title="Color Mode"
+        options={COLOR}
+        activeId={local.colorMode}
+        setActive={makeSetter("colorMode")}
+      />
     </div>
   );
 };
