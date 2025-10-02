@@ -161,7 +161,7 @@ const Hero = ({
 
   return (
     <section
-      className={`relative ${widthClass} ${heightClass} select-none`}
+      className={`relative ${widthClass} ${heightClass} select-none m-5d:m-8 lg:m-10 rounded-none md:rounded-2xl shadow-sm md:shadow-md`}
       aria-roledescription="carousel"
       aria-label="Featured slides"
       tabIndex={0}

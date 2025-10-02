@@ -38,7 +38,7 @@ export class PolicyBuilder {
         const canChangeRoles = isAdmin;
         const canChangeStatus = isAdmin;
 
-        const canManageBooks = isAdmin || has("book_manager");
+    const canManageBooks = isAdmin || has("book_manager") || has("author");
         const canManageOrders = isAdmin || has("order_manager");
         const canAccessPrinting = isAdmin || has("printing_manager");
         const canAccessDelivery = isAdmin || has("delivery_manager");

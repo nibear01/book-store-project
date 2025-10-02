@@ -14,6 +14,9 @@ import {
   LogOut,
   Menu,
   X,
+  PenTool,
+  ClipboardList,
+  FileText,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
@@ -45,14 +48,33 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
 
   const roles = user?.roles || (user?.role ? [user.role] : []);
   const isAdmin = roles.includes("admin");
+  const hasAnyAdminRole = roles.some((r) => r && r !== "user");
   const menuItems = [
     {
       name: "Dashboard",
       path: "/admin/dashboard",
       icon: LayoutDashboard,
-      show: isAdmin || roles.length > 0,
+      show: hasAnyAdminRole,
     },
     { name: "Users", path: "/admin/users", icon: Users, show: isAdmin },
+    {
+      name: "Author Panel",
+      path: "/admin/author",
+      icon: PenTool,
+      show: roles.includes("author"),
+    },
+    {
+      name: "Author Requests",
+      path: "/admin/author-requests",
+      icon: ClipboardList,
+      show: isAdmin,
+    },
+    {
+      name: "Book Requests",
+      path: "/admin/book-requests",
+      icon: FileText,
+      show: isAdmin,
+    },
     {
       name: "Books & Categories",
       path: "/admin/books",

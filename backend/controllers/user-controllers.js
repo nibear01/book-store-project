@@ -9,6 +9,7 @@ import path from "path"; // added
 import mongoose from "mongoose";
 import Review from "../models/review-model.js";
 import Book from "../models/book-model.js";
+// import bcrypt from "bcrypt";
 
 // @desc    Get allowed roles (Admin only)
 // @route   GET /api/users/roles
@@ -46,11 +47,14 @@ export const registerUser = async (req, res) => {
             });
         }
 
+        // const bcryptPassword = await bcrypt.hash(password, 10);
+
         // Create new user
         const roles = new RolesBuilder().set("user").enforce().build();
         const user = await User.create({
             name,
             email,
+            // password: bcryptPassword,
             password,
             phone,
             address,

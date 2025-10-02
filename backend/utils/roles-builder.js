@@ -3,6 +3,7 @@ import User from "../models/user-model.js";
 const ALLOWED_ROLES = [
     "user",
     "admin",
+    "author",
     "book_manager",
     "order_manager",
     "printing_manager",

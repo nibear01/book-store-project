@@ -127,7 +127,7 @@ const AuthorRequestForm = () => {
     setSending(true);
     setMessage({ text: "", type: "" });
     try {
-      const res = await fetch("/api/otp/send", {
+      const res = await fetch("/api/author-requests/otp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: form.email }),
@@ -156,7 +156,7 @@ const AuthorRequestForm = () => {
     setVerifying(true);
     setMessage({ text: "", type: "" });
     try {
-      const res = await fetch("/api/otp/verify", {
+      const res = await fetch("/api/author-requests/otp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: form.email, code: otpCode.trim() }),
@@ -183,21 +183,19 @@ const AuthorRequestForm = () => {
     setLoading(true);
     setMessage({ text: "", type: "" });
     try {
-      const res = await fetch("https://api.web3forms.com/submit", {
+      const res = await fetch("/api/author-requests/submit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Accept: "application/json",
         },
         body: JSON.stringify({
-          access_key: "276695ce-1e44-4cb0-bc1f-df51e6a92587",
           ...form,
           address: composeAddress(),
-          emailVerified: emailVerified ? "true" : "false",
+          emailVerified: emailVerified,
         }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data?.success) {
         setMessage({ text: "✅ Submitted successfully!", type: "success" });
         setForm({
           fullName: "",
@@ -226,7 +224,7 @@ const AuthorRequestForm = () => {
         setOtpCode("");
         setCooldown(0);
       } else {
-        setMessage({ text: "❌ Submission failed. Try again.", type: "error" });
+        setMessage({ text: data?.message || "❌ Submission failed. Try again.", type: "error" });
       }
     } catch (err) {
       console.error(err);

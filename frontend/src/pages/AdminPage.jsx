@@ -49,21 +49,10 @@ const AdminPage = () => {
     return null;
   }
 
-  // Redirect non-admins or unauthenticated users
+  // Redirect unauthenticated or plain 'user' role only. Allow any non-'user' role (e.g., author, managers, admin)
   const roles = user?.roles || (user?.role ? [user.role] : []);
-  if (
-    !isAuthenticated ||
-    ![
-      "admin",
-      "book_manager",
-      "order_manager",
-      "printing_manager",
-      "delivery_manager",
-      "finance_manager",
-      "customer_support",
-      "marketing_manager",
-    ].some((r) => roles.includes(r))
-  ) {
+  const hasAnyAdminRole = roles.some((r) => r && r !== "user");
+  if (!isAuthenticated || !hasAnyAdminRole) {
     return <Navigate to="/" replace />;
   }
 

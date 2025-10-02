@@ -28,6 +28,7 @@ const userSchema = new mongoose.Schema(
       enum: [
         "user",
         "admin",
+        "author",
         "book_manager",
         "order_manager",
         "printing_manager",
@@ -49,10 +50,7 @@ const userSchema = new mongoose.Schema(
       required: [true, "Phone number is required"],
       unique: true,
       trim: true,
-      match: [
-        /^[\+]?[1-9][\d]{0,15}$/,
-        "Please enter a valid phone number",
-      ],
+      match: [/^[\+]?[1-9][\d]{0,15}$/, "Please enter a valid phone number"],
     },
     address: {
       type: String,
@@ -82,6 +80,22 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verifiedCode: {
+      type: String,
+      default: null,
+    },
+    verifiedCodeSentAt: {
+      type: Date,
+      default: null,
+    },
+    verifiedCodeExpires: {
+      type: Date,
+      default: null,
+    }
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },

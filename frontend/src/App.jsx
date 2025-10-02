@@ -47,6 +47,9 @@ import Navbar from "./components/NavbarComponents/Navbar";
 import AuthorDetails from "./components/authorComponents/AuthorDetails";
 import AuthorRequestForm from "./Form/AuthorRequestForm";
 import BookRequestForm from "./Form/BookRequestForm";
+import AuthorAdmin from "./components/adminComponents/AuthorAdmin";
+import AuthorRequest from "./components/adminComponents/AuthorRequest";
+import BookRequest from "./components/adminComponents/BookRequest";
 
 // 404 Page
 function NotFound() {
@@ -71,21 +74,31 @@ function ScrollToTop() {
   return null;
 }
 
+// Small helpers to reason about roles in one place
+const getAllRoles = (user) => {
+  if (Array.isArray(user?.roles) && user.roles.length) return user.roles;
+  if (user?.role) return [user.role];
+  return ["user"]; // fallback
+};
+
+const ROLE_HOME = {
+  admin: "/admin/dashboard",
+  author: "/admin/author",
+  user_manager: "/admin/users",
+  book_manager: "/admin/books",
+  order_manager: "/admin/orders",
+  printing_manager: "/admin/printing",
+  delivery_manager: "/admin/delivery",
+  finance_manager: "/admin/finance",
+  customer_support: "/admin/support",
+  marketing_manager: "/admin/marketing",
+};
+
 function AppContent() {
   const location = useLocation();
   const { isAuthenticated, user, isLoading, activeRole } = useAuth();
 
-  const roleHome = (role) => {
-    if (role === "admin") return "/admin/dashboard";
-    if (role === "book_manager") return "/admin/books";
-    if (role === "order_manager") return "/admin/orders";
-    if (role === "printing_manager") return "/admin/printing";
-    if (role === "delivery_manager") return "/admin/delivery";
-    if (role === "finance_manager") return "/admin/finance";
-    if (role === "customer_support") return "/admin/support";
-    if (role === "marketing_manager") return "/admin/marketing";
-    return "/account";
-  };
+  const roleHome = (role) => ROLE_HOME[role] || "/account";
 
   // Guards
   const RequireAuth = ({ children }) => {
@@ -101,13 +114,9 @@ function AppContent() {
     if (!isAuthenticated) {
       return <Navigate to="/login" state={{ from: location }} replace />;
     }
-    const effectiveRoles = activeRole
-      ? [activeRole]
-      : user?.roles || (user?.role ? [user.role] : []);
-    if (!roles.some((r) => effectiveRoles?.includes(r))) {
-      const dest = roleHome(
-        activeRole || user?.roles?.[0] || user?.role || "user"
-      );
+    const effectiveRoles = getAllRoles(user);
+    if (!roles.some((r) => effectiveRoles.includes(r))) {
+      const dest = roleHome(effectiveRoles[0]);
       if (dest === location.pathname) return null; // avoid loop
       return <Navigate to={dest} replace />;
     }
@@ -117,12 +126,35 @@ function AppContent() {
   const RequireGuest = ({ children }) => {
     if (isLoading) return null;
     if (isAuthenticated) {
-      const dest = roleHome(
-        activeRole || user?.roles?.[0] || user?.role || "user"
-      );
+      const roles = getAllRoles(user);
+      const dest = roleHome(activeRole || roles[0]);
       return <Navigate to={dest} replace />;
     }
     return children;
+  };
+
+  // Admin access for any non-"user" role
+  const RequireAnyAdminRole = ({ children }) => {
+    if (isLoading) return null;
+    if (!isAuthenticated) {
+      return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+    const roles = getAllRoles(user);
+    const hasAnyAdminRole = roles.some((r) => r && r !== "user");
+    if (!hasAnyAdminRole) {
+      return <Navigate to="/account" replace />;
+    }
+    return children;
+  };
+
+  // When someone hits /admin without a specific panel, redirect to their panel
+  const AdminIndex = () => {
+    const roles = getAllRoles(user);
+    const dest = roleHome(activeRole || roles[0]);
+    // Show dashboard to anyone with a non-"user" role
+    const hasAnyAdminRole = roles.some((r) => r && r !== "user");
+    if (hasAnyAdminRole) return <Dashboard />;
+    return <Navigate to={dest} replace />;
   };
 
   // Hide chrome on admin
@@ -228,28 +260,50 @@ function AppContent() {
         <Route
           path="/admin"
           element={
-            <RequireRole
-              roles={[
-                "admin",
-                "book_manager",
-                "order_manager",
-                "printing_manager",
-                "delivery_manager",
-                "finance_manager",
-                "customer_support",
-                "marketing_manager",
-              ]}
-            >
+            <RequireAnyAdminRole>
               <AdminPage />
-            </RequireRole>
+            </RequireAnyAdminRole>
           }
         >
-          <Route index element={<Dashboard />} />
-          <Route path="dashboard" element={<Dashboard />} />
+          {/* Default admin landing: admin sees Dashboard, others are redirected to their panel */}
+          <Route index element={<AdminIndex />} />
+          {/* Dashboard: accessible to any non-"user" role */}
+          <Route
+            path="dashboard"
+            element={
+              <RequireAnyAdminRole>
+                <Dashboard />
+              </RequireAnyAdminRole>
+            }
+          />
+          <Route
+            path="author-requests"
+            element={
+              <RequireRole roles={["admin"]}>
+                <AuthorRequest />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="book-requests"
+            element={
+              <RequireRole roles={["admin"]}>
+                <BookRequest />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="author"
+            element={
+              <RequireRole roles={["author"]}>
+                <AuthorAdmin />
+              </RequireRole>
+            }
+          />
           <Route
             path="users"
             element={
-              <RequireRole roles={["admin"]}>
+              <RequireRole roles={["admin", "user_manager"]}>
                 <Users />
               </RequireRole>
             }

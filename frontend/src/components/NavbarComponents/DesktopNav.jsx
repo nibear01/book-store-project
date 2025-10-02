@@ -12,19 +12,42 @@ const DesktopNav = ({
   setIsCartOpen,
   isProfileOpen,
   setIsProfileOpen,
-  isRolesOpen,
-  setIsRolesOpen,
-  rolesHeaderRef,
-  rolesOpenLeft,
-  computeRolesSide,
-  rolesCloseTimer,
-  isDesktop,
-  activeRole,
-  switchRole,
+  // isRolesOpen,
+  // setIsRolesOpen,
+  // rolesHeaderRef,
+  // rolesOpenLeft,
+  // computeRolesSide,
+  // rolesCloseTimer,
+  // isDesktop,
+  // activeRole,
+  // switchRole,
   handleLogout,
   wishlistCount = 0,
 }) => {
   const navigate = useNavigate();
+
+  const roleToPath = (r) =>
+    r === "admin"
+      ? "/admin/dashboard"
+      : r === "book_manager"
+      ? "/admin/books"
+      : r === "order_manager"
+      ? "/admin/orders"
+      : r === "author"
+      ? "/admin/author"
+      : r === "printing_manager"
+      ? "/admin/printing"
+      : r === "delivery_manager"
+      ? "/admin/delivery"
+      : r === "finance_manager"
+      ? "/admin/finance"
+      : r === "customer_support"
+      ? "/admin/support"
+      : r === "marketing_manager"
+      ? "/admin/marketing"
+      : r === "user_manager"
+      ? "/admin/users"
+      : "/account";
 
   return (
     <>
@@ -101,9 +124,9 @@ const DesktopNav = ({
                   </div>
                 );
               })()}
-              <span className="text-sm font-medium text-gray-700">
+              {/* <span className="text-sm font-medium text-gray-700">
                 {user?.name || user?.email}
-              </span>
+              </span> */}
             </Link>
 
             {/* Chevron button toggles dropdown */}
@@ -115,7 +138,7 @@ const DesktopNav = ({
               <ChevronDownIcon className="h-4 w-4 text-gray-700" />
             </button>
 
-            {/* Dropdown (no Admin Panel link) */}
+            {/* Dropdown with Account, Admin Roles quick access, Role switcher, etc. */}
             {isProfileOpen && (
               <div className="absolute right-0 top-[110%] w-56 bg-white border rounded shadow-md py-2 z-50">
                 <Link
@@ -126,8 +149,58 @@ const DesktopNav = ({
                   My Account
                 </Link>
 
-                {/* Roles submenu header + side list */}
-                <div
+                {/* Admin Roles quick access (navigate directly without switching activeRole) */}
+                {(() => {
+                  const roles = Array.isArray(user?.roles)
+                    ? user.roles
+                    : user?.role
+                    ? [user.role]
+                    : [];
+                  const adminish = roles.filter((r) =>
+                    [
+                      "admin",
+                      "author",
+                      "user_manager",
+                      "book_manager",
+                      "order_manager",
+                      "printing_manager",
+                      "delivery_manager",
+                      "finance_manager",
+                      "customer_support",
+                      "marketing_manager",
+                    ].includes(r)
+                  );
+                  if (!adminish.length) return null;
+                  return (
+                    (<div className="border-t my-1" />),
+                    (
+                      <div className="px-3 py-2">
+                        <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                          Admin Assigned roles
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {adminish.map((r) => (
+                            <button
+                              key={r}
+                              type="button"
+                              onClick={() => {
+                                const dest = roleToPath(r);
+                                setIsProfileOpen(false);
+                                navigate(dest, { replace: true });
+                              }}
+                              className="px-2 py-1 rounded text-xs border text-gray-700 hover:bg-gray-50 capitalize"
+                            >
+                              {r.replace("_", " ")}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  );
+                })()}
+
+                {/* Role switcher (optional): sets activeRole but quick-access above doesn't require switching) */}
+                {/* <div
                   className="relative"
                   onMouseEnter={() => {
                     if (!isDesktop) return;
@@ -199,26 +272,7 @@ const DesktopNav = ({
                         if (!ok) return;
                         setIsRolesOpen(false);
                         setIsProfileOpen(false);
-                        const dest =
-                          r === "admin"
-                            ? "/admin/dashboard"
-                            : r === "book_manager"
-                            ? "/admin/books"
-                            : r === "order_manager"
-                            ? "/admin/orders"
-                            : r === "printing_manager"
-                            ? "/admin/printing"
-                            : r === "delivery_manager"
-                            ? "/admin/delivery"
-                            : r === "finance_manager"
-                            ? "/admin/finance"
-                            : r === "customer_support"
-                            ? "/admin/support"
-                            : r === "marketing_manager"
-                            ? "/admin/marketing"
-                            : r === "operations_manager"
-                            ? "/admin/dashboard"
-                            : "/account";
+                        const dest = roleToPath(r);
                         navigate(dest, { replace: true });
                       };
                       return roles.map((r) => (
@@ -235,7 +289,7 @@ const DesktopNav = ({
                       ));
                     })()}
                   </div>
-                </div>
+                </div> */}
 
                 <Link
                   to="/orders"

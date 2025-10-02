@@ -11,8 +11,7 @@ import {
   getOrderStats,
 } from "../controllers/order-controllers.js";
 
-import { protect } from "../middlewares/auth-middleware.js";
-import { isAdmin } from "../middlewares/admin-middleware.js";
+import { protect, authorize, requireAnyAdminRole } from "../middlewares/auth-middleware.js";
 import { upload } from "../middlewares/upload-middleware.js";
 
 const router = express.Router();
@@ -22,15 +21,26 @@ router.post("/create", protect, createOrder);
 router.get("/my-orders", protect, getUserOrders);
 router.get("/details/:id", protect, getOrderById);
 
-// Admin Routes
-router.get("/admin/all", protect, isAdmin, getAllOrders);
-router.get("/admin/stats", protect, isAdmin, getOrderStats);
-router.put("/admin/:id/status", protect, isAdmin, updateOrderStatus);
-router.delete("/admin/:id", protect, isAdmin, deleteOrder); // Add this route
+// Admin & Order Manager Routes
+router.get("/admin/all", protect, authorize("admin", "order_manager"), getAllOrders);
+// Dashboard stats should be visible to any non-"user" role (admin, managers, author)
+router.get("/admin/stats", protect, requireAnyAdminRole, getOrderStats);
+router.put(
+  "/admin/:id/status",
+  protect,
+  authorize("admin", "order_manager"),
+  updateOrderStatus
+);
+router.delete(
+  "/admin/:id",
+  protect,
+  authorize("admin", "order_manager"),
+  deleteOrder
+); // allow order managers to delete
 router.post(
   "/admin/import",
   protect,
-  isAdmin,
+  authorize("admin", "order_manager"),
   upload.fields([{ name: "file", maxCount: 1 }]),
   importOrdersFromCSV
 );

@@ -9,6 +9,7 @@ const Users = () => {
   const [statusFilter, setStatusFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [sortOrder, setSortOrder] = useState("newest"); // newest | oldest
   const [editingUser, setEditingUser] = useState(null);
   const [changingPwUser, setChangingPwUser] = useState(null);
   const [newPassword, setNewPassword] = useState("");
@@ -21,6 +22,17 @@ const Users = () => {
   });
   const pageSize = 20;
   const [rolesOptions, setRolesOptions] = useState([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newUser, setNewUser] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    password: "",
+    roles: [],
+    status: "active",
+  });
 
   const roleLabel = (r) =>
     (r || "")
@@ -83,7 +95,12 @@ const Users = () => {
 
   const totalPages = pagination.totalPages || 1;
   const totalUsers = pagination.totalUsers || users.length;
-  const paginatedUsers = users;
+  // Apply client-side sort similar to AuthorRequest
+  const paginatedUsers = [...users].sort((a, b) => {
+    const ta = new Date(a.created_at || a.createdAt || 0).getTime();
+    const tb = new Date(b.created_at || b.createdAt || 0).getTime();
+    return sortOrder === "oldest" ? ta - tb : tb - ta;
+  });
 
   const handleAction = async (id, action) => {
     try {
@@ -149,49 +166,144 @@ const Users = () => {
     }
   };
 
+  const openAddModal = () => {
+    setNewUser({
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+      password: "",
+      roles: [],
+      status: "active",
+    });
+    setShowAddModal(true);
+  };
+
+  const closeAddModal = () => setShowAddModal(false);
+
+  const handleCreateUser = async () => {
+    try {
+      if (!newUser.name?.trim()) return alert("Name is required");
+      if (!newUser.email?.trim()) return alert("Email is required");
+      if (!newUser.phone?.trim()) return alert("Phone is required");
+      if (!newUser.password || newUser.password.length < 8)
+        return alert("Password must be at least 8 characters");
+
+      setCreating(true);
+
+      // 1) Create the user via public register endpoint
+      const res = await fetch("/api/users/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newUser.name,
+          email: newUser.email,
+          password: newUser.password,
+          phone: newUser.phone,
+          address: newUser.address,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.message || "Failed to create user");
+      }
+      const createdId = data?.data?._id;
+      if (!createdId) throw new Error("Failed to retrieve new user id");
+
+      // 2) Assign roles if provided (fallback to default 'user' remains if none)
+      if (Array.isArray(newUser.roles) && newUser.roles.length) {
+        try {
+          await adminUsersAPI.changeRole(createdId, newUser.roles);
+        } catch (e) {
+          console.error("Failed to assign roles", e);
+          alert(e?.message || "Failed to set roles for user");
+        }
+      }
+
+      // 3) Set status if different from default 'active'
+      if (newUser.status && newUser.status !== "active") {
+        try {
+          await adminUsersAPI.changeStatus(createdId, newUser.status);
+        } catch (e) {
+          console.error("Failed to set status", e);
+          alert(e?.message || "Failed to set status for user");
+        }
+      }
+
+      await fetchUsers();
+      setShowAddModal(false);
+      alert("✅ User created");
+    } catch (e) {
+      alert(e?.message || "Failed to create user");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
-    <div className="p-4 sm:p-6 max-w-6xl mx-auto">
-      <h2 className="text-xl sm:text-2xl font-bold mb-4">Users Management</h2>
-
-      {/* Filters + Search */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
-        <select
-          className="border p-2 rounded-[2px] w-full sm:w-auto"
-          value={roleFilter}
-          onChange={(e) => {
-            setRoleFilter(e.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="All">All Roles</option>
-          {rolesOptions.map((r) => (
-            <option key={r} value={r}>
-              {roleLabel(r)}
-            </option>
-          ))}
-        </select>
-
-        <select
-          className="border p-2 rounded-[2px] w-full sm:w-auto"
-          value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="All">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-          <option value="suspended">Suspended</option>
-        </select>
-
-        <input
-          type="text"
-          placeholder="Search by name or email"
-          className="border p-2 rounded-[2px] flex-1"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+    <div className="p-2 sm:p-4 max-w-6xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <h2 className="text-2xl font-bold">Users Management</h2>
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center w-full sm:w-auto">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600">Search</label>
+            <input
+              type="text"
+              placeholder="Name or email…"
+              className="border rounded-md px-2 py-1 text-sm min-w-[220px]"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600">Role</label>
+            <select
+              className="border rounded-md px-2 py-1 text-sm"
+              value={roleFilter}
+              onChange={(e) => {
+                setRoleFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="All">All</option>
+              {rolesOptions.map((r) => (
+                <option key={r} value={r}>
+                  {roleLabel(r)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600">Status</label>
+            <select
+              className="border rounded-md px-2 py-1 text-sm"
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="All">All</option>
+              <option value="active">active</option>
+              <option value="inactive">inactive</option>
+              <option value="suspended">suspended</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600">Sort</label>
+            <select
+              className="border rounded-md px-2 py-1 text-sm"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+            >
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+            </select>
+          </div>
+          <Button className="rounded-[2px]" onClick={openAddModal} size="sm">
+            + Add User
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -222,7 +334,19 @@ const Users = () => {
                         ? user.roles.join(", ").replaceAll("_", " ")
                         : (user.role || "user").replace("_", " ")}
                     </td>
-                    <td className="px-4 py-2 capitalize">{user.status}</td>
+                    <td className="px-4 py-2">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border capitalize ${
+                          user.status === "active"
+                            ? "bg-green-50 text-green-700 border-green-200"
+                            : user.status === "suspended"
+                            ? "bg-red-50 text-red-700 border-red-200"
+                            : "bg-gray-50 text-gray-700 border-gray-200"
+                        }`}
+                      >
+                        {user.status}
+                      </span>
+                    </td>
                     <td className="px-4 py-2 flex gap-2 flex-wrap">
                       {!(
                         (Array.isArray(user.roles) &&
@@ -314,7 +438,15 @@ const Users = () => {
                           ? user.roles.join(", ").replaceAll("_", " ")
                           : (user.role || "user").replace("_", " ")}
                       </span>
-                      <span className={`block mt-1 text-xs capitalize`}>
+                      <span
+                        className={`inline-block mt-1 px-2 py-0.5 text-xs rounded-full border capitalize ${
+                          user.status === "active"
+                            ? "bg-green-50 text-green-700 border-green-200"
+                            : user.status === "suspended"
+                            ? "bg-red-50 text-red-700 border-red-200"
+                            : "bg-gray-50 text-gray-700 border-gray-200"
+                        }`}
+                      >
                         {user.status}
                       </span>
                     </div>
@@ -480,6 +612,108 @@ const Users = () => {
                 className="px-3 py-2 rounded-[2px] bg-black text-white"
               >
                 Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- Add User Modal --- */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-4 sm:p-6 rounded-[2px] w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold mb-4">Add New User</h3>
+
+            <label className="block mb-2 text-sm">Name</label>
+            <input
+              type="text"
+              className="border p-2 rounded-[2px] w-full mb-3"
+              value={newUser.name}
+              onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+              placeholder="John Doe"
+            />
+
+            <label className="block mb-2 text-sm">Email</label>
+            <input
+              type="email"
+              className="border p-2 rounded-[2px] w-full mb-3"
+              value={newUser.email}
+              onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+              placeholder="john@example.com"
+            />
+
+            <label className="block mb-2 text-sm">Phone</label>
+            <input
+              type="text"
+              className="border p-2 rounded-[2px] w-full mb-3"
+              value={newUser.phone}
+              onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+              placeholder="+11234567890"
+            />
+
+            <label className="block mb-2 text-sm">Address</label>
+            <input
+              type="text"
+              className="border p-2 rounded-[2px] w-full mb-3"
+              value={newUser.address}
+              onChange={(e) => setNewUser({ ...newUser, address: e.target.value })}
+              placeholder="123 Main St, City"
+            />
+
+            <label className="block mb-2 text-sm">Password</label>
+            <input
+              type="password"
+              className="border p-2 rounded-[2px] w-full mb-4"
+              value={newUser.password}
+              onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+              placeholder="At least 8 characters"
+            />
+
+            <label className="block mb-1 text-sm">Roles</label>
+            <div className="text-xs text-gray-600 mb-1">
+              Select one or more roles to grant access. If none selected, user defaults to "user" only.
+            </div>
+            <select
+              multiple
+              className="border p-2 rounded-[2px] w-full mb-4"
+              value={newUser.roles}
+              onChange={(e) => {
+                const selected = Array.from(e.target.selectedOptions).map((o) => o.value);
+                setNewUser({ ...newUser, roles: selected });
+              }}
+            >
+              {rolesOptions.map((r) => (
+                <option key={r} value={r}>
+                  {roleLabel(r)}
+                </option>
+              ))}
+            </select>
+
+            <label className="block mb-2 text-sm">Status</label>
+            <select
+              className="border p-2 rounded-[2px] w-full mb-4"
+              value={newUser.status}
+              onChange={(e) => setNewUser({ ...newUser, status: e.target.value })}
+            >
+              <option value="active">active</option>
+              <option value="inactive">inactive</option>
+              <option value="suspended">suspended</option>
+            </select>
+
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+              <button
+                onClick={closeAddModal}
+                className="px-3 py-2 rounded-[2px] bg-gray-200 mt-2 sm:mt-0"
+                disabled={creating}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateUser}
+                className="px-3 py-2 rounded-[2px] bg-black text-white disabled:opacity-60"
+                disabled={creating}
+              >
+                {creating ? "Creating..." : "Create User"}
               </button>
             </div>
           </div>

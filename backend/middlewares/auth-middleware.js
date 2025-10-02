@@ -76,24 +76,39 @@ export const authorize = (...roles) => {
                 message: "Not authorized to access this route"
             });
         }
-
-        // Check if user has required role (supports multi-roles)
-        if (roles.length > 0) {
-            const userRoles = Array.isArray(req.user.roles) ? req.user.roles : (req.user.role ? [req.user.role] : []);
-            const hasRole = roles.some((r) => userRoles.includes(r));
-            if (!hasRole) {
-                return res.status(403).json({
-                    success: false,
-                    message: "User role is not authorized to access this route"
-                });
-            }
+        if (roles.length === 0) return next();
+        const userRoles = Array.isArray(req.user.roles)
+            ? req.user.roles
+            : (req.user.role ? [req.user.role] : []);
+        const hasRole = roles.some((r) => userRoles.includes(r));
+        if (!hasRole) {
+            return res.status(403).json({
+                success: false,
+                message: "User role is not authorized to access this route"
+            });
         }
-        return res.status(403).json({
+        return next();
+    };
+};
+
+// Allow any non-"user" role (e.g., admin, managers, author) to proceed
+export const requireAnyAdminRole = (req, res, next) => {
+    if (!req.user) {
+        return res.status(401).json({
             success: false,
-            message: "User role is not authorized to access this route"
+            message: "Not authorized to access this route"
         });
     }
-
-    next();
+    const userRoles = Array.isArray(req.user.roles)
+        ? req.user.roles
+        : (req.user.role ? [req.user.role] : []);
+    const hasAnyAdminRole = userRoles.some((r) => r && r !== "user");
+    if (!hasAnyAdminRole) {
+        return res.status(403).json({
+            success: false,
+            message: "Admin or manager role required"
+        });
+    }
+    return next();
 };
 

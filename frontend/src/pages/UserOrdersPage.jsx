@@ -19,7 +19,7 @@ const UserOrdersPage = () => {
     try {
       const data = await getUserOrders();
       if (data.success) {
-        setOrders(data.data || []);
+        setOrders(data.data.reverse() || []);
       } else {
         setError(data.message || "Failed to fetch orders");
       }
