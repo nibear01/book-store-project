@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { isValidPhoneNumber } from "libphonenumber-js";
+import { useTranslation } from "react-i18next";
 
 // Icons (You can use Material-UI or Lucide React)
 import Visibility from "@mui/icons-material/Visibility";
@@ -17,8 +18,9 @@ import CheckCircle from "@mui/icons-material/CheckCircle";
 import ErrorOutline from "@mui/icons-material/ErrorOutline";
 
 const SignupPage = () => {
+  const { t } = useTranslation(['auth', 'common']);
   const navigate = useNavigate();
-  const { register, isAuthenticated, user } = useAuth();
+  const { register, isAuthenticated, user, setIsLoading: setGlobalLoading } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -36,7 +38,8 @@ const SignupPage = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    // Only redirect when both authentication and profile are available
+    if (isAuthenticated && user) {
       navigate(user?.role === "admin" ? "/admin/dashboard" : "/", {
         replace: true,
       });
@@ -63,9 +66,9 @@ const SignupPage = () => {
     // Name validation
     if (touched.name) {
       if (!formData.name.trim()) {
-        newErrors.name = "Name is required";
+        newErrors.name = t('auth:signup.nameRequired');
       } else if (formData.name.trim().length < 2) {
-        newErrors.name = "Name must be at least 2 characters";
+        newErrors.name = t('auth:signup.nameMinLength');
       } else if (formData.name.trim().length > 50) {
         newErrors.name = "Name must be less than 50 characters";
       }
@@ -74,11 +77,11 @@ const SignupPage = () => {
     // Email validation
     if (touched.email) {
       if (!formData.email.trim()) {
-        newErrors.email = "Email is required";
+        newErrors.email = t('auth:signup.emailRequired');
       } else {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(formData.email)) {
-          newErrors.email = "Please enter a valid email address";
+          newErrors.email = t('auth:signup.emailInvalid');
         }
       }
     }
@@ -86,18 +89,18 @@ const SignupPage = () => {
     // Phone validation
     if (touched.phone) {
       if (!phoneNumber) {
-        newErrors.phone = "Phone number is required";
+        newErrors.phone = t('auth:signup.phoneRequired');
       } else if (!isValidPhoneNumber(phoneNumber)) {
-        newErrors.phone = "Please enter a valid phone number";
+        newErrors.phone = t('auth:signup.phoneInvalid');
       }
     }
 
     // Password validation
     if (touched.password) {
       if (!formData.password) {
-        newErrors.password = "Password is required";
+        newErrors.password = t('auth:signup.passwordRequired');
       } else if (formData.password.length < 8) {
-        newErrors.password = "Password must be at least 8 characters";
+        newErrors.password = t('auth:signup.passwordMinLength');
       } else if (
         !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(formData.password)
       ) {
@@ -109,18 +112,18 @@ const SignupPage = () => {
     // Confirm password validation
     if (touched.confirmPassword) {
       if (!formData.confirmPassword) {
-        newErrors.confirmPassword = "Please confirm your password";
+        newErrors.confirmPassword = t('auth:signup.confirmPasswordRequired');
       } else if (formData.password !== formData.confirmPassword) {
-        newErrors.confirmPassword = "Passwords do not match";
+        newErrors.confirmPassword = t('auth:signup.passwordMismatch');
       }
     }
 
     // Address validation
     if (touched.address) {
       if (!formData.address.trim()) {
-        newErrors.address = "Address is required";
+        newErrors.address = t('auth:signup.addressRequired');
       } else if (formData.address.trim().length < 5) {
-        newErrors.address = "Please enter a valid address";
+        newErrors.address = t('auth:signup.addressMinLength');
       }
     }
 
@@ -190,16 +193,18 @@ const SignupPage = () => {
         address: formData.address.trim(),
       });
 
-      toast.success("🎉 Account created successfully!");
+      toast.success(t('auth:signup.success'));
 
-      setTimeout(() => {
-        navigate(response?.role === "admin" ? "/admin/dashboard" : "/", {
-          replace: true,
-        });
-      }, 1000);
+      // Use normalized profile shape: userAPI.register -> getMe -> { data: { ... } }
+      const role = response?.data?.role || response?.role || user?.role;
+      // Show global loader to cover UI while redirecting
+      if (typeof setGlobalLoading === 'function') setGlobalLoading(true);
+      navigate(role === "admin" ? "/admin/dashboard" : "/", {
+        replace: true,
+      });
     } catch (error) {
       console.error("Registration failed:", error);
-      toast.error(error.message || "Registration failed. Please try again.");
+      toast.error(error.message || t('auth:signup.signupFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -231,7 +236,13 @@ const SignupPage = () => {
   const PasswordStrengthIndicator = () => {
     if (!formData.password) return null;
 
-    const strengthLabels = ["Very Weak", "Weak", "Fair", "Good", "Strong"];
+    const strengthLabels = [
+      t('auth:signup.passwordWeak'),
+      t('auth:signup.passwordWeak'),
+      t('auth:signup.passwordMedium'),
+      t('auth:signup.passwordStrong'),
+      t('auth:signup.passwordVeryStrong')
+    ];
     const strengthColors = [
       "bg-red-500",
       "bg-orange-500",
@@ -267,15 +278,15 @@ const SignupPage = () => {
               : "text-green-600"
           }`}
         >
-          Password strength:{" "}
-          {strengthLabels[passwordStrength - 1] || "Very Strong"}
+          {t('auth:signup.passwordStrengthLabel')}{" "}
+          {strengthLabels[passwordStrength - 1] || t('auth:signup.passwordVeryStrong')}
         </p>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
       <div className="w-full max-w-md">
         <div
           variants={containerVariants}
@@ -287,10 +298,10 @@ const SignupPage = () => {
               variants={itemVariants}
               className="text-3xl font-bold text-black mb-2"
             >
-              Register
+              {t('auth:signup.title')}
             </h1>
             <p variants={itemVariants} className="text-black">
-              Create your account in seconds
+              {t('auth:signup.subtitle')}
             </p>
           </div>
 
@@ -299,7 +310,7 @@ const SignupPage = () => {
               {/* Name Field */}
               <div variants={itemVariants} className="space-y-2">
                 <label className="flex items-center text-sm font-medium text-gray-700">
-                  Full Name
+                  {t('auth:signup.name')}
                 </label>
                 <div className="relative">
                   <input
@@ -334,7 +345,7 @@ const SignupPage = () => {
               {/* Email Field */}
               <div variants={itemVariants} className="space-y-2">
                 <label className="flex items-center text-sm font-medium text-gray-700">
-                  Email Address
+                  {t('auth:signup.email')}
                 </label>
                 <div className="relative">
                   <input
@@ -369,7 +380,7 @@ const SignupPage = () => {
               {/* Phone Field */}
               <div variants={itemVariants} className="space-y-2">
                 <label className="flex items-center text-sm font-medium text-gray-700">
-                  Phone Number
+                  {t('auth:signup.phone')}
                 </label>
                 <div
                   className={`phone-input-custom border-1 rounded-md transition-all duration-200 ${
@@ -405,7 +416,7 @@ const SignupPage = () => {
               {/* Password Field */}
               <div variants={itemVariants} className="space-y-2">
                 <label className="flex items-center text-sm font-medium text-gray-700">
-                  Password
+                  {t('auth:signup.password')}
                   <span className="text-xs text-gray-500 ml-auto">
                     {formData.password
                       ? `${formData.password.length}/8`
@@ -462,7 +473,7 @@ const SignupPage = () => {
                     animate={{ opacity: 1, height: "auto" }}
                     className="text-xs text-gray-600 space-y-1"
                   >
-                    <p className="font-medium">Requirements:</p>
+                    <p className="font-medium">{t('auth:signup.passwordRequirements')}</p>
                     <ul className="space-y-1">
                       <li
                         className={
@@ -471,8 +482,7 @@ const SignupPage = () => {
                             : "text-gray-400 flex items-center gap-1"
                         }
                       >
-                        {formData.password.length >= 8 ? "✓" : "○"} At least 8
-                        characters
+                        {formData.password.length >= 8 ? "✓" : "○"} {t('auth:signup.atLeast8Characters')}
                       </li>
                       <li
                         className={
@@ -481,8 +491,7 @@ const SignupPage = () => {
                             : "text-gray-400 flex items-center gap-1"
                         }
                       >
-                        {/(?=.*[a-z])/.test(formData.password) ? "✓" : "○"} One
-                        lowercase letter
+                        {/(?=.*[a-z])/.test(formData.password) ? "✓" : "○"} {t('auth:signup.oneLowercase')}
                       </li>
                       <li
                         className={
@@ -491,8 +500,7 @@ const SignupPage = () => {
                             : "text-gray-400 flex items-center gap-1"
                         }
                       >
-                        {/(?=.*[A-Z])/.test(formData.password) ? "✓" : "○"} One
-                        uppercase letter
+                        {/(?=.*[A-Z])/.test(formData.password) ? "✓" : "○"} {t('auth:signup.oneUppercase')}
                       </li>
                       <li
                         className={
@@ -501,8 +509,7 @@ const SignupPage = () => {
                             : "text-gray-400 flex items-center gap-1"
                         }
                       >
-                        {/(?=.*\d)/.test(formData.password) ? "✓" : "○"} One
-                        number
+                        {/(?=.*\d)/.test(formData.password) ? "✓" : "○"} {t('auth:signup.oneNumber')}
                       </li>
                       <li
                         className={
@@ -512,7 +519,7 @@ const SignupPage = () => {
                         }
                       >
                         {/(?=.*[@$!%*?&])/.test(formData.password) ? "✓" : "○"}{" "}
-                        One special character (@$!%*?&)
+                        {t('auth:signup.oneSpecialChar')}
                       </li>
                     </ul>
                   </div>
@@ -522,7 +529,7 @@ const SignupPage = () => {
               {/* Confirm Password Field */}
               <div variants={itemVariants} className="space-y-2">
                 <label className="flex items-center text-sm font-medium text-gray-700">
-                  Confirm Password
+                  {t('auth:signup.confirmPasswordLabel')}
                   {formData.confirmPassword &&
                     formData.password === formData.confirmPassword && (
                       <CheckCircle className="w-4 h-4 ml-auto text-green-500" />
@@ -579,7 +586,7 @@ const SignupPage = () => {
                       className="text-green-600 text-xs flex items-center gap-1"
                     >
                       <CheckCircle className="w-3 h-3" />
-                      Passwords match
+                      {t('auth:signup.passwordsMatch')}
                     </p>
                   )}
               </div>
@@ -587,7 +594,7 @@ const SignupPage = () => {
               {/* Address Field */}
               <div variants={itemVariants} className="space-y-2">
                 <label className="flex items-center text-sm font-medium text-gray-700">
-                  Address
+                  {t('auth:signup.addressLabel')}
                 </label>
                 <div className="relative">
                   <input
@@ -633,10 +640,10 @@ const SignupPage = () => {
                 {isLoading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Creating Account...
+                    {t('auth:signup.signingUp')}
                   </>
                 ) : (
-                  "Create Account"
+                  t('auth:signup.signupButton')
                 )}
               </button>
             </form>
@@ -671,12 +678,12 @@ const SignupPage = () => {
             {/* Login Link */}
             <div variants={itemVariants} className="text-center mt-6">
               <p className="text-gray-600 text-sm">
-                Already have an account?{" "}
+                {t('auth:signup.haveAccount')}{" "}
                 <Link
                   to="/login"
-                  className="text-blue-600 hover:text-blue-700 transition-colors duration-200"
+                  className="text-red-500 hover:text-red-400 transition-colors duration-200"
                 >
-                  Sign in here
+                  {t('auth:signup.loginLink')}
                 </Link>
               </p>
             </div>

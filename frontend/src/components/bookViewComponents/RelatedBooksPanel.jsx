@@ -1,25 +1,36 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { BooksContext } from "@/context/BooksContext";
-import { FaStar, FaShoppingCart } from "react-icons/fa";
+import { usePrintSettings } from "@/context/PrintSettingsContext";
+import { FaStar } from "react-icons/fa";
+import { useTranslation } from "react-i18next";
+import {
+  computeFinalConfiguredPrice,
+  defaultPrintState,
+} from "./BookPrintPricing";
 
 const RelatedBooksPanel = ({ book }) => {
+  const { t } = useTranslation(['bookView', 'common']);
   const [relatedBooks, setRelatedBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const context = useContext(BooksContext);
 
   // Check if context functions exist
-  const { getBooksByGenre, getBooksByAuthor, addToCart } = context || {};
+  const { getBooksByGenre, getBooksByAuthor, url } = context || {};
+  const { printSettings } = usePrintSettings();
 
   useEffect(() => {
     const fetchRelatedBooks = async () => {
       if (!book) return;
 
       // Check if required functions are available
-      if (typeof getBooksByGenre !== 'function' || typeof getBooksByAuthor !== 'function') {
-        console.error('Required context functions are not available');
-        setError('Related books feature is currently unavailable');
+      if (
+        typeof getBooksByGenre !== "function" ||
+        typeof getBooksByAuthor !== "function"
+      ) {
+        console.error("Required context functions are not available");
+        setError("Related books feature is currently unavailable");
         setLoading(false);
         return;
       }
@@ -29,18 +40,20 @@ const RelatedBooksPanel = ({ book }) => {
         setError(null);
         const promises = [];
 
-        // Fetch books by genre (exclude current book)
-        if (book.genre && book.genre.length > 0) {
-          promises.push(
-            getBooksByGenre(book.genre[0], 4)
-          );
+        // Fetch books by primary genre (exclude current book)
+        if (
+          book.genre &&
+          book.genre.length > 0 &&
+          typeof getBooksByGenre === "function"
+        ) {
+          // Try with up to first two genres to improve relevance
+          const uniqueGenres = Array.from(new Set(book.genre.slice(0, 2)));
+          uniqueGenres.forEach((g) => promises.push(getBooksByGenre(g, 6)));
         }
 
-        // Fetch books by author (exclude current book)
-        if (book.author) {
-          promises.push(
-            getBooksByAuthor(book.author, 3)
-          );
+        // Optional: include same author
+        if (book.author && typeof getBooksByAuthor === "function") {
+          promises.push(getBooksByAuthor(book.author, 6));
         }
 
         // If no promises were created, skip fetching
@@ -50,7 +63,9 @@ const RelatedBooksPanel = ({ book }) => {
           return;
         }
 
-        const results = await Promise.allSettled(promises);
+        const results = promises.length
+          ? await Promise.allSettled(promises)
+          : [];
 
         let combinedBooks = [];
         results.forEach((result) => {
@@ -70,7 +85,7 @@ const RelatedBooksPanel = ({ book }) => {
           return acc;
         }, []);
 
-        setRelatedBooks(uniqueBooks.slice(0, 6));
+        setRelatedBooks(uniqueBooks.slice(0, 12));
       } catch (error) {
         console.error("Error fetching related books:", error);
         setError("Failed to load related books");
@@ -87,7 +102,7 @@ const RelatedBooksPanel = ({ book }) => {
     return (
       <div className="mt-12 border-t pt-8">
         <h3 className="text-2xl font-bold mb-6 text-gray-900">
-          You Might Also Like
+          {t('bookView.related.title')}
         </h3>
         <div className="text-center py-8 text-gray-500">
           <p>{error}</p>
@@ -100,7 +115,7 @@ const RelatedBooksPanel = ({ book }) => {
     return (
       <div className="mt-12 border-t pt-8">
         <h3 className="text-2xl font-bold mb-6 text-gray-900">
-          You Might Also Like
+          {t('bookView.related.title')}
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[...Array(6)].map((_, index) => (
@@ -118,10 +133,14 @@ const RelatedBooksPanel = ({ book }) => {
   if (!relatedBooks || relatedBooks.length === 0) {
     return (
       <div className="mt-12 border-t pt-8">
-        <h3 className="text-2xl font-bold mb-6 text-gray-900">You Might Also Like</h3>
+        <h3 className="text-2xl font-bold mb-6 text-gray-900">
+          {t('bookView.related.title')}
+        </h3>
         <div className="text-center py-10 text-gray-500 bg-gray-50 rounded-[2px] border border-dashed border-gray-200">
-          <p className="font-medium">No related books with the current book.</p>
-          <p className="text-sm mt-1">Try exploring other categories or authors.</p>
+          <p className="font-medium">{t('bookView.related.noBooks')}</p>
+          <p className="text-sm mt-1">
+            {t('bookView.related.tryExploring')}
+          </p>
         </div>
       </div>
     );
@@ -130,14 +149,15 @@ const RelatedBooksPanel = ({ book }) => {
   return (
     <div className="mt-12 border-t pt-8">
       <h3 className="text-2xl font-bold mb-6 text-gray-900">
-        You Might Also Like
+        {t('bookView.related.title')}
       </h3>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
         {relatedBooks.map((relatedBook) => (
-          <RelatedBookCard 
-            key={relatedBook._id} 
-            book={relatedBook} 
-            addToCart={addToCart}
+          <RelatedBookCard
+            key={relatedBook._id}
+            book={relatedBook}
+            baseUrl={url}
+            printSettings={printSettings}
           />
         ))}
       </div>
@@ -145,48 +165,116 @@ const RelatedBooksPanel = ({ book }) => {
   );
 };
 
-// Updated RelatedBookCard to receive addToCart as prop
-const RelatedBookCard = ({ book }) => {
+// RelatedBookCard with pricing and improved UI
+const RelatedBookCard = ({ book, baseUrl, printSettings }) => {
+  const { t } = useTranslation(['bookView', 'common']);
   const [imageError, setImageError] = useState(false);
+  const coverRaw = Array.isArray(book?.cover_image)
+    ? book.cover_image[0]
+    : book?.cover_image;
+  const cover = coverRaw
+    ? /^https?:/i.test(coverRaw)
+      ? coverRaw
+      : `${baseUrl || ""}${coverRaw}`
+    : null;
 
+  // Compute displayed price (Admin/Deal/POD-aware)
+  const price = useMemo(() => {
+    const isOnSale = !!(
+      book?.is_on_sale && typeof book?.sale_price === "number"
+    );
+    const isDeal = !!book?.is_deal_of_the_week && isOnSale;
+    const base = Number(book?.price || 0);
+    const sale = Number(book?.sale_price || 0);
+    const pages = Number(book?.pages || 0);
+    if (isDeal) {
+      return {
+        now: sale,
+        ref: base,
+        sale: true,
+      };
+    }
+    if (!printSettings) {
+      return {
+        now: isOnSale ? sale : base,
+        ref: base,
+        sale: isOnSale,
+      };
+    }
+    const cfg = defaultPrintState;
+    const basePod = computeFinalConfiguredPrice({
+      baseContentPrice: base,
+      pages,
+      cfg,
+      settings: printSettings,
+    });
+    const salePod = isOnSale
+      ? computeFinalConfiguredPrice({
+          baseContentPrice: sale,
+          pages,
+          cfg,
+          settings: printSettings,
+        })
+      : null;
+    return {
+      now: isOnSale ? Number(salePod?.price) : Number(basePod.price),
+      ref: Number(basePod.price),
+      sale: isOnSale,
+    };
+  }, [
+    book?.is_on_sale,
+    book?.is_deal_of_the_week,
+    book?.sale_price,
+    book?.price,
+    book?.pages,
+    printSettings,
+  ]);
 
-  const coverImage = book.cover_image?.[0] || "";
   const displayImage =
-    coverImage && !imageError
-      ? `http://localhost:5000${coverImage}`
-      : "/images/book-placeholder.jpg";
+    cover && !imageError
+      ? cover
+      : "data:image/svg+xml;charset=UTF-8," +
+        encodeURIComponent(
+          `<svg xmlns='http://www.w3.org/2000/svg' width='300' height='420'>
+           <rect width='100%' height='100%' fill='#f3f4f6'/>
+           <g fill='#e5e7eb'>
+             <rect x='60' y='60' width='180' height='280' rx='6'/>
+           </g>
+           <text x='50%' y='52%' dominant-baseline='middle' text-anchor='middle' fill='#9ca3af' font-size='14' font-family='Arial'>No Book Cover</text>
+         </svg>`
+        );
 
   return (
     <Link
       to={`/bookview/${book.slug}`}
-      className="group block bg-white rounded-[2px] shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100"
+      className="group block bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 overflow-hidden"
     >
       <div className="relative overflow-hidden">
         <img
           src={displayImage}
           alt={book.title}
-          className="w-full h-40 object-cover rounded-t-[2px] group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
           onError={() => setImageError(true)}
         />
 
-
-        {book.stock > 0 ? (
-          <span className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-            In Stock
+        {book?.is_deal_of_the_week && (
+          <span className="absolute top-2 left-2 bg-black text-white text-[10px] px-2 py-1 rounded-full shadow">
+            {t('bookView.related.dealOfWeek')}
           </span>
-        ) : (
-          <span className="absolute top-2 left-2 bg-gray-500 text-white text-xs px-2 py-1 rounded-full">
-            Out of Stock
+        )}
+        {book?.is_on_sale && !book?.is_deal_of_the_week && (
+          <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] px-2 py-1 rounded-full shadow">
+            {t('bookView.related.onSale')}
           </span>
         )}
       </div>
 
       <div className="p-3">
-        <h4 className="font-semibold text-sm mb-1 line-clamp-2 group-hover:text-gray-700 transition-colors">
+        <h4 className="font-semibold text-sm mb-1 line-clamp-2 group-hover:text-gray-800 transition-colors">
           {book.title}
         </h4>
         <p className="text-xs text-gray-600 mb-2 line-clamp-1">
-          by {book.author}
+          {t('bookView.by')} {book.author}
         </p>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-1">
@@ -197,30 +285,30 @@ const RelatedBookCard = ({ book }) => {
             </span>
           </div>
           <div className="text-right">
-            {book.is_on_sale && book.sale_price ? (
+            {price.sale ? (
               <>
                 <span className="text-sm font-bold text-red-600">
-                  ${book.sale_price}
+                  {t('common:currency')}{Number(price.now).toFixed(0)}
                 </span>
                 <span className="text-xs text-gray-500 line-through ml-1">
-                  ${book.price}
+                  {t('common:currency')}{Number(price.ref).toFixed(0)}
                 </span>
               </>
             ) : (
               <span className="text-sm font-bold text-gray-900">
-                ${book.price}
+                {t('common:currency')}{Number(price.now).toFixed(0)}
               </span>
             )}
           </div>
         </div>
-        {book.genre && book.genre.length > 0 && (
+        {Array.isArray(book.genre) && book.genre.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
-            {book.genre.slice(0, 2).map((genre, index) => (
+            {book.genre.slice(0, 2).map((g, idx) => (
               <span
-                key={index}
-                className="text-xs bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded"
+                key={idx}
+                className="text-[10px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded-full"
               >
-                {genre}
+                {g}
               </span>
             ))}
           </div>

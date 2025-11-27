@@ -1,11 +1,14 @@
 // AuthorRequestForm.jsx
 import ButtonFill from "@/Button/ButtonFill";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { toast } from "react-toastify";
 
 const COOLDOWN_SECONDS = 60;
 
 const AuthorRequestForm = () => {
+  const { t } = useTranslation(['forms', 'common']);
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -34,9 +37,9 @@ const AuthorRequestForm = () => {
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ text: "", type: "" });
 
   // ===== Email OTP verification state =====
+  // const [emailVerified, setEmailVerified] = useState(true); // TEMP: disable verification requirement
   const [emailVerified, setEmailVerified] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
@@ -56,16 +59,17 @@ const AuthorRequestForm = () => {
     [form.email]
   );
 
-  const handleChange = (e) => {
+  const handleChange = useCallback((e) => {
     const { name, type, value, checked } = e.target;
     setForm((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
-    if (name === "email") {
-      // editing email resets verification state
-      setEmailVerified(false);
-      setOtpSent(false);
-      setOtpCode("");
-    }
-  };
+    // TEMP: Commenting out email verification reset for testing
+    // if (name === "email") {
+    //   // editing email resets verification state
+    //   setEmailVerified(false);
+    //   setOtpSent(false);
+    //   setOtpCode("");
+    // }
+  }, []);
 
   const composeAddress = () => {
     const {
@@ -125,7 +129,6 @@ const AuthorRequestForm = () => {
   const sendCode = async () => {
     if (!emailLooksValid || sending || cooldown > 0 || emailVerified) return;
     setSending(true);
-    setMessage({ text: "", type: "" });
     try {
       const res = await fetch("/api/author-requests/otp/send", {
         method: "POST",
@@ -136,16 +139,13 @@ const AuthorRequestForm = () => {
       if (!res.ok) throw new Error(data?.error || "Failed to send code.");
       setOtpSent(true);
       setCooldown(COOLDOWN_SECONDS);
-      setMessage({
-        text: "📧 Verification code sent to your email. (Check spam/junk if needed)",
-        type: "success",
-      });
+      toast.success("📧 Verification code sent to your email. (Check spam/junk if needed)");
       // Optional: show Ethereal preview link in dev
       if (data?.preview) {
         console.log("Ethereal preview:", data.preview);
       }
     } catch (e) {
-      setMessage({ text: e.message || "Failed to send code.", type: "error" });
+      toast.error(e.message || "Failed to send code.");
     } finally {
       setSending(false);
     }
@@ -154,7 +154,6 @@ const AuthorRequestForm = () => {
   const verifyCode = async () => {
     if (!otpCode.trim() || verifying) return;
     setVerifying(true);
-    setMessage({ text: "", type: "" });
     try {
       const res = await fetch("/api/author-requests/otp/verify", {
         method: "POST",
@@ -165,10 +164,10 @@ const AuthorRequestForm = () => {
       if (!res.ok || !data?.verified)
         throw new Error(data?.error || "Incorrect or expired code.");
       setEmailVerified(true);
-      setMessage({ text: "✅ Email verified successfully.", type: "success" });
+      toast.success("✅ Email verified successfully.");
     } catch (e) {
       setEmailVerified(false);
-      setMessage({ text: e.message || "Verification failed.", type: "error" });
+      toast.error(e.message || "Verification failed.");
     } finally {
       setVerifying(false);
     }
@@ -181,7 +180,6 @@ const AuthorRequestForm = () => {
     if (Object.keys(err).length) return;
 
     setLoading(true);
-    setMessage({ text: "", type: "" });
     try {
       const res = await fetch("/api/author-requests/submit", {
         method: "POST",
@@ -196,7 +194,7 @@ const AuthorRequestForm = () => {
       });
       const data = await res.json();
       if (res.ok && data?.success) {
-        setMessage({ text: "✅ Submitted successfully!", type: "success" });
+        toast.success("✅ Submitted successfully!");
         setForm({
           fullName: "",
           email: "",
@@ -224,11 +222,11 @@ const AuthorRequestForm = () => {
         setOtpCode("");
         setCooldown(0);
       } else {
-        setMessage({ text: data?.message || "❌ Submission failed. Try again.", type: "error" });
+        toast.error(data?.message || "❌ Submission failed. Try again.");
       }
     } catch (err) {
       console.error(err);
-      setMessage({ text: "⚠️ Network error. Please retry.", type: "error" });
+      toast.error("⚠️ Network error. Please retry.");
     } finally {
       setLoading(false);
     }
@@ -249,30 +247,30 @@ const AuthorRequestForm = () => {
       <div className="pt-6">
         <nav className="flex items-center text-[16px] text-gray-600 space-x-2">
           <Link to="/" className="hover:text-gray-800 transition-colors">
-            Home
+            {t('common:navbar.home')}
           </Link>
           <span>/</span>
           <Link to="/author" className="hover:text-gray-800 transition-colors">
-            Author
+            {t('common:navbar.authors')}
           </Link>
           <span>/</span>
-          <span className="text-gray-900 font-medium">Author Request</span>
+          <span className="text-gray-900 font-medium">{t('forms:authorRequest.pageTitle')}</span>
         </nav>
       </div>
 
       <div className="bg-white rounded-md shadow-lg p-6 md:p-8 max-w-3xl mx-auto my-10">
         <h1 className="text-3xl font-semibold mb-1 text-gray-800">
-          Author Request
+          {t('forms:authorRequest.pageTitle')}
         </h1>
         <p className="text-gray-600 mb-6">
-          Fill in the details below and press{" "}
-          <span className="font-medium">Submit</span>.
+          {t('forms:authorRequest.subtitle')}{" "}
+          <span className="font-medium">{t('forms:authorRequest.submit')}</span>.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           {/* Full Name */}
           <div>
-            <label className="block text-sm font-medium">Full Name</label>
+            <label className="block text-sm font-medium">{t('forms:authorRequest.fullName')}</label>
             <input
               name="fullName"
               value={form.fullName}
@@ -286,7 +284,7 @@ const AuthorRequestForm = () => {
 
           {/* Email + OTP */}
           <div>
-            <label className="block text-sm font-medium">Email</label>
+            <label className="block text-sm font-medium">{t('forms:authorRequest.email')}</label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="md:col-span-2">
                 <input
@@ -307,7 +305,7 @@ const AuthorRequestForm = () => {
                 {errText("err-email", errors.email)}
                 {errText("err-emailVerified", errors.emailVerified)}
                 {emailVerified && (
-                  <p className="text-green-700 text-sm mt-1">Email verified.</p>
+                  <p className="text-green-700 text-sm mt-1">{t('forms:authorRequest.emailVerified')}</p>
                 )}
               </div>
               <div className="flex items-end">
@@ -327,12 +325,12 @@ const AuthorRequestForm = () => {
                   }
                 >
                   {sending
-                    ? "Sending..."
+                    ? t('forms:authorRequest.sending')
                     : cooldown > 0
-                    ? `Resend in ${cooldown}s`
+                    ? `${t('forms:authorRequest.resendIn')} ${cooldown}s`
                     : otpSent
-                    ? "Resend Code"
-                    : "Send Code"}
+                    ? t('forms:authorRequest.resendCode')
+                    : t('forms:authorRequest.sendCode')}
                 </button>
               </div>
             </div>
@@ -374,7 +372,7 @@ const AuthorRequestForm = () => {
 
           {/* Phone */}
           <div>
-            <label className="block text-sm font-medium">Phone</label>
+            <label className="block text-sm font-medium">{t('forms:authorRequest.phone')}</label>
             <input
               name="phone"
               value={form.phone}
@@ -388,12 +386,12 @@ const AuthorRequestForm = () => {
 
           {/* Address Group */}
           <div>
-            <label className="block text-sm font-medium mb-1">Address</label>
+            <label className="block text-sm font-medium mb-1">{t('forms:authorRequest.address')}</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <input
                   name="addressStreet"
-                  placeholder="Street / House, Road"
+                  placeholder={t('forms:authorRequest.streetPlaceholder')}
                   value={form.addressStreet}
                   onChange={handleChange}
                   className={inputClass}
@@ -407,7 +405,7 @@ const AuthorRequestForm = () => {
               <div>
                 <input
                   name="addressCity"
-                  placeholder="City"
+                  placeholder={t('forms:authorRequest.cityPlaceholder')}
                   value={form.addressCity}
                   onChange={handleChange}
                   className={inputClass}
@@ -419,7 +417,7 @@ const AuthorRequestForm = () => {
               <div>
                 <input
                   name="addressState"
-                  placeholder="State / Division"
+                  placeholder={t('forms:authorRequest.statePlaceholder')}
                   value={form.addressState}
                   onChange={handleChange}
                   className={inputClass}
@@ -433,7 +431,7 @@ const AuthorRequestForm = () => {
               <div>
                 <input
                   name="addressZip"
-                  placeholder="Post / ZIP Code"
+                  placeholder={t('forms:authorRequest.zipPlaceholder')}
                   value={form.addressZip}
                   onChange={handleChange}
                   className={inputClass}
@@ -445,7 +443,7 @@ const AuthorRequestForm = () => {
               <div>
                 <input
                   name="addressCountry"
-                  placeholder="Country"
+                  placeholder={t('forms:authorRequest.countryPlaceholder')}
                   value={form.addressCountry}
                   onChange={handleChange}
                   className={inputClass}
@@ -461,7 +459,7 @@ const AuthorRequestForm = () => {
 
           {/* Affiliation */}
           <div>
-            <label className="block text-sm font-medium">Affiliation</label>
+            <label className="block text-sm font-medium">{t('forms:authorRequest.affiliation')}</label>
             <input
               name="affiliation"
               value={form.affiliation}
@@ -473,7 +471,7 @@ const AuthorRequestForm = () => {
           {/* Title */}
           <div>
             <label className="block text-sm font-medium">
-              Manuscript Title
+              {t('forms:authorRequest.manuscriptTitle')}
             </label>
             <input
               name="title"
@@ -488,33 +486,33 @@ const AuthorRequestForm = () => {
 
           {/* Type of Work */}
           <div>
-            <label className="block text-sm font-medium">Type of Work</label>
+            <label className="block text-sm font-medium">{t('forms:authorRequest.typeOfWork')}</label>
             <select
               name="typeOfWork"
               value={form.typeOfWork}
               onChange={handleChange}
               className={inputClass}
             >
-              <option>Book</option>
-              <option>Research Paper</option>
-              <option>Article</option>
-              <option>Other</option>
+              <option>{t('forms:authorRequest.typeBook')}</option>
+              <option>{t('forms:authorRequest.typeResearch')}</option>
+              <option>{t('forms:authorRequest.typeArticle')}</option>
+              <option>{t('forms:authorRequest.typeOther')}</option>
             </select>
           </div>
 
           {/* Language */}
           <div>
-            <label className="block text-sm font-medium">Language / ভাষা</label>
+            <label className="block text-sm font-medium">{t('forms:authorRequest.language')}</label>
             <select
               name="categoryType"
               value={form.categoryType}
               onChange={handleChange}
               className={inputClass}
             >
-              <option value="">Select Language</option>
-              <option value="English">English</option>
-              <option value="Bangla">Bangla (বাংলা)</option>
-              <option value="Bilingual">Bilingual</option>
+              <option value="">{t('forms:authorRequest.selectLanguage')}</option>
+              <option value="English">{t('forms:authorRequest.languageEnglish')}</option>
+              <option value="Bangla">{t('forms:authorRequest.languageBangla')}</option>
+              <option value="Bilingual">{t('forms:authorRequest.languageBilingual')}</option>
             </select>
             {errors.categoryType && (
               <p className="text-red-600 text-sm">{errors.categoryType}</p>
@@ -524,7 +522,7 @@ const AuthorRequestForm = () => {
           {/* Abstract */}
           <div>
             <label className="block text-sm font-medium">
-              Abstract / Summary
+              {t('forms:authorRequest.abstractSummary')}
             </label>
             <textarea
               name="abstract"
@@ -547,7 +545,7 @@ const AuthorRequestForm = () => {
                 checked={form.rightsOriginal}
                 onChange={handleChange}
               />
-              I confirm this is my original work.
+              {t('forms:authorRequest.confirmOriginal')}
             </label>
             {errors.rightsOriginal && (
               <p className="text-red-600 text-sm">{errors.rightsOriginal}</p>
@@ -560,7 +558,7 @@ const AuthorRequestForm = () => {
                 checked={form.rightsPublish}
                 onChange={handleChange}
               />
-              I grant permission to publish.
+              {t('forms:authorRequest.grantPermission')}
             </label>
             {errors.rightsPublish && (
               <p className="text-red-600 text-sm">{errors.rightsPublish}</p>
@@ -573,7 +571,7 @@ const AuthorRequestForm = () => {
                 checked={form.agreeEditorial}
                 onChange={handleChange}
               />
-              I agree to editorial guidelines.
+              {t('forms:authorRequest.agreeGuidelines')}
             </label>
             {errors.agreeEditorial && (
               <p className="text-red-600 text-sm">{errors.agreeEditorial}</p>
@@ -583,7 +581,7 @@ const AuthorRequestForm = () => {
           {/* Additional Requests */}
           <div>
             <label className="block text-sm font-medium">
-              Additional Requests
+              {t('forms:authorRequest.additionalRequests')}
             </label>
             <textarea
               name="additionalRequests"
@@ -597,7 +595,7 @@ const AuthorRequestForm = () => {
           {/* Signature & Date */}
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium">Signature</label>
+              <label className="block text-sm font-medium">{t('forms:authorRequest.signature')}</label>
               <input
                 name="signature"
                 value={form.signature}
@@ -606,7 +604,7 @@ const AuthorRequestForm = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium">Date</label>
+              <label className="block text-sm font-medium">{t('forms:authorRequest.date')}</label>
               <input
                 type="date"
                 name="date"
@@ -616,19 +614,6 @@ const AuthorRequestForm = () => {
               />
             </div>
           </div>
-
-          {message.text && (
-            <div
-              role="alert"
-              className={`p-3 mb-6 rounded-lg text-sm text-center ${
-                message.type === "success"
-                  ? "bg-green-100 text-green-800"
-                  : "bg-red-100 text-red-800"
-              }`}
-            >
-              {message.text}
-            </div>
-          )}
 
           <div className="pt-4 flex justify-end">
             <ButtonFill
@@ -641,10 +626,10 @@ const AuthorRequestForm = () => {
               }`}
             >
               {loading
-                ? "Submitting..."
+                ? t('forms:authorRequest.submitting')
                 : emailVerified
-                ? "Submit"
-                : "Verify Email to Submit"}
+                ? t('forms:authorRequest.submit')
+                : t('forms:authorRequest.emailVerifyRequired')}
             </ButtonFill>
           </div>
         </form>

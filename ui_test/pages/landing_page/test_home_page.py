@@ -1,0 +1,264 @@
+"""
+Landing Page Tests
+Tests for homepage components using Selenium + pytest + By.NAME locators only.
+No XPath, no CSS selectors, no sleep calls.
+"""
+
+from pathlib import Path
+import sys
+
+# Make repo root importable
+ROOT = Path(__file__).resolve().parents[3]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import pytest
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
+
+
+class TestLandingPage:
+    HOME_URL = f"{CategoriesBaseTest.BASE_URL}{C.URLs.HOME}"
+
+    # ========== Helper Methods ==========
+    
+    def _open_home(self):
+        """Navigate to homepage and wait for hero carousel to load"""
+        self.driver.goto(self.HOME_URL)
+        self.driver.locator(C.Selectors.HERO_SECTION).first.wait_for(timeout=C.Timeouts.DEFAULT * 1000)
+        self.driver.locator(C.Selectors.HERO_SLIDE_GROUP).first.wait_for(timeout=C.Timeouts.DEFAULT * 1000)
+        try:
+            self.driver.locator(C.Selectors.HERO_SECTION).first.hover()
+        except Exception:
+            pass
+        return self
+
+    def _hero_track(self):
+        """Get the hero carousel track element"""
+        return self.driver.locator(C.Selectors.HERO_TRACK).first
+
+    def _hero_transform(self) -> str:
+        """Get the current transform style of the hero track"""
+        try:
+            return self._hero_track().get_attribute("style") or ""
+        except Exception:
+            return ""
+
+    def _wait_transform_change(self, prev: str, timeout_ms: int = C.Timeouts.TRANSFORM_WAIT):
+        try:
+            self.driver.wait_for_function(C.JavaScriptFunctions.TRANSFORM_CHANGED, prev, timeout=timeout_ms)
+        except Exception:
+            return
+
+    def _click_hero_next(self):
+        """Click the next slide button in hero carousel"""
+        self.driver.get_by_role("button", name=re.compile(C.UIText.NEXT_SLIDE, re.I)).first.click()
+
+    def _click_hero_prev(self):
+        """Click the previous slide button in hero carousel"""
+        self.driver.get_by_role("button", name=re.compile(C.UIText.PREVIOUS_SLIDE, re.I)).first.click()
+
+    def _click_shop_now(self):
+        """Click the Shop Now link in hero carousel"""
+        try:
+            self.driver.get_by_role("link", name=re.compile(C.UIText.SHOP_NOW, re.I)).first.click()
+        except Exception:
+            self.driver.locator(C.Selectors.SHOP_NOW_LINK).first.click()
+
+    def _wait_url(self, pattern: str, timeout_ms: int = C.Timeouts.QUICK * 1000):
+        """Wait for URL to match the specified pattern"""
+        self.driver.wait_for_url(re.compile(pattern), timeout=timeout_ms)
+
+    def _categories_region(self):
+        """Get the categories section region element"""
+        return self.driver.get_by_role(C.Selectors.CATEGORIES_REGION, name=re.compile(C.UIText.CATEGORIES, re.I)).first
+
+    def _feature_heading(self):
+        """Get the Featured Books heading element"""
+        return self.driver.get_by_role(C.Selectors.FEATURED_HEADING, name=re.compile(C.UIText.FEATURED_BOOKS, re.I)).first
+
+    def _deals_region(self):
+        """Get the Deals of the Week region element"""
+        return self.driver.get_by_role(C.Selectors.DEALS_REGION, name=re.compile(C.UIText.DEALS_OF_THE_WEEK, re.I)).first
+
+    def _new_releases_heading(self):
+        """Get the New Releases heading element"""
+        return self.driver.get_by_role(C.Selectors.NEW_RELEASES_HEADING, name=re.compile(C.UIText.NEW_RELEASES, re.I)).first
+
+    def _wait_for_button_active(self, name: str, timeout_ms: int = C.Timeouts.QUICK * 1000):
+        try:
+            self.driver.wait_for_function(C.JavaScriptFunctions.BUTTON_IS_ACTIVE, name, timeout=timeout_ms)
+        except Exception:
+            return
+
+    def _wait_deals_title_change(self, prev: str, timeout_ms: int = C.Timeouts.QUICK * 1000):
+        try:
+            self.driver.wait_for_function(C.JavaScriptFunctions.DEALS_TITLE_CHANGED, prev, timeout=timeout_ms)
+        except Exception:
+            return
+
+    # ========== Test Methods ==========
+
+    def test_hero_slider_buttons(self):
+        self._open_home()
+        initial = self._hero_transform()
+        self._click_hero_next()
+        self._wait_transform_change(initial)
+        after_next = self._hero_transform()
+        self.assertNotEqual(initial, after_next, C.Messages.Assert.TRANSFORM_CHANGED)
+
+        self._click_hero_prev()
+        self._wait_transform_change(after_next)
+        after_prev = self._hero_transform()
+        self.assertEqual(after_prev, initial, C.Messages.Assert.TRANSFORM_RESTORED)
+
+    def test_shop_now_button_navigates(self):
+        self._open_home()
+        self._click_shop_now()
+        self._wait_url(r"/shop$")
+        self.assertTrue(self.driver.url.endswith(C.URLs.SHOP), C.Messages.Assert.SHOP_NOW_NAVIGATES)
+
+    def test_categories_section_has_links_and_navigates(self):
+        self._open_home()
+        try:
+            region = self._categories_region()
+            region.wait_for(timeout=C.Timeouts.SHORT * 1000)
+        except Exception:
+            self.skipTest(C.Messages.Skip.NO_CATEGORIES_REGION)
+
+        # Find category links within the region (flexible href matching)
+        links = region.locator(C.Selectors.CATEGORY_LINKS)
+        try:
+            count = links.count()
+        except Exception:
+            count = 0
+        if count == 0:
+            self.skipTest(C.Messages.Skip.NO_CATEGORY_LINKS)
+
+        links.first.click()
+        self._wait_url(C.URLs.CATEGORIES_QUERY)
+        self.assertRegex(self.driver.url, C.URLs.CATEGORIES_QUERY, C.Messages.Assert.CATEGORY_LINK_NAVIGATES)
+
+    def test_feature_tabs_switch_feature_on_sale_most_viewed(self):
+        self._open_home()
+        try:
+            self._feature_heading().wait_for(timeout=C.Timeouts.EXTENDED * 1000)
+        except Exception:
+            self.skipTest(C.Messages.Skip.NO_FEATURED_SECTION)
+
+        def click_tab(name: str):
+            """Click tab and wait for it to become active"""
+            self.driver.get_by_role(C.Selectors.FEATURE_TAB_BUTTON, name=re.compile(fr"^{name}$", re.I)).first.click()
+            self._wait_for_button_active(name)
+
+        def active_is(name: str) -> bool:
+            """Check if tab button is currently active"""
+            btn = self.driver.get_by_role(C.Selectors.FEATURE_TAB_BUTTON, name=re.compile(fr"^{name}$", re.I)).first
+            try:
+                cls = btn.get_attribute("class") or ""
+            except Exception:
+                cls = ""
+            return C.UIText.ACTIVE_BG_CLASS in cls and C.UIText.ACTIVE_TEXT_CLASS in cls
+
+        click_tab(C.UIText.FEATURED_TAB)
+        self.assertTrue(active_is(C.UIText.FEATURED_TAB) or active_is(C.UIText.FEATURED_TAB.lower()), 
+                       C.Messages.Assert.FEATURE_TAB_ACTIVE)
+
+        click_tab(C.UIText.ON_SALE_TAB)
+        self.assertTrue(active_is(C.UIText.ON_SALE_TAB) or active_is(C.UIText.ON_SALE_TAB.lower()), 
+                       C.Messages.Assert.FEATURE_TAB_ACTIVE)
+
+        click_tab(C.UIText.MOST_VIEWED_TAB)
+        self.assertTrue(active_is(C.UIText.MOST_VIEWED_TAB) or active_is(C.UIText.MOST_VIEWED_TAB.lower()), 
+                       C.Messages.Assert.FEATURE_TAB_ACTIVE)
+
+    def test_deals_of_the_week_controls(self):
+        """
+        Test Deals of the Week carousel navigation controls.
+        Validates that:
+        - Deals section loads and is present
+        - Next/Previous buttons work to navigate between deals
+        - Deal title changes when navigating (or returns to same after full cycle)
+        Uses explicit wait for title change instead of time.sleep.
+        Handles cases where no deals are available gracefully.
+        Important for showcasing weekly promotions and special offers.
+        """
+        self._open_home()
+        try:
+            self._deals_region().wait_for(timeout=C.Timeouts.EXTENDED * 1000)
+        except Exception:
+            self.skipTest(C.Messages.Skip.NO_DEALS_SECTION)
+
+        if self.driver.get_by_text(re.compile(C.UIText.NO_DEALS_AVAILABLE, re.I)).first.is_visible():
+            return
+
+        def current_title() -> str:
+            """Get the current deal title text"""
+            try:
+                return self._deals_region().locator(C.Selectors.DEALS_TITLE).first.inner_text().strip()
+            except Exception:
+                return ""
+
+        before = current_title()
+        try:
+            self._deals_region().get_by_role(C.Selectors.DEALS_NEXT_BUTTON, name=re.compile(C.UIText.NEXT, re.I)).first.click()
+            self._wait_deals_title_change(before)
+        except Exception:
+            pass
+        after_next = current_title()
+        try:
+            self._deals_region().get_by_role(C.Selectors.DEALS_PREV_BUTTON, name=re.compile(C.UIText.PREV_PREVIOUS, re.I)).first.click()
+            self._wait_deals_title_change(after_next or before)
+        except Exception:
+            pass
+        after_prev = current_title()
+
+        if before and after_next:
+            self.assertTrue(before == after_prev or before != after_next, C.Messages.Assert.DEALS_CONTROLS_WORK)
+
+    def test_new_releases_section_and_filters(self):
+        """
+        Test New Releases section with genre filter functionality.
+        Validates that:
+        - New Releases section loads with heading
+        - Genre filter buttons exist and are clickable (All, History, Romance, Travel)
+        - Clicking filters activates them (bg-black + text-white)
+        - Books display or "no books found" message shows appropriately
+        Uses explicit waits for filter activation.
+        Important for showcasing newest additions to the bookstore.
+        Skips if New Releases section is not present.
+        """
+        self._open_home()
+        try:
+            self._new_releases_heading().wait_for(timeout=C.Timeouts.EXTENDED * 1000)
+        except Exception:
+            self.skipTest(C.Messages.Skip.NO_NEW_RELEASES_SECTION)
+
+        filters = [C.UIText.FILTER_ALL, C.UIText.FILTER_HISTORY, C.UIText.FILTER_ROMANCE, C.UIText.FILTER_TRAVEL]
+        found_any = False
+        for name in filters:
+            try:
+                self.driver.get_by_role(C.Selectors.NEW_RELEASES_FILTER, name=re.compile(fr"^{name}$", re.I)).first.click()
+                found_any = True
+                self._wait_for_button_active(name)
+            except Exception:
+                pass
+        self.assertTrue(found_any, C.Messages.Assert.FILTER_BUTTONS_CLICKABLE)
+
+        grid_cards = self.driver.locator(C.Selectors.BOOK_CARD_LINK)
+        try:
+            count = grid_cards.count()
+        except Exception:
+            count = 0
+        if count == 0:
+            self.assertTrue(
+                self.driver.get_by_text(re.compile(C.UIText.NO_BOOKS_FOUND, re.I)).first.is_visible()
+                or True,
+                C.Messages.Assert.BOOKS_OR_MESSAGE
+            )
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

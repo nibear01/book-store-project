@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { useTranslation } from "react-i18next";
 
 const CartPage = () => {
+  const { t } = useTranslation(['cart', 'common']);
   const {
     state,
     subtotal,
@@ -27,24 +29,24 @@ const CartPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-4 sm:mb-6 flex-wrap gap-3">
         <h1 className="text-xl sm:text-2xl font-semibold">
-          Your Cart{hasItems ? ` (${state.items.length})` : ""}
+          {t('cart:cart.title')}{hasItems ? ` (${state.items.length})` : ""}
         </h1>
         {hasItems && (
           <button
             onClick={clearCart}
             className="px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
           >
-            Clear all
+            {t('cart:cart.clearCart')}
           </button>
         )}
       </div>
 
       {!hasItems ? (
         <div className="bg-white p-8 min-h-[70vh] rounded-md shadow-sm text-center text-gray-600">
-          Your cart is empty.
+          {t('cart:cart.empty')}
           <div className="mt-4">
             <Link className="text-red-600 hover:text-red-500" to="/shop">
-              Continue shopping
+              {t('cart:cart.continueShopping')}
             </Link>
           </div>
         </div>
@@ -62,13 +64,13 @@ const CartPage = () => {
                     {item.title}
                   </p>
                   <p className="text-sm text-gray-600 mt-1">
-                    ${(item.price || 0).toFixed(2)}
+                    {t('common:currency')}{(item.price || 0).toFixed(2)}
                   </p>
 
                   <div className="mt-3 flex w-full sm:w-auto flex-col sm:flex-row gap-2 sm:items-center">
                     <div className="inline-flex items-center gap-2">
                       <label className="text-sm text-gray-600 hidden sm:block">
-                        Qty:
+                        {t('cart:cart.quantity')}:
                       </label>
                       <input
                         type="number"
@@ -85,7 +87,7 @@ const CartPage = () => {
                       onClick={() => removeItem({ id: item.id })}
                       className="w-full sm:w-auto px-3 py-2 text-sm text-gray-700 border border-transparent rounded-md hover:bg-gray-50 hover:text-red-600"
                     >
-                      Remove
+                      {t('cart:cart.remove')}
                     </button>
                   </div>
                 </div>
@@ -95,28 +97,28 @@ const CartPage = () => {
 
           {/* Summary */}
           <div className="bg-white rounded-md shadow-sm p-6 h-fit">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">
-              Order Summary
+            <h2 className="text-lg font-semibold text-gray-800 mb-2">
+              {t('cart:checkout.orderSummary')}
             </h2>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">Subtotal</span>
-                <span className="text-gray-800">${subtotal.toFixed(2)}</span>
+                <span className="text-gray-600">{t('cart:checkout.subtotal')}</span>
+                <span className="text-gray-800">{t('common:currency')}{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Shipping</span>
-                <span className="text-gray-800">${shipping.toFixed(2)}</span>
+                <span className="text-gray-600">{t('cart:checkout.shipping')}</span>
+                <span className="text-gray-800">{t('common:currency')}{shipping.toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-semibold text-base pt-3 border-t border-gray-200">
-                <span className="text-gray-800">Total</span>
-                <span className="text-black">${total.toFixed(2)}</span>
+                <span className="text-gray-800">{t('cart:checkout.grandTotal')}</span>
+                <span className="text-black">{t('common:currency')}{total.toFixed(2)}</span>
               </div>
             </div>
             <Link
               to="/checkout"
               className="mt-6 block text-center bg-black text-white py-3 rounded-md hover:bg-gray-800 transition-colors"
             >
-              Go to Checkout
+              {t('cart:cart.checkout')}
             </Link>
           </div>
         </div>
@@ -129,7 +131,7 @@ const CartPage = () => {
             className="inline-block px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
             to="/shop"
           >
-            Continue shopping
+            {t('cart:cart.continueShopping')}
           </Link>
         </div>
       )}

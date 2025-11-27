@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, lazy, Suspense } from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -17,16 +17,23 @@ import AdminPage from "./pages/AdminPage";
 import Footer from "./pages/Footer";
 import BookViewPage from "./pages/BookViewPage";
 
-import Dashboard from "./components/adminComponents/Dashboard";
-import Users from "./components/adminComponents/Users";
-import Books from "./components/adminComponents/Books";
-import Order from "./components/adminComponents/Order";
-import Settings from "./components/adminComponents/Settings";
-import Printing from "./components/adminComponents/Printing";
-import Delivery from "./components/deliveryComponents/Delivery";
-import Finance from "./components/adminComponents/Finance";
-import Support from "./components/adminComponents/Support";
-import Marketing from "./components/adminComponents/Marketing";
+const Dashboard = lazy(() => import("./components/adminComponents/Dashboard"));
+const Users = lazy(() => import("./components/adminComponents/Users"));
+const Books = lazy(() => import("./components/adminComponents/Books"));
+const Publishers = lazy(() => import("./components/adminComponents/Publishers"));
+const Order = lazy(() => import("./components/adminComponents/Order"));
+const Printing = lazy(() => import("./components/adminComponents/Printing"));
+const Delivery = lazy(() => import("./components/adminComponents/Delivery"));
+const Finance = lazy(() => import("./components/adminComponents/Finance"));
+const Support = lazy(() => import("./components/adminComponents/Support"));
+const Marketing = lazy(() => import("./components/adminComponents/Marketing"));
+const AffiliateManagement = lazy(() => import("./components/adminComponents/AffiliateManagement"));
+
+// Settings Components
+const ProfileSettings = lazy(() => import("./components/adminComponents/settings/ProfileSettings"));
+const PrintOnDemandSettings = lazy(() => import("./components/adminComponents/settings/PrintOnDemandSettings"));
+const DeliveryCostSettings = lazy(() => import("./components/adminComponents/settings/DeliveryCostSettings"));
+const PriceRangeSettings = lazy(() => import("./components/adminComponents/settings/PriceRangeSettings"));
 
 import UserDashboard from "./pages/UserDashboard";
 import OrderSummaryPage from "./pages/OrderSummaryPage";
@@ -34,27 +41,35 @@ import UserOrdersPage from "./pages/UserOrdersPage";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 
-// If your file is actually Navbar.jsx, use this:
-// If your folder/file is literally named "Nabvar", swap the line above:
-// import Navbar from "./components/NavbarComponents/Nabvar";
-
 import TopNavbar from "./components/NavbarComponents/Subnav/TopNavbar";
 import AuthorPage from "./pages/AuthorPage";
 import WishlistPage from "./pages/WishlistPage";
+import SingleAuthor from "./components/authorComponents/SingleAuthor"; // added
+import PublishersPage from "./pages/PublishersPage";
+import SinglePublisherPage from "./pages/SinglePublisherPage";
 
 import { useAuth } from "./context/AuthContext";
+import { PrintSettingsProvider } from "./context/PrintSettingsContext";
 import Navbar from "./components/NavbarComponents/Navbar";
 import AuthorDetails from "./components/authorComponents/AuthorDetails";
 import AuthorRequestForm from "./Form/AuthorRequestForm";
 import BookRequestForm from "./Form/BookRequestForm";
-import AuthorAdmin from "./components/adminComponents/AuthorAdmin";
-import AuthorRequest from "./components/adminComponents/AuthorRequest";
-import BookRequest from "./components/adminComponents/BookRequest";
+import Subscriber from "./components/adminComponents/Subscriber";
+const AuthorAdmin = lazy(() => import("./components/adminComponents/AuthorAdmin"));
+const AuthorRequest = lazy(() => import("./components/adminComponents/AuthorRequest"));
+const BookRequest = lazy(() => import("./components/adminComponents/BookRequest"));
+const AdminAuthorPage = lazy(() => import("./components/adminComponents/AdminAuthorPage"));
+
+// Affiliate Pages
+import AffiliateLandingPage from "./pages/AffiliateLandingPage";
+import AffiliateLoginPage from "./pages/AffiliateLoginPage";
+import AffiliateRegisterPage from "./pages/AffiliateRegisterPage";
+import AffiliateDashboard from "./pages/AffiliateDashboard";
 
 // 404 Page
 function NotFound() {
   return (
-    <div className="min-h-[60vh] flex items-center justify-center text-center p-8">
+    <div className="min-h-[70vh] flex items-center justify-center text-center p-8">
       <div>
         <h1 className="text-3xl font-semibold mb-2">404 — Page not found</h1>
         <p className="text-gray-600">
@@ -74,16 +89,20 @@ function ScrollToTop() {
   return null;
 }
 
-// Small helpers to reason about roles in one place
+// Role helper (do NOT default to 'user' until we actually have a user object).
+// Returning an empty array while auth/roles are still hydrating prevents premature redirects
+// that would otherwise push an admin user back to '/'.
 const getAllRoles = (user) => {
-  if (Array.isArray(user?.roles) && user.roles.length) return user.roles;
-  if (user?.role) return [user.role];
-  return ["user"]; // fallback
+  if (!user) return [];
+  if (Array.isArray(user.roles) && user.roles.length) return user.roles;
+  if (user.role) return [user.role];
+  return [];
 };
 
 const ROLE_HOME = {
   admin: "/admin/dashboard",
   author: "/admin/author",
+  user: "/",
   user_manager: "/admin/users",
   book_manager: "/admin/books",
   order_manager: "/admin/orders",
@@ -96,75 +115,87 @@ const ROLE_HOME = {
 
 function AppContent() {
   const location = useLocation();
-  const { isAuthenticated, user, isLoading, activeRole } = useAuth();
-
+  const { isAuthenticated, user, isLoading, activeRole, setIsLoading } = useAuth();
+  const roles = getAllRoles(user);
+  const primaryRole = activeRole || roles[0];
   const roleHome = (role) => ROLE_HOME[role] || "/account";
+  const hasAdminScope = roles.some(r => r && r !== 'user');
+  const hideChrome = location.pathname.startsWith('/admin') || location.pathname.startsWith('/affiliate');
 
-  // Guards
+  // We consider roles "resolved" when either:
+  //  - user is not authenticated (no roles needed), or
+  //  - we have at least one derived role, or
+  //  - auth loading finished & user object explicitly null (no roles expected).
+  const rolesResolved = !isAuthenticated || roles.length > 0 || (!isLoading && user === null);
+
+  // When roles are resolved, hide the global loader (if shown by login/signup)
+  React.useEffect(() => {
+    if (rolesResolved && setIsLoading) {
+      // Immediate update when roles are resolved to prevent skeleton flashing
+      setIsLoading(false);
+    }
+  }, [rolesResolved, setIsLoading]);
+
+  // Skeleton for guard waiting states (lighter than global overlay)
+  const GuardSkeleton = () => (
+    <div className="min-h-[100vh] p-4 sm:p-6">
+      <div className="animate-pulse space-y-4">
+        <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded w-1/3" />
+        <div className="h-25 bg-gray-200 dark:bg-gray-800 rounded w-full" />
+        <div className="h-25 bg-gray-200 dark:bg-gray-800 rounded w-5/6" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="h-30 bg-gray-200 dark:bg-gray-800 rounded" />
+          <div className="h-30 bg-gray-200 dark:bg-gray-800 rounded" />
+          <div className="h-30 bg-gray-200 dark:bg-gray-800 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+
   const RequireAuth = ({ children }) => {
-    if (isLoading) return null;
-    if (!isAuthenticated) {
-      return <Navigate to="/login" state={{ from: location }} replace />;
-    }
-    return children;
-  };
-
-  const RequireRole = ({ roles, children }) => {
-    if (isLoading) return null;
-    if (!isAuthenticated) {
-      return <Navigate to="/login" state={{ from: location }} replace />;
-    }
-    const effectiveRoles = getAllRoles(user);
-    if (!roles.some((r) => effectiveRoles.includes(r))) {
-      const dest = roleHome(effectiveRoles[0]);
-      if (dest === location.pathname) return null; // avoid loop
-      return <Navigate to={dest} replace />;
-    }
-    return children;
+    // Only show skeleton during initial load, not after login
+    if (isLoading && !isAuthenticated && !user) return <GuardSkeleton />;
+    return isAuthenticated ? children : <Navigate to="/login" state={{ from: location }} replace />;
   };
 
   const RequireGuest = ({ children }) => {
-    if (isLoading) return null;
-    if (isAuthenticated) {
-      const roles = getAllRoles(user);
-      const dest = roleHome(activeRole || roles[0]);
-      return <Navigate to={dest} replace />;
-    }
-    return children;
+    // Don't show skeleton if user is already authenticated
+    if (isLoading && !isAuthenticated) return <GuardSkeleton />;
+    return isAuthenticated ? <Navigate to={roleHome(primaryRole)} replace /> : children;
   };
 
-  // Admin access for any non-"user" role
+  const RequireRole = ({ roles: need, children }) => {
+    // Only show skeleton if roles aren't resolved AND we're in initial load
+    if ((isLoading || !rolesResolved) && !user) return <GuardSkeleton />;
+    if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />;
+    // If authenticated but roles not resolved yet, wait briefly
+    if (!rolesResolved) return <GuardSkeleton />;
+    return need.some(r => roles.includes(r)) ? children : <Navigate to={roleHome(primaryRole)} replace />;
+  };
+
   const RequireAnyAdminRole = ({ children }) => {
-    if (isLoading) return null;
-    if (!isAuthenticated) {
-      return <Navigate to="/login" state={{ from: location }} replace />;
-    }
-    const roles = getAllRoles(user);
-    const hasAnyAdminRole = roles.some((r) => r && r !== "user");
-    if (!hasAnyAdminRole) {
-      return <Navigate to="/account" replace />;
-    }
-    return children;
+    // Only show skeleton if roles aren't resolved AND we're in initial load
+    if ((isLoading || !rolesResolved) && !user) return <GuardSkeleton />;
+    if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />;
+    // If authenticated but roles not resolved yet, wait briefly
+    if (!rolesResolved) return <GuardSkeleton />;
+    return hasAdminScope ? children : <Navigate to={roleHome(primaryRole)} replace />;
   };
 
-  // When someone hits /admin without a specific panel, redirect to their panel
   const AdminIndex = () => {
-    const roles = getAllRoles(user);
-    const dest = roleHome(activeRole || roles[0]);
-    // Show dashboard to anyone with a non-"user" role
-    const hasAnyAdminRole = roles.some((r) => r && r !== "user");
-    if (hasAnyAdminRole) return <Dashboard />;
-    return <Navigate to={dest} replace />;
+    // Only show skeleton if roles aren't resolved AND we're in initial load
+    if ((isLoading || !rolesResolved) && !user) return <GuardSkeleton />;
+    if (!rolesResolved) return <GuardSkeleton />;
+    return hasAdminScope ? <Dashboard /> : <Navigate to={roleHome(primaryRole)} replace />;
   };
 
-  // Hide chrome on admin
-  const hideNavbarFooter = location.pathname.startsWith("/admin");
+  // GlobalLoadingGate shows overlay; avoid local overlay here
 
   return (
-    <>
-      {!hideNavbarFooter && <TopNavbar />}
-      {!hideNavbarFooter && <Navbar />}
-
+    <PrintSettingsProvider>
+      {!hideChrome && <TopNavbar />}
+      {!hideChrome && <Navbar />}
+      <Suspense fallback={<div className="min-h-[40vh]" />}> 
       <Routes>
         {/* Public */}
         <Route path="/" element={<Homepage />} />
@@ -172,6 +203,12 @@ function AppContent() {
         <Route path="/categories" element={<CategoriesPage />} />
         <Route path="/shop" element={<ShopPage />} />
         <Route path="/author" element={<AuthorPage />} />
+        {/* NEW: canonical authors list and details */}
+        <Route path="/authors" element={<AuthorPage />} />
+        <Route path="/authors/:slug" element={<SingleAuthor />} />
+        {/* Publishers */}
+        <Route path="/publishers" element={<PublishersPage />} />
+        <Route path="/publishers/:slugOrId" element={<SinglePublisherPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/cart" element={<CartPage />} />
@@ -181,99 +218,37 @@ function AppContent() {
         <Route path="/bookview/:slug" element={<BookViewPage />} />
 
         {/* Guest-only */}
-        <Route
-          path="/login"
-          element={
-            <RequireGuest>
-              <LoginPage />
-            </RequireGuest>
-          }
-        />
-        <Route
-          path="/signup"
-          element={
-            <RequireGuest>
-              <SignupPage />
-            </RequireGuest>
-          }
-        />
-        <Route
-          path="/forgot-password"
-          element={
-            <RequireGuest>
-              <ForgotPassword />
-            </RequireGuest>
-          }
-        />
-        <Route
-          path="/reset-password"
-          element={
-            <RequireGuest>
-              <ResetPassword />
-            </RequireGuest>
-          }
-        />
+        <Route path="/login" element={<RequireGuest><LoginPage /></RequireGuest>} />
+        <Route path="/signup" element={<RequireGuest><SignupPage /></RequireGuest>} />
+        <Route path="/forgot-password" element={<RequireGuest><ForgotPassword /></RequireGuest>} />
+        <Route path="/reset-password" element={<RequireGuest><ResetPassword /></RequireGuest>} />
 
         {/* Auth-only */}
-        <Route
-          path="/wishlist"
-          element={
-            <RequireAuth>
-              <WishlistPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/checkout"
-          element={
-            <RequireAuth>
-              <CheckoutPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/account"
-          element={
-            <RequireAuth>
-              <UserDashboard />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/order-summary/:orderId"
-          element={
-            <RequireAuth>
-              <OrderSummaryPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/orders"
-          element={
-            <RequireAuth>
-              <UserOrdersPage />
-            </RequireAuth>
-          }
-        />
+        <Route path="/wishlist" element={<RequireAuth><WishlistPage /></RequireAuth>} />
+        <Route path="/checkout" element={<RequireAuth><CheckoutPage /></RequireAuth>} />
+        <Route path="/account" element={<RequireAuth><UserDashboard /></RequireAuth>} />
+        <Route path="/order-summary/:orderId" element={<RequireAuth><OrderSummaryPage /></RequireAuth>} />
+        <Route path="/orders" element={<RequireAuth><UserOrdersPage /></RequireAuth>} />
 
         {/* Admin (ensure <AdminPage /> renders an <Outlet />) */}
-        <Route
-          path="/admin"
-          element={
-            <RequireAnyAdminRole>
-              <AdminPage />
-            </RequireAnyAdminRole>
-          }
-        >
+        <Route path="/admin" element={<RequireAnyAdminRole><AdminPage /></RequireAnyAdminRole>}>
           {/* Default admin landing: admin sees Dashboard, others are redirected to their panel */}
           <Route index element={<AdminIndex />} />
           {/* Dashboard: accessible to any non-"user" role */}
           <Route
             path="dashboard"
             element={
-              <RequireAnyAdminRole>
+              <RequireRole roles={["admin"]}>
                 <Dashboard />
-              </RequireAnyAdminRole>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="authors"
+            element={
+              <RequireRole roles={["admin"]}>
+                <AdminAuthorPage />
+              </RequireRole>
             }
           />
           <Route
@@ -313,6 +288,14 @@ function AppContent() {
             element={
               <RequireRole roles={["admin", "book_manager"]}>
                 <Books />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="publishers"
+            element={
+              <RequireRole roles={["admin", "book_manager"]}>
+                <Publishers />
               </RequireRole>
             }
           />
@@ -365,34 +348,82 @@ function AppContent() {
             }
           />
           <Route
-            path="settings"
+            path="subscribers"
             element={
               <RequireRole roles={["admin"]}>
-                <Settings />
+                <Subscriber />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="affiliates"
+            element={
+              <RequireRole roles={["admin"]}>
+                <AffiliateManagement />
+              </RequireRole>
+            }
+          />
+          
+          {/* Settings Routes */}
+          <Route
+            path="settings/profile"
+            element={
+              <RequireAnyAdminRole>
+                <ProfileSettings />
+              </RequireAnyAdminRole>
+            }
+          />
+          <Route
+            path="settings/print-on-demand"
+            element={
+              <RequireRole roles={["admin", "book_manager"]}>
+                <PrintOnDemandSettings />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="settings/delivery-cost"
+            element={
+              <RequireRole roles={["admin", "book_manager"]}>
+                <DeliveryCostSettings />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="settings/price-range"
+            element={
+              <RequireRole roles={["admin", "book_manager"]}>
+                <PriceRangeSettings />
               </RequireRole>
             }
           />
         </Route>
 
+        {/* Affiliate Routes */}
+        <Route path="/affiliate" element={<AffiliateLandingPage />} />
+        <Route path="/affiliate/login" element={<AffiliateLoginPage />} />
+        <Route path="/affiliate/register" element={<AffiliateRegisterPage />} />
+        <Route path="/affiliate/dashboard/*" element={<AffiliateDashboard />} />
+
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-
-      {!hideNavbarFooter && <Footer />}
-
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
+      </Suspense>
+      {!hideChrome && <Footer />}
+      <ToastContainer 
+        position="bottom-right" 
+        autoClose={3500} 
         hideProgressBar={false}
-        newestOnTop={false}
+        newestOnTop={true}
         closeOnClick
         rtl={false}
         pauseOnFocusLoss
         draggable
         pauseOnHover
         theme="light"
+        limit={3}
       />
-    </>
+    </PrintSettingsProvider>
   );
 }
 

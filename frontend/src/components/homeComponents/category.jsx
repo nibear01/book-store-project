@@ -1,7 +1,7 @@
-import React from "react";
+import { memo } from "react";
 import CategorySlider from "./CategorySlider";
 
-const category = () => {
+const Category = () => {
   return (
     <div>
       <CategorySlider />
@@ -9,4 +9,4 @@ const category = () => {
   );
 };
 
-export default category;
+export default memo(Category);

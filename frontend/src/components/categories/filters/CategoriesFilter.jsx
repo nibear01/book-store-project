@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import FilterSection from "../FilterSection";
 
 const CategoriesFilter = ({
@@ -7,7 +8,9 @@ const CategoriesFilter = ({
   onCategorySelect,
   isOpen,
   onToggle,
-}) => (
+}) => {
+  const { t } = useTranslation('common');
+  return (
   <div className="mb-6 border-b border-gray-200 pb-6 last:border-b-0 last:pb-0">
     <button
       type="button"
@@ -16,7 +19,7 @@ const CategoriesFilter = ({
       aria-expanded={isOpen}
       aria-controls="filter-section-categories"
     >
-      <h4 className="text-md font-medium text-gray-800">Categories</h4>
+      <h4 className="text-md font-medium text-gray-800">{t('filters.categories')}</h4>
       <svg
         className={`h-5 w-5 transform transition-transform ${
           isOpen ? "rotate-180" : ""
@@ -38,7 +41,7 @@ const CategoriesFilter = ({
         isOpen ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
       }`}
     >
-      <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+      <div className="space-y-2 max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
         {categories.map((category) => (
           <div
             key={category.id}
@@ -56,6 +59,7 @@ const CategoriesFilter = ({
       </div>
     </div>
   </div>
-);
+  );
+};
 
 export default CategoriesFilter;

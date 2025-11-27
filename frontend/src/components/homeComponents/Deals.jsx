@@ -5,12 +5,19 @@ import React, {
   useContext,
   useCallback,
   useReducer,
+  useState,
 } from "react";
 import { BooksContext } from "../../context/BooksContext";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
+import { FaCheck, FaShoppingCart } from "react-icons/fa";
+import { useTranslation } from "react-i18next";
+import {
+  computeFinalConfiguredPrice,
+  defaultPrintState,
+} from "../bookViewComponents/BookPrintPricing";
 
 // Reducer function to handle related state updates together
 function dealsReducer(state, action) {
@@ -73,6 +80,7 @@ class ErrorBoundary extends React.Component {
 }
 
 function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
+  const { t } = useTranslation('home');
   const { url, fetchDealsOfWeek } = useContext(BooksContext);
   const [state, dispatch] = useReducer(dealsReducer, {
     deals: [],
@@ -95,6 +103,9 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
   const autoplayRef = useRef(null);
   const mountedRef = useRef(true);
   const imagePreloadRef = useRef(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [addSuccess, setAddSuccess] = useState(false);
+  const [printSettings, setPrintSettings] = useState(null);
 
   const fmtBDT = useMemo(
     () =>
@@ -160,6 +171,16 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
   useEffect(() => {
     mountedRef.current = true;
     loadDeals();
+    // fetch global print settings once
+    (async () => {
+      try {
+        const res = await fetch("/api/settings/print-config");
+        const data = await res.json();
+        if (res.ok && data?.success && data?.data) setPrintSettings(data.data);
+      } catch {
+        // ignore
+      }
+    })();
     return () => {
       mountedRef.current = false;
       window.clearInterval(autoplayRef.current);
@@ -286,22 +307,69 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
   const priceInfo = useMemo(() => {
     const isOnSale =
       !!currentDeal?.is_on_sale && typeof currentDeal?.sale_price === "number";
-    const priceNow = isOnSale ? currentDeal?.sale_price : currentDeal?.price;
-
+    const basePrice = Number(currentDeal?.price || 0);
+    const salePrice = Number(currentDeal?.sale_price || 0);
+    const pages = Number(currentDeal?.pages || 0);
+    const isDOW = !!currentDeal?.is_deal_of_the_week;
+    // If Deal of the Week + on sale, display the admin-provided sale value exactly
+    if (isDOW && isOnSale) {
+      const priceNow = salePrice;
+      const baseRef = basePrice;
+      const discount = Number.isFinite(baseRef) && baseRef > 0
+        ? Math.max(0, Math.round(((baseRef - priceNow) / baseRef) * 100))
+        : 0;
+      return {
+        isOnSale,
+        priceNow,
+        baseRef,
+        discount,
+        variant: null,
+        breakdown: null,
+      };
+    }
+    if (!printSettings) {
+      const priceNow = isOnSale ? salePrice : basePrice;
+      return {
+        isOnSale,
+        priceNow,
+        baseRef: basePrice,
+        discount:
+          isOnSale && Number.isFinite(basePrice) && basePrice > 0
+            ? Math.max(0, Math.round(((basePrice - priceNow) / basePrice) * 100))
+            : 0,
+        variant: null,
+        breakdown: null,
+      };
+    }
+    const cfg = defaultPrintState;
+    const baseComputed = computeFinalConfiguredPrice({
+      baseContentPrice: basePrice,
+      pages,
+      cfg,
+      settings: printSettings,
+    });
+    const saleComputed = isOnSale
+      ? computeFinalConfiguredPrice({
+          baseContentPrice: salePrice,
+          pages,
+          cfg,
+          settings: printSettings,
+        })
+      : null;
+    const priceNow = isOnSale ? Number(saleComputed?.price) : Number(baseComputed.price);
+    const baseRef = Number(baseComputed.price);
+    const discount = isOnSale && Number.isFinite(baseRef) && baseRef > 0
+      ? Math.max(0, Math.round(((baseRef - priceNow) / baseRef) * 100))
+      : 0;
     return {
       isOnSale,
       priceNow,
-      discount:
-        isOnSale && typeof currentDeal?.price === "number"
-          ? Math.max(
-              0,
-              Math.round(
-                ((currentDeal.price - priceNow) / currentDeal.price) * 100
-              )
-            )
-          : 0,
+      baseRef,
+      discount,
+      variant: cfg,
+      breakdown: baseComputed.breakdown,
     };
-  }, [currentDeal?.is_on_sale, currentDeal?.sale_price, currentDeal?.price]);
+  }, [currentDeal?.is_on_sale, currentDeal?.sale_price, currentDeal?.price, currentDeal?.pages, currentDeal?.is_deal_of_the_week, printSettings]);
 
   // Action handlers
   const onAddToCart = useCallback(async () => {
@@ -317,19 +385,38 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
     }
 
     try {
+      setIsAdding(true);
+      const isDOW = !!currentDeal?.is_deal_of_the_week && !!currentDeal?.is_on_sale;
+      const variant = priceInfo.variant && !isDOW
+        ? {
+            paperQuality: priceInfo.variant.paperQuality,
+            printSide: priceInfo.variant.printSide,
+            paperSize: priceInfo.variant.paperSize,
+            colorMode: priceInfo.variant.colorMode,
+          }
+        : undefined;
+      const unitPrice = Number(priceInfo.priceNow || currentDeal.price || 0);
       await addToCart({
         item: {
           id: currentDeal._id || currentDeal.id,
           title: currentDeal.title,
-          price: currentDeal.price,
+          price: unitPrice,
           slug: currentDeal.slug,
+          configured: !!printSettings && !isDOW,
+          variant,
+          breakdown: !isDOW ? priceInfo.breakdown || undefined : undefined,
         },
         quantity: 1,
+        variant,
       });
-
+      setAddSuccess(true);
       toast.success("Added to cart.");
+      // Reset success state after a short delay
+      setTimeout(() => setAddSuccess(false), 1200);
     } catch (error) {
       console.error("Failed to add item to cart:", error);
+    } finally {
+      setIsAdding(false);
     }
   }, [
     addToCart,
@@ -341,6 +428,12 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
     isAuthenticated,
     isInCart,
     navigate,
+    priceInfo.breakdown,
+    priceInfo.priceNow,
+    priceInfo.variant,
+    printSettings,
+    currentDeal?.is_deal_of_the_week,
+    currentDeal?.is_on_sale,
   ]);
 
   const onImgError = useCallback((e) => {
@@ -377,12 +470,12 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
   if (error) {
     return (
       <div className="bg-white rounded-2xl p-6 md:p-8 border border-red-200 text-red-600 mt-6">
-        Error: {error}{" "}
+        {t('deals.error')} {error}{" "}
         <button
           onClick={loadDeals}
           className="ml-3 inline-flex items-center px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 text-gray-700"
         >
-          Retry
+          {t('deals.retry')}
         </button>
       </div>
     );
@@ -390,8 +483,8 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
 
   if (!deals.length) {
     return (
-      <div className="bg-white rounded-2xl p-6 md:p-8 border text-gray-700 mt-6">
-        No deals available.
+      <div className="mt-6 bg-white rounded-2xl p-6 md:p-8 border border-gray-200 text-gray-600 text-center">
+        {t('deals.noDeals')}
       </div>
     );
   }
@@ -399,6 +492,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
   return (
     <ErrorBoundary>
       <section
+        name="deals-section"
         ref={rootRef}
         className="relative mt-6 md:mt-10"
         onMouseEnter={() => setPaused(true)}
@@ -412,8 +506,8 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
       >
         {/* Header */}
         <div className="mb-4 flex justify-between items-center">
-          <h2 className="text-xl md:text-2xl font-semibold text-gray-900">
-            Deals of the Week
+          <h2 name="deals-heading" className="text-xl md:text-2xl font-semibold text-gray-900">
+            {t('deals.title')}
           </h2>
         </div>
 
@@ -428,7 +522,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
             <div className="relative p-6 md:p-8 flex items-center justify-center">
               {currentDeal?.is_deal_of_the_week && (
                 <span className="absolute left-6 top-6 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-black text-white shadow z-10">
-                  🔥 Deal of the Week
+                  🔥 {t('deals.dealBadge')}
                 </span>
               )}
               <div className="max-h-[400px] overflow-hidden transition-transform duration-300 hover:scale-105">
@@ -443,6 +537,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
 
               {/* Floating nav buttons (desktop) */}
               <button
+                name="deals-prev-btn"
                 onClick={throttledPrev}
                 aria-label="Previous"
                 className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow border hover:bg-white transition-transform hover:scale-110"
@@ -462,6 +557,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
                 </svg>
               </button>
               <button
+                name="deals-next-btn"
                 onClick={throttledNext}
                 aria-label="Next"
                 className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow border hover:bg-white transition-transform hover:scale-110"
@@ -484,7 +580,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
 
             {/* Right: Details */}
             <div className="p-6 md:p-8 flex flex-col">
-              <h3 className="text-xl md:text-2xl font-bold text-gray-900 line-clamp-2">
+              <h3 name="deals-title" className="text-xl md:text-2xl font-bold text-gray-900 line-clamp-2">
                 {currentDeal?.title || "Untitled"}
               </h3>
               <p className="text-gray-600 mt-1">{currentDeal?.author || "—"}</p>
@@ -512,7 +608,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
                     >
                       <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
                     </svg>
-                    {currentDeal.pages} pages
+                    {currentDeal.pages} {t('deals.pages')}
                   </span>
                 )}
                 {currentDeal?.category && (
@@ -532,44 +628,53 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
               {/* Price block */}
               <div className="mt-5 flex items-center gap-3">
                 <span className="inline-flex items-center px-4 py-2 rounded-full bg-black text-white text-sm md:text-base font-semibold">
-                  {typeof priceInfo.priceNow === "number"
+                  {Number.isFinite(priceInfo.priceNow)
                     ? fmtBDT.format(priceInfo.priceNow)
                     : "—"}
                 </span>
-                {priceInfo.isOnSale &&
-                  typeof currentDeal?.price === "number" && (
-                    <>
-                      <span className="line-through text-gray-500">
-                        {fmtBDT.format(currentDeal.price)}
-                      </span>
-                      <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full">
-                        Save {priceInfo.discount}%
-                      </span>
-                    </>
-                  )}
+                {priceInfo.isOnSale && Number.isFinite(priceInfo.baseRef) && (
+                  <>
+                    <span className="line-through text-gray-500">
+                      {fmtBDT.format(priceInfo.baseRef)}
+                    </span>
+                    <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full">
+                      {t('deals.save')} {priceInfo.discount}%
+                    </span>
+                  </>
+                )}
               </div>
 
               {/* CTAs */}
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
                   onClick={onAddToCart}
+                  disabled={isAdding}
+                  className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-300 shadow-sm border ${
+                    addSuccess
+                      ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white border-transparent"
+                      : isAdding
+                      ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-transparent"
+                      : "border-gray-300 bg-white hover:bg-gray-50 text-gray-800"
+                  }`}
+                  aria-label={addSuccess ? "Added to cart" : isAdding ? "Adding to cart" : "Add to cart"}
                 >
-                  <svg
-                    className="w-5 h-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                    />
-                  </svg>
-                  Add to cart
+                  {addSuccess ? (
+                    <>
+                      <FaCheck className="text-base animate-bounce" />
+                      <span className="tracking-wide">{t('deals.addedToCart')}</span>
+                    </>
+                  ) : isAdding ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                      <span className="tracking-wide">{t('deals.adding')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaShoppingCart className="text-base" />
+                      <span className="tracking-wide">{t('deals.addToCart')}</span>
+                    </>
+                  )}
                 </button>
                 <Link
                   to={`/bookview/${currentDeal.slug}`}
@@ -594,7 +699,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
                       d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                     />
                   </svg>
-                  View details
+                  {t('deals.viewDetails')}
                 </Link>
               </div>
 
@@ -617,13 +722,13 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
                       d="M15.75 19.5L8.25 12l7.5-7.5"
                     />
                   </svg>
-                  Previous
+                  {t('deals.previous')}
                 </button>
                 <button
                   onClick={throttledNext}
                   className="flex items-center justify-center py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50"
                 >
-                  Next
+                  {t('deals.next')}
                   <svg
                     className="w-5 h-5 ml-2"
                     viewBox="0 0 24 24"

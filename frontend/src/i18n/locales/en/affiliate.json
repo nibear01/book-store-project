@@ -1,0 +1,29 @@
+{
+  "landing": {
+    "title": "Become an Affiliate Partner",
+    "subtitle": "Earn commission by promoting our books",
+    "benefits": "Benefits",
+    "howItWorks": "How It Works",
+    "getStarted": "Get Started Now"
+  },
+  "dashboard": {
+    "welcome": "Welcome, {{name}}",
+    "promoCode": "Your Promo Code",
+    "commissionRate": "Commission Rate",
+    "totalEarnings": "Total Earnings",
+    "availableBalance": "Available Balance",
+    "totalOrders": "Total Orders",
+    "withdraw": "Withdraw",
+    "viewStatistics": "View Statistics"
+  },
+  "register": {
+    "title": "Register as Affiliate",
+    "name": "Full Name",
+    "email": "Email",
+    "phone": "Phone",
+    "password": "Password",
+    "address": "Address",
+    "registerButton": "Register",
+    "haveAccount": "Already have an account?"
+  }
+}

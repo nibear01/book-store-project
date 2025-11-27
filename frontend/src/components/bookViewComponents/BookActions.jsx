@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { toast } from "react-toastify";
+import { useTranslation } from "react-i18next";
 
 const BookActions = ({
   book,
@@ -10,6 +11,7 @@ const BookActions = ({
   navigate,
   addToCart,
 }) => {
+  const { t } = useTranslation(['bookView', 'common']);
   const { isInCart } = useCart();
   const handleIncrement = () => {
     if (book?.stock && quantity < book.stock) setQuantity(quantity + 1);
@@ -27,7 +29,7 @@ const BookActions = ({
 
     const id = book?._id || book?.id;
     if (isInCart && id && isInCart(id)) {
-      toast.info("Already added to cart.");
+      toast.info(t('bookCard.alreadyInCart'));
       return;
     }
 
@@ -46,9 +48,28 @@ const BookActions = ({
       navigate("/login");
       return;
     }
+    const id = book?._id || book?.id;
+    if (!id) {
+      toast.error(t('bookView.missingProductId'));
+      return;
+    }
 
-    // TODO: Implement buy now functionality
-    console.log("Buy now clicked");
+    try {
+      // Only add if not already in cart; otherwise just proceed to checkout
+      if (!isInCart || !isInCart(id)) {
+        addToCart({
+          item: {
+            id,
+            title: book.title,
+            price: Number(book.price || 0),
+          },
+          quantity,
+        });
+      }
+      navigate("/checkout");
+    } catch {
+      toast.error(t('bookView.checkoutError'));
+    }
   };
 
   return (
@@ -78,24 +99,24 @@ const BookActions = ({
           onClick={handleAddToCart}
           disabled={book.stock === 0}
         >
-          Add to Cart
+          {t('bookView.addToCart')}
         </button>
         <button
           className="bg-red-500 text-white hover:bg-red-600 px-6 py-2 transition rounded-[2px] disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={handleBuyNow}
           disabled={book.stock === 0}
         >
-          Buy Now
+          {t('bookView.buyNow')}
         </button>
 
         {/* Show login prompt only when not authenticated */}
         {!isAuthenticated && (
           <p className="text-sm text-gray-500 mt-2">
-            🔒 You'll need to{" "}
+            🔒 {t('bookView.needLogin')}{" "}
             <Link to="/login" className="text-red-500 underline">
-              login
+              {t('bookView.login')}
             </Link>{" "}
-            to complete your purchase.
+            {t('bookView.toCompletePurchase')}.
           </p>
         )}
       </div>

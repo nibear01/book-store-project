@@ -1,0 +1,127 @@
+{
+  "bookView": {
+    "by": "লেখক",
+    "reviewsCount": "রিভিউ",
+    "home": "হোম",
+    "products": "পণ্য",
+    "missingProductId": "পণ্য আইডি অনুপস্থিত",
+    "checkoutError": "চেকআউটে যেতে ব্যর্থ",
+    "addToCart": "কার্টে যোগ করুন",
+    "buyNow": "এখনই কিনুন",
+    "needLogin": "আপনার প্রয়োজন হবে",
+    "login": "লগইন",
+    "toCompletePurchase": "ক্রয় সম্পন্ন করতে",
+    "priceNote": "মূল্য নির্বাচিত প্রিন্টিং অপশন প্রতিফলিত করে।",
+    "language": "ভাষা",
+    "isbn": "ISBN",
+    "published": "প্রকাশিত",
+    "tabs": {
+      "description": "বিবরণ",
+      "details": "বিস্তারিত",
+      "reviews": "রিভিউ",
+      "author": "লেখক"
+    },
+    "details": {
+      "bookDetails": "বইয়ের বিবরণ",
+      "additionalInfo": "অতিরিক্ত তথ্য",
+      "title": "শিরোনাম",
+      "author": "লেখক",
+      "isbnLabel": "ISBN",
+      "publisher": "প্রকাশক",
+      "publicationDate": "প্রকাশের তারিখ",
+      "pages": "পাতা",
+      "languageLabel": "ভাষা",
+      "genres": "ধরন",
+      "format": "ফরম্যাট",
+      "availability": "প্রাপ্যতা",
+      "inStock": "স্টকে আছে",
+      "outOfStock": "স্টকে নেই",
+      "digital": "ডিজিটাল এবং ফিজিক্যাল",
+      "physical": "ফিজিক্যাল",
+      "unknown": "অজানা",
+      "notAvailable": "উপলব্ধ নয়"
+    },
+    "description": {
+      "noDescription": "এই শিরোনামের জন্য কোনো বিবরণ নেই।"
+    },
+    "related": {
+      "title": "আপনিও পছন্দ করতে পারেন",
+      "error": "সম্পর্কিত বই বৈশিষ্ট্য বর্তমানে অনুপলব্ধ",
+      "loading": "সম্পর্কিত বই লোড হচ্ছে...",
+      "noBooks": "বর্তমান বইয়ের সাথে কোনো সম্পর্কিত বই নেই।",
+      "tryExploring": "অন্যান্য বিভাগ বা লেখক অন্বেষণ করার চেষ্টা করুন।",
+      "dealOfWeek": "সপ্তাহের ডিল",
+      "onSale": "বিক্রয়ে",
+      "noCover": "কোনো বই কভার নেই"
+    },
+    "printConfig": {
+      "title": "প্রিন্টিং অপশন",
+      "paperQuality": "কাগজের মান",
+      "printSide": "প্রিন্ট সাইড",
+      "paperSize": "কাগজের আকার",
+      "colorMode": "রঙ মোড",
+      "reset": "ডিফল্টে রিসেট করুন",
+      "quality": {
+        "economy": "ইকোনমি",
+        "economyNote": "বাজেট, হালকা স্টক",
+        "standard": "স্ট্যান্ডার্ড",
+        "standardNote": "দৈনন্দিন মান",
+        "premium": "প্রিমিয়াম",
+        "premiumNote": "ভারী, মসৃণ ফিনিশ"
+      },
+      "side": {
+        "single": "একপাশে",
+        "singleNote": "একপাশে মুদ্রিত",
+        "double": "উভয় পাশে",
+        "doubleNote": "সামনে এবং পিছনে প্রিন্ট"
+      },
+      "size": {
+        "A5": "A5",
+        "A5Note": "কমপ্যাক্ট",
+        "A4": "A4",
+        "A4Note": "স্ট্যান্ডার্ড",
+        "A3": "A3",
+        "A3Note": "বড় ফরম্যাট"
+      },
+      "color": {
+        "bw": "B/W",
+        "bwNote": "সাদা-কালো",
+        "color": "ফুল কালার",
+        "colorNote": "উজ্জ্বল রঙিন প্রিন্ট"
+      }
+    },
+    "reviews": {
+      "basedOn": "ভিত্তিতে",
+      "review": "রিভিউ",
+      "reviews": "রিভিউ",
+      "noReviews": "এখনো কোনো রিভিউ নেই",
+      "writeReview": "একটি রিভিউ লিখুন",
+      "cancel": "বাতিল",
+      "pleaseLogin": "অনুগ্রহ করে",
+      "toWriteReview": "রিভিউ লিখতে",
+      "nameOptional": "নাম (ঐচ্ছিক)",
+      "yourDisplayName": "আপনার প্রদর্শন নাম",
+      "rating": "রেটিং",
+      "select": "নির্বাচন করুন…",
+      "comment": "মন্তব্য",
+      "shareYourThoughts": "আপনার পছন্দ বা অপছন্দ শেয়ার করুন…",
+      "submitReview": "রিভিউ জমা দিন",
+      "edit": "সম্পাদনা",
+      "delete": "মুছুন",
+      "save": "সংরক্ষণ",
+      "noReviewsYet": "এখনো কোনো রিভিউ নেই। এই বইয়ের প্রথম রিভিউয়ার হন!",
+      "anonymous": "অজ্ঞাত",
+      "dateUnknown": "তারিখ অজানা"
+    },
+    "author": {
+      "authorLabel": "লেখক",
+      "viewProfile": "প্রোফাইল দেখুন",
+      "books": "বই",
+      "email": "ইমেইল",
+      "emailVerified": "ইমেইল যাচাইকৃত",
+      "emailUnverified": "ইমেইল যাচাই করা হয়নি",
+      "bioNotAvailable": "এই লেখকের জন্য জীবনী উপলব্ধ নেই।",
+      "active": "সক্রিয়"
+    }
+  }
+}

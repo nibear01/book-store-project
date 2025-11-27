@@ -36,12 +36,67 @@ export const COLOR = [
   { id: "color", label: "Full Color", note: "Vivid color print", mult: 1.4 },
 ];
 
+// Legacy local compute (kept for fallback): scales only basePrice using local constants
 export function computeConfiguredPrice(basePrice, cfg) {
   const q = QUALITIES.find((q) => q.id === cfg.paperQuality)?.mult || 1;
   const s = SIDES.find((s) => s.id === cfg.printSide)?.mult || 1;
   const z = SIZES.find((z) => z.id === cfg.paperSize)?.mult || 1;
   const c = COLOR.find((c) => c.id === cfg.colorMode)?.mult || 1;
   return Number((basePrice * q * s * z * c).toFixed(2));
+}
+
+// New compute using backend settings: final price = (baseContentPrice + perPageCost * pages * multipliers) + margin
+export function computeFinalConfiguredPrice({ baseContentPrice = 0, pages = 0, cfg, settings }) {
+  if (!settings) {
+    // Fallback to legacy behavior
+    return {
+      price: computeConfiguredPrice(baseContentPrice, cfg),
+      breakdown: {
+        contentPrice: baseContentPrice,
+        printCost: 0,
+        margin: 0,
+        baseCost: baseContentPrice,
+        finalPrice: computeConfiguredPrice(baseContentPrice, cfg),
+      },
+    };
+  }
+  const m = settings?.multipliers || {};
+  const q = m?.quality?.[cfg?.paperQuality] ?? 1;
+  const s = m?.side?.[cfg?.printSide] ?? 1;
+  const z = m?.size?.[cfg?.paperSize] ?? 1;
+  const c = m?.color?.[cfg?.colorMode] ?? 1;
+  if (settings?.mode === 'relative') {
+    // Adjust from admin-set baseContentPrice assuming it's the default configuration (defaultPrintState)
+    const dq = m?.quality?.[defaultPrintState.paperQuality] ?? 1;
+    const ds = m?.side?.[defaultPrintState.printSide] ?? 1;
+    const dz = m?.size?.[defaultPrintState.paperSize] ?? 1;
+    const dc = m?.color?.[defaultPrintState.colorMode] ?? 1;
+    const baseline = dq * ds * dz * dc || 1;
+    const current = q * s * z * c || 1;
+    const ratio = baseline > 0 ? current / baseline : 1;
+    const final = Number((Number(baseContentPrice) * ratio).toFixed(2));
+    return {
+      price: final,
+      breakdown: {
+        contentPrice: Number(baseContentPrice) || 0,
+        printCost: null,
+        margin: null,
+        baseCost: null,
+        finalPrice: final,
+      },
+    };
+  }
+
+  // derived: ignore admin-provided baseContentPrice and use global contentFee
+  const contentFee = Number(settings?.contentFee) >= 0 ? Number(settings.contentFee) : 0;
+  const perPage = Number(settings?.basePerPage) >= 0 ? Number(settings.basePerPage) : 0;
+  const pc = Number((perPage * (Number(pages) || 0) * q * s * z * c).toFixed(2));
+  const baseCost = Number((contentFee + pc).toFixed(2));
+  const marginType = settings?.margin?.type === 'flat' ? 'flat' : 'percent';
+  const mval = Number(settings?.margin?.value) || 0;
+  const margin = marginType === 'flat' ? mval : Number((baseCost * (mval / 100)).toFixed(2));
+  const final = Number((baseCost + (Number.isFinite(margin) ? margin : 0)).toFixed(2));
+  return { price: final, breakdown: { contentPrice: contentFee, printCost: pc, margin: Number.isFinite(margin) ? margin : 0, baseCost, finalPrice: final } };
 }
 
 export const defaultPrintState = {

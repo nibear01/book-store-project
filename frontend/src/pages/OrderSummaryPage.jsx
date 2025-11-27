@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getOrderById } from "../api/order-api";
 import { toast } from "react-toastify";
+import OrderSummarySkeleton from "../components/skeletons/OrderSummarySkeleton";
+import { useTranslation } from "react-i18next";
 
 const OrderSummaryPage = () => {
+  const { t } = useTranslation('common');
   const navigate = useNavigate();
   const location = useLocation();
   const [order, setOrder] = useState(null);
@@ -42,16 +45,7 @@ const OrderSummaryPage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-10">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading order details...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <OrderSummarySkeleton items={3} />;
   }
 
   if (error || !order) {
@@ -59,16 +53,16 @@ const OrderSummaryPage = () => {
       <div className="max-w-4xl mx-auto px-4 py-10">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">
-            Order Not Found
+            {t('orderSummary.orderNotFound')}
           </h1>
           <p className="text-gray-600 mb-6">
-            {error || "The order you are looking for could not be found."}
+            {error || t('orderSummary.orderNotFoundDesc')}
           </p>
           <button
             onClick={() => navigate("/")}
             className="bg-black text-white px-6 py-3 rounded-md hover:bg-gray-800 transition-colors"
           >
-            Continue Shopping
+            {t('shop.continueShopping')}
           </button>
         </div>
       </div>
@@ -90,7 +84,7 @@ const OrderSummaryPage = () => {
       case "pending":
         return "bg-yellow-100 text-yellow-800";
       case "processing":
-        return "bg-red-100 text-red-800";
+        return "bg-blue-100 text-blue-800";
       case "shipped":
         return "bg-purple-100 text-purple-800";
       case "delivered":
@@ -165,16 +159,16 @@ const OrderSummaryPage = () => {
             </svg>
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Order Placed Successfully!
+            {t('orderSummary.orderPlaced')}
           </h1>
           <p className="text-gray-600">
-            Thank you for your purchase. Your order has been confirmed.
+            {t('orderSummary.thankYou')}
           </p>
         </div>
 
         {/* Print Header - Only visible when printing */}
         <div className="print-header hidden print:block">
-          <h1 className="text-2xl font-bold mb-2">Order Confirmation</h1>
+          <h1 className="text-2xl font-bold mb-2">{t('orderSummary.orderConfirmation')}</h1>
           <p className="text-lg">Order #{order.order_number}</p>
           <p className="text-gray-600">
             Placed on {formatDate(order.createdAt)}
@@ -211,7 +205,7 @@ const OrderSummaryPage = () => {
             {/* Order Items */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Order Items
+                {t('orderSummary.orderItems')}
               </h3>
               <div className="space-y-4">
                 {order.items.map((item, index) => (
@@ -257,15 +251,30 @@ const OrderSummaryPage = () => {
                         {item.book_title || "Book Title"}
                       </h4>
                       <p className="text-sm text-gray-600">
-                        Quantity: {item.quantity}
+                        {t('orders.quantity')}: {item.quantity}
                       </p>
+                      {(() => {
+                        const v = item?.variant || {
+                          paperQuality: "economy",
+                          printSide: "single",
+                          paperSize: "A4",
+                          colorMode: "bw",
+                        };
+                        return (
+                          <div className="text-xs text-gray-600 mt-1">
+                            POD: Quality {v.paperQuality || "-"}, Side{" "}
+                            {v.printSide || "-"}, Size {v.paperSize || "-"},
+                            Color {v.colorMode || "-"}
+                          </div>
+                        );
+                      })()}
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-gray-800">
                         ৳{(item.price * item.quantity).toFixed(2)}
                       </p>
                       <p className="text-sm text-gray-600">
-                        ৳{item.price.toFixed(2)} each
+                        ৳{item.price.toFixed(2)} {t('orderSummary.each')}
                       </p>
                     </div>
                   </div>
@@ -276,7 +285,7 @@ const OrderSummaryPage = () => {
             {/* Shipping Address */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Shipping Address
+                {t('orderSummary.shippingAddress')}
               </h3>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="font-medium text-gray-800">
@@ -302,15 +311,15 @@ const OrderSummaryPage = () => {
             {/* Payment Information */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Payment Information
+                {t('orderSummary.paymentInformation')}
               </h3>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-gray-600">
-                  <span className="font-medium">Method:</span>{" "}
+                  <span className="font-medium">{t('orderSummary.method')}:</span>{" "}
                   {order.payment_info.method}
                 </p>
                 <p className="text-gray-600">
-                  <span className="font-medium">Status:</span>{" "}
+                  <span className="font-medium">{t('orders.status')}:</span>{" "}
                   {order.payment_info.status}
                 </p>
               </div>
@@ -319,7 +328,7 @@ const OrderSummaryPage = () => {
             {/* Order Summary */}
             <div className="border-t border-gray-200 pt-6 print-summary">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Order Summary
+                {t('orderSummary.orderSummary')}
               </h3>
               <div className="space-y-2">
                 <div className="flex justify-between text-gray-600">
@@ -358,13 +367,13 @@ const OrderSummaryPage = () => {
             onClick={() => navigate("/")}
             className="bg-black text-white px-8 py-3 rounded-md hover:bg-gray-800 transition-colors"
           >
-            Continue Shopping
+            {t('shop.continueShopping')}
           </button>
           <button
             onClick={() => navigate("/orders")}
             className="border border-gray-300 text-gray-700 px-8 py-3 rounded-md hover:bg-gray-50 transition-colors"
           >
-            View All Orders
+            {t('orderSummary.viewAllOrders')}
           </button>
           <button
             onClick={handlePrint}
@@ -383,7 +392,7 @@ const OrderSummaryPage = () => {
                 d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
               />
             </svg>
-            Print Order
+            {t('orderSummary.printOrder')}
           </button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = `${import.meta.env.VITE_BACKEND_URL || 'http://192.168.0.104:5000'}/api`;
 
 const withAuthHeaders = (options = {}) => {
     const token = localStorage.getItem('token');
@@ -19,13 +19,14 @@ const request = async (endpoint, options = {}) => {
 
 export const adminUsersAPI = {
     roles: () => request(`/users/roles`, { method: 'GET' }),
-    list: ({ page = 1, limit = 10, status, role, roles } = {}) => {
+    list: (paramsObj = {}) => {
+        // Allow arbitrary params so features like search (q) and sort can flow through
         const params = new URLSearchParams();
-        params.set('page', String(page));
-        params.set('limit', String(limit));
-        if (status) params.set('status', status);
-        if (roles) params.set('roles', roles);
-        else if (role) params.set('role', role);
+        for (const [k, v] of Object.entries(paramsObj)) {
+            if (v !== undefined && v !== null && String(v).length > 0) {
+                params.set(k, String(v));
+            }
+        }
         return request(`/users?${params.toString()}`, { method: 'GET' });
     },
     get: (id) => request(`/users/${id}`, { method: 'GET' }),
@@ -69,4 +70,20 @@ export const adminOrdersAPI = {
     updatePaymentStatus: (id, payment_status) => request(`/orders/${id}/payment`, { method: 'PUT', body: JSON.stringify({ payment_status }) }),
 };
 
-export default { adminUsersAPI, adminBooksAPI, adminOrdersAPI };
+export const adminSubscribersAPI = {
+    list: (paramsObj = {}) => {
+        const params = new URLSearchParams();
+        for (const [k, v] of Object.entries(paramsObj)) {
+            if (v !== undefined && v !== null && String(v).length > 0) {
+                params.set(k, String(v));
+            }
+        }
+        const qs = params.toString();
+        return request(`/subscribers${qs ? `?${qs}` : ''}`, { method: 'GET' });
+    },
+    remove: (id) => request(`/subscribers/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+    notifyAll: (payload) => request(`/subscribers/notify`, { method: 'POST', body: JSON.stringify(payload) }),
+    notifyOne: (id, payload) => request(`/subscribers/${encodeURIComponent(id)}/notify`, { method: 'POST', body: JSON.stringify(payload) }),
+};
+
+export default { adminUsersAPI, adminBooksAPI, adminOrdersAPI, adminSubscribersAPI };

@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { categoryAPI } from "../api/category-api";
+import { settingsAPI } from "../api/settings-api";
 
-export const useCategories = (books) => {
+export const useCategories = (books, initialCategorySlug = null) => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortOption, setSortOption] = useState("featured");
-  const [priceRange, setPriceRange] = useState([0, 1500]);
+  const [priceLimits, setPriceLimits] = useState({ min: 0, max: 1500 });
+  const [priceRange, setPriceRange] = useState([priceLimits.min, priceLimits.max]);
   const [ratingFilter, setRatingFilter] = useState(0);
   const [languageFilter, setLanguageFilter] = useState("All");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
@@ -18,9 +20,20 @@ export const useCategories = (books) => {
 
   // Pagination
   const [page, setPage] = useState(1);
+  
+  // Listen for sort option changes from BooksContent
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.detail) {
+        setSortOption(e.detail);
+      }
+    };
+    window.addEventListener('sortOptionChange', handler);
+    return () => window.removeEventListener('sortOptionChange', handler);
+  }, []);
   const [limit, setLimit] = useState(12);
 
-  // Refs for mobile viewport handling
+  // References for mobile viewport handling
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
@@ -44,7 +57,7 @@ export const useCategories = (books) => {
       setCategoriesLoading(true);
       setCategoriesError(null);
       try {
-        const res = await categoryAPI.list({ includeEmpty: false });
+        const res = await categoryAPI.list({ includeEmpty: true });
         if (!cancelled) {
           const mapped = (res.data || []).map((c, idx) => ({
             id: c._id || idx,
@@ -56,6 +69,28 @@ export const useCategories = (books) => {
             }`,
           }));
           setCategories(mapped);
+          // If a slug is provided in URL, auto-select that category
+          if (initialCategorySlug) {
+            const match = mapped.find(
+              (c) => String(c.slug) === String(initialCategorySlug)
+            );
+            if (match) setSelectedCategory(match.title);
+          }
+          // Also fetch global price range settings in parallel
+          try {
+            const pr = await settingsAPI.getPriceRange();
+            if (pr?.success && pr.data && !cancelled) {
+              const min = Number(pr.data.min) || 0;
+              const max = Number(pr.data.max) || 1500;
+              setPriceLimits({ min, max });
+              // Set initial price range to backend limits
+              setPriceRange([min, max]);
+            }
+          } catch (err) {
+            if (!cancelled) {
+              console.warn("Price range settings fetch failed:", err.message);
+            }
+          }
         }
       } catch (e) {
         if (!cancelled)
@@ -68,7 +103,37 @@ export const useCategories = (books) => {
     return () => {
       cancelled = true;
     };
+  }, [initialCategorySlug]);
+
+  // Listen for admin price range updates via localStorage events
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === "settings:priceRangeUpdated") {
+        (async () => {
+          try {
+            const pr = await settingsAPI.getPriceRange();
+            if (pr?.success && pr.data) {
+              const min = Number(pr.data.min) || 0;
+              const max = Number(pr.data.max) || 1500;
+              setPriceLimits({ min, max });
+              setPriceRange(([curMin, curMax]) => [
+                Math.max(min, curMin < min ? min : curMin),
+                Math.min(max, curMax > max ? max : curMax),
+              ]);
+            }
+          } catch (err) {
+            console.warn(
+              "Failed to refresh price range after admin update",
+              err.message
+            );
+          }
+        })();
+      }
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
   }, []);
+
 
   // Calculate number of groups needed for current viewport
   const calculateGroupCount = () => {
@@ -84,7 +149,7 @@ export const useCategories = (books) => {
   const resetFilters = () => {
     setSelectedCategory("All");
     setSortOption("featured");
-    setPriceRange([0, 50]);
+    setPriceRange([priceLimits.min, priceLimits.max]);
     setRatingFilter(0);
     setLanguageFilter("All");
     setAvailabilityFilter("all");
@@ -199,6 +264,7 @@ export const useCategories = (books) => {
     selectedCategory,
     sortOption,
     priceRange,
+    priceLimits,
     ratingFilter,
     languageFilter,
     availabilityFilter,

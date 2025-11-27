@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import ActiveFilters from "./filters/ActiveFilters";
 import CategoriesFilter from "./filters/CategoriesFilter";
 import PriceFilter from "./filters/PriceFilter";
@@ -32,6 +33,9 @@ const FiltersSidebar = ({
   onSearchQueryChange,
   onToggleFilterSection,
   onResetFilters,
+  // dynamic limits from admin settings (optional)
+  priceMinLimit = 0,
+  priceMaxLimit = 1500,
 }) => {
   // Local state for debounced search
   const [searchValue, setSearchValue] = useState(searchQuery ?? "");
@@ -51,6 +55,8 @@ const FiltersSidebar = ({
     return () => clearTimeout(t);
   }, [searchValue, onSearchQueryChange]);
 
+  const { t } = useTranslation('common');
+  
   const hasActiveSearch = useMemo(
     () => (searchValue ?? "").length > 0,
     [searchValue]
@@ -60,14 +66,14 @@ const FiltersSidebar = ({
     <aside className="lg:w-1/4 lg:self-start lg:sticky lg:top-24">
       <div className="bg-white rounded-md shadow-sm p-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-gray-900">Filters</h3>
+          <h3 className="text-xl font-bold text-gray-900">{t('filters.title')}</h3>
           <button
             onClick={onResetFilters}
             className="text-sm text-gray-600 hover:text-black font-medium rounded-md"
-            aria-label="Reset all filters"
+            aria-label={t('filters.resetAll')}
             type="button"
           >
-            Reset All
+            {t('filters.resetAll')}
           </button>
         </div>
 
@@ -92,16 +98,16 @@ const FiltersSidebar = ({
         <div className="mb-6">
           <div className="relative">
             <label htmlFor="filters-search" className="sr-only">
-              Search books
+              {t('filters.searchBooks')}
             </label>
             <input
               id="filters-search"
               type="text"
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
-              placeholder="Search books..."
+              placeholder={t('filters.searchBooks')}
               className="w-full pl-10 pr-9 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
-              aria-label="Search books"
+              aria-label={t('filters.searchBooks')}
             />
             {/* Search icon */}
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -161,6 +167,8 @@ const FiltersSidebar = ({
           onPriceRangeChange={onPriceRangeChange}
           isOpen={!!filterSections.price}
           onToggle={onToggleFilterSection}
+          minLimit={priceMinLimit}
+          maxLimit={priceMaxLimit}
         />
 
         {/* Language Filter */}

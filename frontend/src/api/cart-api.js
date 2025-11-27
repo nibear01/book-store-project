@@ -1,5 +1,5 @@
 // Simple Cart API client for backend integration
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = `${import.meta.env.VITE_BACKEND_URL || 'http://192.168.0.104:5000'}/api`;
 
 const withAuthHeaders = (options = {}) => {
     const token = localStorage.getItem('token');
@@ -21,8 +21,8 @@ const request = async (endpoint, options = {}) => {
 export const cartAPI = {
     getCart: () => request('/cart', { method: 'GET' }),
     getCount: () => request('/cart/count', { method: 'GET' }),
-    addItem: ({ bookId, quantity = 1 }) =>
-        request('/cart/items', { method: 'POST', body: JSON.stringify({ bookId, quantity }) }),
+    addItem: ({ bookId, quantity = 1, variant }) =>
+        request('/cart/items', { method: 'POST', body: JSON.stringify({ bookId, quantity, variant }) }),
     updateItem: ({ bookId, quantity }) =>
         request(`/cart/items/${bookId}`, { method: 'PUT', body: JSON.stringify({ quantity }) }),
     removeItem: ({ bookId }) => request(`/cart/items/${bookId}`, { method: 'DELETE' }),

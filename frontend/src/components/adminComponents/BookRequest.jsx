@@ -103,13 +103,14 @@ const BookRequest = () => {
   const paginatedRequests = visibleRequests.slice(startIdx, startIdx + pageSize);
 
   return (
-    <div className="p-2 sm:p-4 max-w-6xl mx-auto">
+    <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <h1 className="text-2xl font-semibold">Book Requests</h1>
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
           <div className="flex items-center gap-2">
             <label className="text-sm text-gray-600">Search</label>
             <input
+              name="book-request-search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Name, email, title, ISBN…"
@@ -119,6 +120,7 @@ const BookRequest = () => {
           <div className="flex items-center gap-2">
             <label className="text-sm text-gray-600">Status</label>
             <select
+              name="book-request-status-filter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="border rounded-md px-2 py-1 text-sm"
@@ -134,6 +136,7 @@ const BookRequest = () => {
           <div className="flex items-center gap-2">
             <label className="text-sm text-gray-600">Sort</label>
             <select
+              name="book-request-sort-order"
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value)}
               className="border rounded-md px-2 py-1 text-sm"
@@ -203,12 +206,14 @@ const BookRequest = () => {
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap gap-2">
                       <button
+                        name={`view-request-${r._id}`}
                         onClick={() => setSelected(r)}
                         className="px-2 py-1 rounded text-white text-xs bg-blue-600 hover:bg-blue-700"
                       >
                         View
                       </button>
                       <button
+                        name={`approve-request-${r._id}`}
                         onClick={() => updateStatus(r._id, "approved")}
                         disabled={updating[r._id] || r.status === "approved"}
                         className={`px-2 py-1 rounded text-white text-xs ${
@@ -218,6 +223,7 @@ const BookRequest = () => {
                         Approve
                       </button>
                       <button
+                        name={`reject-request-${r._id}`}
                         onClick={() => updateStatus(r._id, "rejected")}
                         disabled={updating[r._id] || r.status === "rejected"}
                         className={`px-2 py-1 rounded text-white text-xs ${
@@ -227,6 +233,7 @@ const BookRequest = () => {
                         Reject
                       </button>
                       <button
+                        name={`fulfill-request-${r._id}`}
                         onClick={() => updateStatus(r._id, "fulfilled")}
                         disabled={updating[r._id] || r.status === "fulfilled"}
                         className={`px-2 py-1 rounded text-white text-xs ${
@@ -248,6 +255,7 @@ const BookRequest = () => {
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  name="book-request-prev-page"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={safePage <= 1}
                   className="px-3 py-1 border rounded-md text-sm disabled:opacity-50"
@@ -258,6 +266,7 @@ const BookRequest = () => {
                   Page <span className="font-medium">{safePage}</span> of {totalPages}
                 </span>
                 <button
+                  name="book-request-next-page"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={safePage >= totalPages}
                   className="px-3 py-1 border rounded-md text-sm disabled:opacity-50"
@@ -275,7 +284,14 @@ const BookRequest = () => {
           <div className="bg-white rounded-md shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-4 py-3 border-b">
               <h3 className="text-lg font-semibold">Book Request Details</h3>
-              <button onClick={() => setSelected(null)} className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100" aria-label="Close details">Close</button>
+              <button 
+                name="close-request-details"
+                onClick={() => setSelected(null)} 
+                className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100" 
+                aria-label="Close details"
+              >
+                Close
+              </button>
             </div>
             <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>

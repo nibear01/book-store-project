@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = `${import.meta.env.VITE_BACKEND_URL || 'http://192.168.0.104:5000'}/api`;
 
 const baseHeaders = () => {
   const token =
@@ -26,8 +26,8 @@ export const categoryAPI = {
   list: (paramsObj = {}) => {
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(paramsObj)) if (v !== undefined) params.set(k, String(v));
-    const qs = params.toString();
-    return request(`/categories${qs ? `?${qs}` : ''}`);
+    const url = params.toString();
+    return request(`/categories${url ? `?${url}` : ''}`);
   },
   getBySlug: (slug) => request(`/categories/${encodeURIComponent(slug)}`),
   create: (payload) =>

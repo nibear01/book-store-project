@@ -1,14 +1,10 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BookCard from "./BookCard";
 import ViewToggle from "./ViewToggle";
 import MobileCardPager from "./MobileCardPager";
 import AdaptiveCardGrid from "./AdaptiveCardGrid";
+import { booksAPI } from "../../api/book-api";
+import { useTranslation } from "react-i18next";
 
 const PAGE_SIZE = 12;
 const MOBILE_GROUP_SIZE = 4;
@@ -29,16 +25,36 @@ const BooksContent = ({
 
   // View states
   viewMode = "grid", // "grid" | "list"
+  sortOption = "featured",
 
   // Handlers
   onViewModeChange,
+  onSortOptionChange,
   onGroupChange,
   onTouchStart,
   onTouchMove,
   onTouchEnd,
   onResetFilters,
 }) => {
+  const { t } = useTranslation('common');
   const [displayLimit, setDisplayLimit] = useState(PAGE_SIZE);
+  const [totalBooksCount, setTotalBooksCount] = useState(null);
+
+  // Fetch total book count once
+  useEffect(() => {
+    let mounted = true;
+    booksAPI
+      .count()
+      .then(({ total }) => {
+        if (mounted) setTotalBooksCount(total);
+      })
+      .catch(() => {
+        if (mounted) setTotalBooksCount(null);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Reset list length when results/filter change
   useEffect(() => {
@@ -129,7 +145,7 @@ const BooksContent = ({
         <div className="bg-white rounded-md shadow-sm p-6 sm:p-8 text-center mt-6 sm:mt-8 text-red-600 text-sm sm:text-base">
           {typeof error === "string"
             ? error
-            : error?.message || "Failed to load"}
+            : error?.message || t('booksContent.errorLoading')}
         </div>
       </main>
     );
@@ -140,19 +156,11 @@ const BooksContent = ({
       <main className="w-full lg:w-3/4 px-3 sm:px-0">
         <div className="bg-white rounded-md w-full shadow-sm p-6 sm:p-8 text-center mt-6 sm:mt-8">
           <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">
-            No books found
+            {t('booksContent.noBooks')}
           </h3>
           <p className="text-gray-600 mb-4 text-sm sm:text-base">
-            Try adjusting your filters to find what you're looking for.
+            {t('booksContent.tryDifferent')} <button onClick={onResetFilters} className="text-black underline hover:text-gray-800">{t('booksContent.resetFilters')}</button>.
           </p>
-          <button
-            onClick={onResetFilters}
-            className="w-full sm:w-auto px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors text-sm sm:text-base"
-            aria-label="Reset all filters"
-            type="button"
-          >
-            Reset Filters
-          </button>
         </div>
       </main>
     );
@@ -227,20 +235,41 @@ const BooksContent = ({
 
   return (
     <main className="w-full lg:w-3/4 px-3 sm:px-0">
-      {/* Header: title + view toggle */}
+      {/* Header: title + sort + view toggle */}
       <div className="mt-6 sm:mt-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-0 text-center sm:text-left">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-800 text-center sm:text-left">
             {selectedCategory === "All"
-              ? "All Books"
-              : `${selectedCategory} Books`}
+              ? t('shop.seeAllBooks')
+              : `${selectedCategory} ${t('booksContent.books')}`}
             <span className="text-gray-500 text-sm sm:text-base ml-1 sm:ml-2">
-              ({filteredBooks.length}{" "}
-              {filteredBooks.length === 1 ? "book" : "books"})
+              ({t('booksContent.showing')} {displayedBooks.length} {t('booksContent.of')} {totalBooksCount ?? "…"} {t('booksContent.books')}) 
             </span>
           </h2>
 
-          <div className="flex justify-center sm:justify-end">
+          <div className="flex items-center gap-3 justify-center sm:justify-end">
+            {/* Sort Dropdown */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="sort-select" className="text-sm text-gray-600 whitespace-nowrap">
+                {t('booksContent.sortBy')}
+              </label>
+              <select
+                id="sort-select"
+                value={sortOption}
+                onChange={(e) => onSortOptionChange?.(e.target.value)}
+                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-black focus:border-black bg-white cursor-pointer"
+              >
+                <option value="featured">{t('booksContent.featured')}</option>
+                <option value="newest">{t('booksContent.newest')}</option>
+                <option value="oldest">{t('booksContent.oldest')}</option>
+                <option value="priceLowHigh">{t('booksContent.priceLowHigh')}</option>
+                <option value="priceHighLow">{t('booksContent.priceHighLow')}</option>
+                <option value="rating">{t('booksContent.rating')}</option>
+                <option value="bestselling">{t('booksContent.bestselling')}</option>
+              </select>
+            </div>
+
+            {/* View Toggle */}
             <ViewToggle
               currentView={viewMode}
               onViewChange={handleViewModeChange}
@@ -262,7 +291,7 @@ const BooksContent = ({
                 aria-label={`Load more books (showing ${displayedBooks.length} of ${filteredBooks.length})`}
                 type="button"
               >
-                View More ({displayedBooks.length} of {filteredBooks.length})
+                {t('shop.viewMore')} ({displayedBooks.length} {t('shop.of')} {filteredBooks.length})
               </button>
             </div>
           </>

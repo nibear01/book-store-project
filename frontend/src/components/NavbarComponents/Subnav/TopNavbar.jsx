@@ -1,41 +1,98 @@
-import React from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const TopNavbar = () => {
+  const { t } = useTranslation('common');
   return (
-    <div className="w-full border-b border-gray-200 bg-white text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200">
+    <div className="w-full border-b border-gray-200 bg-white text-xs dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200">
+      {/* Mobile: Two-line layout */}
+      <div className="md:hidden px-3 py-2 flex flex-col justify-center items-center gap-1">
+        {/* Line 1 */}
+        {/* <span className="text-gray-700 dark:text-gray-300 text-[11px]">
+          Welcome to the bookshop
+        </span>
+        <span className="inline-block h-3 w-px bg-gray-300 dark:bg-gray-700" />
+        <span className="text-red-600 dark:text-red-400">
+          Free Shipping ≥ ৳10000
+        </span>
+        <span className="inline-block h-3 w-px bg-gray-300 dark:bg-gray-700" />
+        <Link
+          to="/affiliate"
+          target="_blank"
+          className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition"
+        >
+          Marketing
+        </Link>
+        <span className="inline-block h-3 w-px bg-gray-300 dark:bg-gray-700" />
+        <Link
+          to="/distribution"
+          className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition"
+        >
+          Distribution
+        </Link> */}
+
+        {/* Line 2 */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+          <span className="text-red-600 dark:text-red-400 font-medium">
+            {t('navbar.freeShippingShort')} ৳10000
+          </span>
+
+          <span className="h-3 w-px bg-gray-300 dark:bg-gray-700" />
+
+          <Link
+            to="/affiliate"
+            target="_blank"
+            className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            {t('navbar.marketing')}
+          </Link>
+
+          <span className="h-3 w-px bg-gray-300 dark:bg-gray-700" />
+
+          <Link
+            to="/distribution"
+            className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            {t('navbar.distribution')}
+          </Link>
+        </div>
+      </div>
+
+      {/* Desktop (unchanged) */}
       <nav
         aria-label="Top navigation"
-        className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-2 px-3 py-2 sm:px-4 md:grid-cols-3"
+        className="hidden md:grid mx-auto w-full max-w-7xl grid-cols-3 items-center gap-2 px-4 py-2"
       >
-        {/* Middle (promo) shown first on mobile */}
-        <div className="order-1 flex items-center justify-center md:order-2">
-          <p className="truncate text-center text-[9px] text-gray-600 dark:text-gray-400 sm:text-[12px]">
-            Free Shipping on orders over 2000!
+        {/* Left */}
+        <div className="flex items-center justify-start">
+          <p className="truncate text-gray-700 dark:text-gray-300">
+            {t('navbar.welcome')}
           </p>
         </div>
 
-        {/* Left */}
-        <div className="order-2 flex items-center justify-center md:order-1 md:justify-start">
-          <p className="truncate text-gray-700 dark:text-gray-300">
-            Welcome to the bookshop
+        {/* Middle */}
+        <div className="flex items-center justify-center">
+          <p className="truncate text-center text-[12px] text-gray-600 dark:text-gray-400">
+            {t('navbar.freeShipping')} ৳10000!
           </p>
         </div>
 
         {/* Right */}
-        <div className="order-3 -mx-1 flex items-center justify-center gap-1 overflow-x-auto md:mx-0 md:justify-end md:gap-4">
+        <div className="flex items-center justify-end gap-4">
           <Link
-            to="/marketing"
-            className="shrink-0 rounded px-2 py-1 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring dark:text-gray-400 dark:hover:text-gray-200"
+            to="/affiliate"
+            className="rounded px-2 py-1 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring dark:text-gray-400 dark:hover:text-gray-200"
           >
-            Marketing
+            {t('navbar.marketing')}
           </Link>
-          <span className="hidden h-4 w-px bg-gray-200 md:block dark:bg-gray-700" />
+
+          <span className="h-4 w-px bg-gray-200 dark:bg-gray-700" />
+
           <Link
             to="/distribution"
-            className="shrink-0 rounded px-2 py-1 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring dark:text-gray-400 dark:hover:text-gray-200"
+            className="rounded px-2 py-1 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring dark:text-gray-400 dark:hover:text-gray-200"
           >
-            Book distribution
+            {t('navbar.distribution')}
           </Link>
         </div>
       </nav>

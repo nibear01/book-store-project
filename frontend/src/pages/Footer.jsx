@@ -1,39 +1,63 @@
-import React from "react";
-import {
-  FaFacebookF,
-  FaTwitter,
-  FaInstagram,
-  FaLinkedinIn,
-} from "react-icons/fa";
+import { useAuth } from "@/context/AuthContext";
+import { FaFacebookF, FaLinkedinIn } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const Footer = () => {
+  const { t } = useTranslation('common');
+  const { user } = useAuth();
   return (
     <div>
       <footer className="bg-black text-white pt-10">
         <div className="max-w-6xl mx-auto px-5 grid grid-cols-1 md:grid-cols-5 gap-6 text-sm">
           {/* Explore */}
           <div>
-            <h3 className="font-semibold mb-3">Explore</h3>
+            <h3 className="font-semibold mb-3">{t('common:footer.quickLinks')}</h3>
             <ul className="space-y-2 text-gray-300">
-              <li className="hover:text-white cursor-pointer">About Us</li>
-              <li className="hover:text-white cursor-pointer">Sitemap</li>
-              <li className="hover:text-white cursor-pointer">Bookmarks</li>
-              <li className="hover:text-white cursor-pointer">
-                Sign In / Join
+              <li>
+                <Link to="/about" className="hover:text-white">
+                  {t('common:navbar.about')}
+                </Link>
               </li>
+              <li>
+                <Link to="/sitemap" className="hover:text-white">
+                  Sitemap
+                </Link>
+              </li>
+              <li>
+                <Link to="/wishlist" className="hover:text-white">
+                  {t('common:navbar.wishlist')}
+                </Link>
+              </li>
+              {!user && (
+                <li>
+                  <Link to="/login" className="hover:text-white">
+                    {t('common:navbar.login')} / {t('common:navbar.signup')}
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
 
           {/* Customer Service */}
           <div>
-            <h3 className="font-semibold mb-3">Customer Service</h3>
+            <h3 className="font-semibold mb-3">{t('common:footer.customerService')}</h3>
             <ul className="space-y-2 text-gray-300">
-              <li className="hover:text-white cursor-pointer">Help Center</li>
-              <li className="hover:text-white cursor-pointer">
-                Product Recalls
+              <li>
+                <Link to="/help-center" className="hover:text-white">
+                  Help Center
+                </Link>
               </li>
-              <li className="hover:text-white cursor-pointer">Contact Us</li>
+              <li>
+                <Link to="/product-recalls" className="hover:text-white">
+                  Product Recalls
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="hover:text-white">
+                  {t('common:navbar.contact')}
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -41,75 +65,84 @@ const Footer = () => {
           <div>
             <h3 className="font-semibold mb-3">Policy</h3>
             <ul className="space-y-2 text-gray-300">
-              <li className="hover:text-white cursor-pointer">Terms Of Use</li>
-              <li className="hover:text-white cursor-pointer">Security</li>
-              <li className="hover:text-white cursor-pointer">Privacy</li>
+              <li>
+                <Link to="/terms" className="hover:text-white">
+                  {t('common:footer.termsConditions')}
+                </Link>
+              </li>
+              <li>
+                <Link to="/security" className="hover:text-white">
+                  Security
+                </Link>
+              </li>
+              <li>
+                <Link to="/privacy" className="hover:text-white">
+                  {t('common:footer.privacyPolicy')}
+                </Link>
+              </li>
             </ul>
           </div>
 
           {/* Categories */}
           <div>
-            <h3 className="font-semibold mb-3">Categories</h3>
+            <h3 className="font-semibold mb-3">{t('common:navbar.categories')}</h3>
             <ul className="space-y-2 text-gray-300">
-              <li className="hover:text-white cursor-pointer">Action</li>
-              <li className="hover:text-white cursor-pointer">Comedy</li>
-              <li className="hover:text-white cursor-pointer">Drama</li>
-              <li className="hover:text-white cursor-pointer">Horror</li>
-              <li className="hover:text-white cursor-pointer">Kids</li>
-              <li className="hover:text-white cursor-pointer">
-                Romantic Comedy
+              <li>
+                <Link to="/categories" className="hover:text-white">
+                  Action
+                </Link>
+              </li>
+              <li>
+                <Link to="/categories" className="hover:text-white">
+                  Comedy
+                </Link>
+              </li>
+              <li>
+                <Link to="/categories" className="hover:text-white">
+                  Drama
+                </Link>
+              </li>
+              <li>
+                <Link to="/categories" className="hover:text-white">
+                  Horror
+                </Link>
+              </li>
+              <li>
+                <Link to="/categories" className="hover:text-white">
+                  Comedy
+                </Link>
               </li>
             </ul>
           </div>
 
           {/* Social Links */}
           <div>
-            <h3 className="font-semibold mb-3">Follow Us</h3>
+            <h3 className="font-semibold mb-3">{t('common:footer.followUs')}</h3>
             <div className="flex gap-4">
-              <Link
-                to="/"
+              <a
                 href="https://facebook.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-blue-500 transition-colors text-xl"
               >
                 <FaFacebookF />
-              </Link>
-              {/* <Link
-                to="/"
-                href="https://twitter.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-blue-400 transition-colors text-xl"
-              >
-                <FaTwitter />
-              </Link> */}
-              {/* <Link
-                to="/"
-                href="https://instagram.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-pink-400 transition-colors text-xl"
-              >
-                <FaInstagram />
-              </Link> */}
-              <Link
-                to="/"
+              </a>
+              <a
                 href="https://linkedin.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-blue-600 transition-colors text-xl"
               >
                 <FaLinkedinIn />
-              </Link>
+              </a>
             </div>
           </div>
         </div>
 
         {/* Bottom Bar */}
         <div className="border-t text-[14px] border-gray-700 mt-8 pt-4 text-center pb-5 text-gray-400">
-          © {new Date().getFullYear()} BookStop. All rights reserved.
-          <span className="text-green-600">imranslab Team</span>
+          {t('common:footer.copyright', { year: new Date().getFullYear() })}
+          <span className="text-green-600"> imranslab Team</span>
         </div>
       </footer>
     </div>

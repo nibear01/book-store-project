@@ -4,10 +4,14 @@ import {
   listBookRequests,
   updateBookRequestStatus,
   validateCreate,
+  checkEmailVerification,
 } from "../controllers/book-request-controllers.js";
 import { protect, authorize } from "../middlewares/auth-middleware.js";
 
 const router = express.Router();
+
+// Public: check if email is already verified
+router.get("/check-email", checkEmailVerification);
 
 // Public: submit a book request (optionally authenticated)
 router.post("/submit", validateCreate(), createBookRequest);

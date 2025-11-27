@@ -1,6 +1,8 @@
 import { FaStar, FaStarHalfAlt, FaRegStar } from "react-icons/fa";
+import { useTranslation } from "react-i18next";
 
 const BookDetails = ({ book }) => {
+  const { t } = useTranslation(['bookView', 'common']);
   const renderStars = (rating = book?.rating || 0) => {
     const stars = [];
     const fullStars = Math.floor(rating);
@@ -19,13 +21,13 @@ const BookDetails = ({ book }) => {
   return (
     <>
       <h1 className="text-3xl font-bold">{book.title}</h1>
-      <h2 className="text-lg text-gray-700">By {book.author}</h2>
+      <h2 className="text-lg text-gray-700">{t('bookView.by')} {book.author}</h2>
 
       {/* Rating */}
       <div className="flex items-center gap-2">
         <div className="flex">{renderStars()}</div>
         <span className="text-gray-500 text-sm">
-          ({book.num_reviews} reviews)
+          ({book.num_reviews} {t('bookView.reviewsCount')})
         </span>
       </div>
 
@@ -43,16 +45,31 @@ const BookDetails = ({ book }) => {
         </div>
       )}
 
-      {/* Price (supports configured price) */}
+      {/* Price (supports configured price & discounts) */}
       <div className="mt-3">
-        {book.configuredPrice && book.configuredPrice !== book.price ? (
-          <div className="flex flex-col">
-            <span className="text-sm text-gray-500 line-through">৳{Number(book.price).toFixed(2)}</span>
-            <span className="text-2xl font-semibold">৳{Number(book.configuredPrice).toFixed(2)}</span>
-            <span className="text-xs text-gray-500 mt-1">Price reflects selected printing options.</span>
-          </div>
+        {typeof book._displayPrice === 'number' ? (
+          book._compareAtPrice != null && book._compareAtPrice !== book._displayPrice ? (
+            <div className="flex flex-col">
+              <span className="text-sm text-gray-500 line-through">{t('common:currency')}{Number(book._compareAtPrice).toFixed(2)}</span>
+              <span className="text-2xl font-semibold">{t('common:currency')}{Number(book._displayPrice).toFixed(2)}</span>
+              <span className="text-xs text-gray-500 mt-1">{t('bookView.priceNote')}</span>
+            </div>
+          ) : (
+            <div className="text-2xl font-semibold">{t('common:currency')}{Number(book._displayPrice).toFixed(2)}</div>
+          )
         ) : (
-          <div className="text-2xl font-semibold">৳{Number(book.price).toFixed(2)}</div>
+          // Fallback to legacy configuredPrice behavior
+          <>
+            {book.configuredPrice && book.configuredPrice !== book.price ? (
+              <div className="flex flex-col">
+                <span className="text-sm text-gray-500 line-through">{t('common:currency')}{Number(book.price).toFixed(2)}</span>
+                <span className="text-2xl font-semibold">{t('common:currency')}{Number(book.configuredPrice).toFixed(2)}</span>
+                <span className="text-xs text-gray-500 mt-1">{t('bookView.priceNote')}</span>
+              </div>
+            ) : (
+              <div className="text-2xl font-semibold">{t('common:currency')}{Number(book.price).toFixed(2)}</div>
+            )}
+          </>
         )}
       </div>
 
@@ -64,14 +81,14 @@ const BookDetails = ({ book }) => {
       {/* Additional Info */}
       <div className="mt-6 grid grid-cols-2 gap-4 text-sm text-gray-600">
         <div>
-          <span className="font-semibold">Language:</span> {book.language}
+          <span className="font-semibold">{t('bookView.language')}:</span> {book.language}
         </div>
         <div>
-          <span className="font-semibold">ISBN:</span> {book.isbn || 'N/A'}
+          <span className="font-semibold">{t('bookView.isbn')}:</span> {book.isbn || t('bookView.details.notAvailable')}
         </div>
         <div>
-          <span className="font-semibold">Published:</span>{" "}
-          {book.published_date ? new Date(book.published_date).toLocaleDateString() : 'N/A'}
+          <span className="font-semibold">{t('bookView.published')}:</span>{" "}
+          {book.published_date ? new Date(book.published_date).toLocaleDateString() : t('bookView.details.notAvailable')}
         </div>
       </div>
     </>

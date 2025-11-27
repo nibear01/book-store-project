@@ -1,16 +1,73 @@
 import AuthorRequest from "../models/author-request-model.js";
 import EmailOtp from "../models/email-otp-model.js";
-import { sendVerificationEmail } from "../middlewares/email-verify.js";
+import nodemailer from "nodemailer";
+import { getOtpEmailTemplate, getAuthorWelcomeTemplate } from "../utils/email-templates.js";
 
 const OTP_EXPIRE_MS = 10 * 60 * 1000; // 10 minutes
 const RESEND_COOLDOWN_MS = 60 * 1000; // 60 seconds
 
 const generateCode = () => String(Math.floor(100000 + Math.random() * 900000));
 
+// NEW: cached transporter with env-based SMTP (fallback to Ethereal)
+let cachedTransporter = null;
+let cachedIsTest = false;
+const getMailer = async () => {
+  if (cachedTransporter) return { transporter: cachedTransporter, isTest: cachedIsTest };
+
+  const {
+    SMTP_HOST,
+    SMTP_PORT,
+    SMTP_USER,
+    SMTP_PASS,
+    SMTP_SECURE = "false",
+  } = process.env;
+
+  if (SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS) {
+    cachedTransporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: Number(SMTP_PORT),
+      secure: String(SMTP_SECURE).toLowerCase() === "true",
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
+    });
+    cachedIsTest = false;
+    return { transporter: cachedTransporter, isTest: cachedIsTest };
+  }
+
+  const testAccount = await nodemailer.createTestAccount();
+  cachedTransporter = nodemailer.createTransport({
+    host: testAccount.smtp.host,
+    port: testAccount.smtp.port,
+    secure: testAccount.smtp.secure,
+    auth: { user: testAccount.user, pass: testAccount.pass },
+  });
+  cachedIsTest = true;
+  return { transporter: cachedTransporter, isTest: cachedIsTest };
+};
+
+// Send author OTP verification email
+const sendAuthorVerificationEmail = async ({ to, code }) => {
+  const { transporter } = await getMailer();
+  const from = process.env.SMTP_FROM || '"BoiBilash" <no-reply@bookstop.app>';
+  const html = getOtpEmailTemplate({ code, name: 'Author', lang: 'en' });
+  return transporter.sendMail({ from, to, subject: "Verify Your Email - BoiBilash", html });
+};
+
+// Author welcome email
+const sendAuthorWelcomeEmail = async ({ to, name }) => {
+  const { transporter } = await getMailer();
+  const from = process.env.SMTP_FROM || '"BoiBilash" <no-reply@bookstop.app>';
+  const html = getAuthorWelcomeTemplate({ name: name || "Author", lang: 'en' });
+  return transporter.sendMail({ from, to, subject: "Welcome to BoiBilash Authors - Your Request Approved! 🎉", html });
+};
+
 // Public: send OTP to arbitrary email for author request
 export const sendAuthorOtp = async (req, res) => {
   try {
     const { email } = req.body || {};
+    const emailExist = await AuthorRequest.findOne({ email, status: { $in: ["pending", "verified"] } });
+    if (emailExist) {
+      return res.status(400).json({ success: false, message: "Email already used in an existing request" });
+    }
     if (!email) return res.status(400).json({ success: false, message: "Email required" });
     // Enforce cooldown by last sent record
     const last = await EmailOtp.findOne({ email }).sort({ sentAt: -1 });
@@ -24,7 +81,7 @@ export const sendAuthorOtp = async (req, res) => {
     const expiresAt = new Date(now.getTime() + OTP_EXPIRE_MS);
     await EmailOtp.create({ email, code, sentAt: now, expiresAt });
 
-    await sendVerificationEmail({ to: email, code });
+    await sendAuthorVerificationEmail({ to: email, code });
     return res.status(200).json({ success: true, message: "OTP sent" });
   } catch (e) {
     return res.status(500).json({ success: false, message: e.message });
@@ -105,13 +162,35 @@ export const updateAuthorRequestStatus = async (req, res) => {
     if (!id || !status) return res.status(400).json({ success: false, message: "Missing id or status" });
     const allowed = ["unverified", "pending", "verified", "cancelled"];
     if (!allowed.includes(status)) return res.status(400).json({ success: false, message: "Invalid status" });
+
+    // NEW: detect transition to "verified"
+    const existing = await AuthorRequest.findById(id);
+    if (!existing) return res.status(404).json({ success: false, message: "Request not found" });
+    const willVerify = existing.status !== "verified" && status === "verified";
+
     const updated = await AuthorRequest.findByIdAndUpdate(
       id,
       { status, reviewNote, reviewedBy: req.user?._id, reviewedAt: new Date() },
       { new: true }
     );
     if (!updated) return res.status(404).json({ success: false, message: "Request not found" });
-    return res.status(200).json({ success: true, data: updated });
+
+    // NEW: send welcome email on transition
+    let welcomePreview;
+    if (willVerify && updated.email) {
+      try {
+        const info = await sendAuthorWelcomeEmail({ to: updated.email, name: updated.fullName });
+        welcomePreview = nodemailer.getTestMessageUrl?.(info);
+      } catch (e) {
+        // Do not block; optionally log
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: updated,
+      ...(welcomePreview ? { welcomePreview } : {}),
+    });
   } catch (e) {
     return res.status(500).json({ success: false, message: e.message });
   }

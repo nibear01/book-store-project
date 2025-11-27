@@ -1,0 +1,47 @@
+{
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "authorPanel": "Author Panel",
+    "authors": "Authors",
+    "authorRequests": "Author Requests",
+    "bookRequests": "Book Requests",
+    "booksCategories": "Books & Categories",
+    "publishers": "Publishers",
+    "orders": "Orders",
+    "support": "Support",
+    "finance": "Finance",
+    "printing": "Printing",
+    "delivery": "Delivery",
+    "marketing": "Marketing",
+    "affiliates": "Affiliates",
+    "subscribers": "Subscribers",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "dashboard": {
+    "welcome": "Welcome, {{name}}",
+    "totalSales": "Total Sales",
+    "totalOrders": "Total Orders",
+    "totalUsers": "Total Users",
+    "totalBooks": "Total Books",
+    "recentOrders": "Recent Orders",
+    "topBooks": "Top Selling Books",
+    "statistics": "Statistics"
+  },
+  "common": {
+    "actions": "Actions",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "search": "Search...",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "addNew": "Add New",
+    "bulkActions": "Bulk Actions"
+  }
+}

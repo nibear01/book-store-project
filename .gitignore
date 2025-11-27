@@ -28,5 +28,15 @@ dist-ssr
 backend/node_modules
 backend/node_modules/README.md
 
-frontend/.env
-backend/.env
+ui_test/venv
+ui_test/venv/Scripts
+
+__pycache__
+
+ui_test/__pycache__
+ui_test/*.pyc
+ui_test/*.pyo
+ui_test/.pytest_cache
+ui_test/pages/__pycache__
+ui_test/pages/*.pyc 
+ui_test/pages/*.pyo

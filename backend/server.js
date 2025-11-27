@@ -13,9 +13,17 @@ import reviewRoutes from "./routes/review-routes.js";
 import otpRoutes from "./routes/otp-routes.js";
 import authorRequestRoutes from "./routes/author-request-routes.js";
 import bookRequestRoutes from "./routes/book-request-routes.js";
+import subscriberRoutes from "./routes/subscriber-routes.js";
+import settingRoutes from "./routes/setting-routes.js";
 import seedDefaultCategories from "./seed/seed-categories.js";
+import contactRoutes from "./routes/contact-routes.js";
+
 import path from "path";
 import { fileURLToPath } from "url";
+import authorRoutes from "./routes/author-routes.js";
+import publisherRoutes from "./routes/publisher-routes.js";
+import affiliateRoutes from "./routes/affiliate-routes.js";
+import affiliateAdminRoutes from "./routes/affiliate-admin-routes.js";
 
 // Fix __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -30,7 +38,7 @@ app.use(cors());
 // Serve static files from uploads directory
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Routes
+// API Routes
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/cart", cartRoutes);
@@ -41,6 +49,18 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/otp", otpRoutes);
 app.use("/api/author-requests", authorRequestRoutes);
 app.use("/api/book-requests", bookRequestRoutes);
+app.use("/api/authors", authorRoutes);
+app.use("/api/contact", contactRoutes);
+app.use("/api/publishers", publisherRoutes);
+app.use("/api/subscribers", subscriberRoutes);
+app.use("/api/settings", settingRoutes);
+app.use("/api/affiliates", affiliateRoutes);
+app.use("/api/admin/affiliates", affiliateAdminRoutes);
+
+// // Routes
+app.use("/", (req, res) => {
+  return res.send("Server is running...");
+})
 
 const startServer = async () => {
   await connectDb();

@@ -2,6 +2,7 @@ import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import { getOtpEmailTemplate } from "../utils/email-templates.js";
 
 // Load .env from backend root even when running this file directly
 const __filename = fileURLToPath(import.meta.url);
@@ -45,6 +46,8 @@ export const sendVerificationEmail = async ({
   to,
   code,
   subject = "Your verification code",
+  name,
+  lang = 'en'
 }) => {
   if (!to) throw new Error("Missing recipient email");
   if (!code) throw new Error("Missing verification code");
@@ -53,12 +56,14 @@ export const sendVerificationEmail = async ({
       "Email not configured. Set SMTP_USER and SMTP_PASS in backend/.env"
     );
   }
+  
+  const html = getOtpEmailTemplate({ code, name, lang });
+  
   const info = await transporter.sendMail({
     from: smtpUser,
     to,
-    subject,
-    text: `Your verification code is ${code}`,
-    html: `<p>Your verification code is <b>${code}</b></p>`,
+    subject: subject,
+    html,
   });
   return info;
 };

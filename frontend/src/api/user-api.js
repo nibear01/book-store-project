@@ -1,5 +1,5 @@
 // Base API URL
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = `${import.meta.env.VITE_BACKEND_URL || 'http://192.168.0.104:5000'}/api`;
 
 // Helper function to make API requests
 const apiRequest = async (endpoint, options = {}) => {
@@ -37,11 +37,24 @@ const apiRequest = async (endpoint, options = {}) => {
         const response = await fetch(url, config);
         const data = await response.json();
         if (!response.ok) {
+            // Only clear token on 401 if it's a token-related auth error
+            // Don't clear on permission errors (403) or other errors
+            if (response.status === 401 && 
+                (data.message?.toLowerCase().includes('token') || 
+                 data.message?.toLowerCase().includes('not authorized') ||
+                 data.message?.toLowerCase().includes('authentication required'))) {
+                console.warn('Token invalid or expired, clearing auth state');
+                localStorage.removeItem('token');
+                localStorage.removeItem('activeRole');
+            }
             throw new Error(data.message || 'Something went wrong');
         }
         return data;
     } catch (error) {
-        console.error('API Error:', error);
+        // Only log non-auth errors to avoid console spam
+        if (!error.message?.includes('token') && !error.message?.toLowerCase().includes('authorized')) {
+            console.error('API Error:', error);
+        }
         throw error;
     }
 };

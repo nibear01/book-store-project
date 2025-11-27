@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import path from "path";
 import Book from "../models/book-model.js";
+import Publisher from "../models/publisher-model.js";
 
 // NEW: fs/promises for renaming
 import fs from "fs/promises";
@@ -43,6 +44,88 @@ const toPublicPath = (file) => {
   return rel.startsWith("/") ? rel : `/${rel}`;
 };
 
+// NEW: local uploads root and safe deletion helpers
+const uploadsRoot = path.resolve(process.cwd(), "uploads");
+const toAbsoluteIfLocal = (p) => {
+  if (!p || isAbsoluteUrl(p)) return null; // skip remote URLs
+  const rel = String(p).replace(/^\/+/, ""); // strip leading slash
+  const abs = path.resolve(process.cwd(), rel);
+  if (!abs.startsWith(uploadsRoot)) return null; // safety: only within uploads
+  return abs;
+};
+const deleteLocalFilesSafe = async (paths = []) => {
+  for (const p of Array.from(new Set(paths.filter(Boolean)))) {
+    const abs = toAbsoluteIfLocal(p);
+    if (!abs) continue;
+    try {
+      await fs.unlink(abs);
+    } catch {
+      // ignore missing files or fs errors
+    }
+  }
+};
+
+// Helper: auto-assign publisher based on name, ID, or publisher_id (6-digit)
+const assignPublisher = async (bookData) => {
+  // Priority 1: If publisher_id is an ObjectId, use it directly
+  if (bookData.publisher_id && mongoose.isValidObjectId(bookData.publisher_id)) {
+    const pub = await Publisher.findById(bookData.publisher_id);
+    if (pub) {
+      bookData.publisher = pub.name;
+      bookData.publisher_id = pub._id;
+      return;
+    }
+  }
+
+  // Priority 2: If publisher_id is a 6-digit string, search by publisher_id field
+  if (bookData.publisher_id && /^\d{6}$/.test(String(bookData.publisher_id).trim())) {
+    const pub = await Publisher.findOne({ 
+      publisher_id: String(bookData.publisher_id).trim(),
+      is_active: true 
+    });
+    
+    if (pub) {
+      bookData.publisher = pub.name;
+      bookData.publisher_id = pub._id;
+      return;
+    }
+  }
+
+  // Priority 3: If publisher string looks like a 6-digit ID, search by publisher_id field
+  if (bookData.publisher && typeof bookData.publisher === "string") {
+    const publisherStr = bookData.publisher.trim();
+    
+    // Check if it's a 6-digit publisher_id
+    if (/^\d{6}$/.test(publisherStr)) {
+      const pub = await Publisher.findOne({ 
+        publisher_id: publisherStr,
+        is_active: true 
+      });
+      
+      if (pub) {
+        bookData.publisher = pub.name;
+        bookData.publisher_id = pub._id;
+        return;
+      }
+    }
+    
+    // Priority 4: Try to find by publisher name
+    const pub = await Publisher.findOne({ 
+      name: { $regex: new RegExp(`^${publisherStr}$`, "i") },
+      is_active: true 
+    });
+    
+    if (pub) {
+      bookData.publisher = pub.name;
+      bookData.publisher_id = pub._id;
+    } else {
+      // Publisher name/id provided but not found in DB - keep the string, clear the reference
+      bookData.publisher = publisherStr;
+      delete bookData.publisher_id;
+    }
+  }
+};
+
 // Helper: sanitize updatable fields
 const pickUpdatableFields = (payload = {}) => {
   const allowed = [
@@ -65,7 +148,8 @@ const pickUpdatableFields = (payload = {}) => {
     "meta_title",
     "meta_description",
     "meta_keywords",
-    "publisher",   // added
+    "publisher",   // added (legacy string field)
+    "publisher_id", // added (reference to Publisher model)
     "pages",       // added
     // NEW
     "is_on_sale",
@@ -111,6 +195,25 @@ const pickUpdatableFields = (payload = {}) => {
     }
   }
 
+  // Normalize boolean flags from string/number to actual booleans
+  const toBool = (v) => {
+    if (typeof v === "boolean") return v;
+    if (typeof v === "number") return v !== 0;
+    const s = String(v ?? "").trim().toLowerCase();
+    if (!s) return false;
+    if (s === "true" || s === "1" || s === "yes" || s === "y") return true;
+    if (s === "false" || s === "0" || s === "no" || s === "n") return false;
+    return Boolean(v);
+  };
+  [
+    "is_active",
+    "is_featured",
+    "is_on_sale",
+    "is_deal_of_the_week",
+  ].forEach((k) => {
+    if (out[k] !== undefined) out[k] = toBool(out[k]);
+  });
+
   // Normalize cover_image to array of strings
   if (out.cover_image !== undefined) {
     if (Array.isArray(out.cover_image)) {
@@ -136,6 +239,16 @@ const pickUpdatableFields = (payload = {}) => {
       throw new Error("Invalid published_date");
     }
     out.published_date = d;
+  }
+
+  // Validate publisher_id - allow ObjectId OR 6-digit publisher ID string
+  if (out.publisher_id !== undefined && out.publisher_id) {
+    const isObjectId = mongoose.isValidObjectId(out.publisher_id);
+    const is6DigitId = /^\d{6}$/.test(String(out.publisher_id).trim());
+    
+    if (!isObjectId && !is6DigitId) {
+      throw new Error("Invalid publisher_id: must be a valid ObjectId or 6-digit publisher ID");
+    }
   }
 
   // Validate numeric fields
@@ -189,7 +302,12 @@ const pickUpdatableFields = (payload = {}) => {
   if (out.deal_start && out.deal_end && out.deal_end < out.deal_start) {
     throw new Error("deal_end must be after deal_start");
   }
-  if (out.price !== undefined && out.sale_price !== undefined && out.sale_price >= out.price) {
+  if (
+    out.is_on_sale &&
+    out.price !== undefined &&
+    out.sale_price !== undefined &&
+    !(out.sale_price < out.price)
+  ) {
     throw new Error("sale_price must be less than price");
   }
 
@@ -216,6 +334,7 @@ export const getBooks = async (req, res) => {
       minViews,          // NEW: filter by minimum views
       // NEW: control is_active filtering
       status, // "all" | "active" | "inactive"
+      isbn: isbnQuery, // added: direct isbn query param
     } = req.query;
 
     const p = Math.max(1, toNumber(page, 1));
@@ -235,12 +354,18 @@ export const getBooks = async (req, res) => {
         { title: { $regex: term, $options: "i" } },
         { author: { $regex: term, $options: "i" } },
         { description: { $regex: term, $options: "i" } },
+        { isbn: { $regex: term, $options: "i" } }, // added: search by ISBN
       ];
     }
     // Works with array-field as well (matches any element)
     if (genre) filter.genre = { $regex: String(genre), $options: "i" };
     if (author) filter.author = { $regex: String(author), $options: "i" };
     if (language) filter.language = { $regex: String(language), $options: "i" };
+
+    // NEW: direct isbn filter
+    if (isbnQuery && String(isbnQuery).trim()) {
+      filter.isbn = { $regex: String(isbnQuery).trim(), $options: "i" };
+    }
 
     // NEW: rating filter
     const minR = Number(minRating);
@@ -308,6 +433,7 @@ export const getBooks = async (req, res) => {
       .sort(sortSpec)
       .skip((p - 1) * l)
       .limit(l)
+      .populate("publisher_id", "name slug logo country website")
       .lean();
 
     return res.json({
@@ -338,7 +464,9 @@ export const getBookById = async (req, res) => {
       { slug, is_active: true },
       { $inc: { views: 1 } },
       { new: true }
-    ).lean();
+    )
+      .populate("publisher_id", "name slug logo country website")
+      .lean();
 
     if (!book) {
       return res.status(404).json({ success: false, message: "Book not found" });
@@ -365,6 +493,17 @@ export const createBook = async (req, res) => {
     }
 
     const payload = pickUpdatableFields(req.body);
+
+    // Check for duplicate ISBN if provided
+    if (payload.isbn && payload.isbn.trim()) {
+      const existingBook = await Book.findOne({ isbn: payload.isbn.trim() });
+      if (existingBook) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `A book with ISBN "${payload.isbn.trim()}" already exists` 
+        });
+      }
+    }
 
     // Derive slug if missing
     if (!payload.slug && payload.meta_title) {
@@ -423,11 +562,26 @@ export const createBook = async (req, res) => {
       payload.file_url = toPublicPath(uploadedBookFile);
     }
 
+    // Auto-assign publisher based on name or ID
+    await assignPublisher(payload);
+
     const book = await Book.create({
       ...payload,
     });
 
-    return res.status(201).json({ success: true, data: book });
+    // Add book to publisher's books array if publisher_id exists
+    if (book.publisher_id) {
+      await Publisher.findByIdAndUpdate(
+        book.publisher_id,
+        { $addToSet: { books: book._id } }
+      );
+    }
+
+    const populated = await Book.findById(book._id)
+      .populate("publisher_id", "name slug logo country website")
+      .lean();
+
+    return res.status(201).json({ success: true, data: populated });
   } catch (error) {
     const code = error.message && error.message.startsWith("Invalid") ? 400 : 500;
     return res.status(code).json({ success: false, message: "Failed to create book", error: error.message });
@@ -443,6 +597,20 @@ export const updateBook = async (req, res) => {
     }
 
     const payload = pickUpdatableFields(req.body);
+
+    // Check for duplicate ISBN if provided (excluding current book)
+    if (payload.isbn && payload.isbn.trim()) {
+      const existingBook = await Book.findOne({ 
+        isbn: payload.isbn.trim(),
+        _id: { $ne: id }
+      });
+      if (existingBook) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `A book with ISBN "${payload.isbn.trim()}" already exists` 
+        });
+      }
+    }
 
     // If slug provided, ensure uniqueness
     if (payload.slug) {
@@ -495,12 +663,44 @@ export const updateBook = async (req, res) => {
       payload.file_url = toPublicPath(uploadedBookFile);
     }
 
+    // Get the old book data before update
+    const oldBook = await Book.findById(id).select("publisher_id").lean();
+    const oldPublisherId = oldBook?.publisher_id?.toString();
+
+    // Auto-assign publisher based on name or ID
+    await assignPublisher(payload);
+
     const updated = await Book.findByIdAndUpdate(id, { $set: payload }, { new: true });
     if (!updated) {
       return res.status(404).json({ success: false, message: "Book not found" });
     }
 
-    return res.json({ success: true, data: updated });
+    // Update publisher's books array if publisher changed
+    const newPublisherId = updated.publisher_id?.toString();
+    
+    if (oldPublisherId !== newPublisherId) {
+      // Remove from old publisher
+      if (oldPublisherId) {
+        await Publisher.findByIdAndUpdate(
+          oldPublisherId,
+          { $pull: { books: id } }
+        );
+      }
+      
+      // Add to new publisher
+      if (newPublisherId) {
+        await Publisher.findByIdAndUpdate(
+          newPublisherId,
+          { $addToSet: { books: id } }
+        );
+      }
+    }
+
+    const populated = await Book.findById(id)
+      .populate("publisher_id", "name slug logo country website")
+      .lean();
+
+    return res.json({ success: true, data: populated });
   } catch (error) {
     const code = error.message && error.message.startsWith("Invalid") ? 400 : 500;
     return res.status(code).json({ success: false, message: "Failed to update book", error: error.message });
@@ -521,8 +721,28 @@ export const deleteBook = async (req, res) => {
     const doHardDelete = String(hard ?? "true").toLowerCase() !== "false";
 
     if (doHardDelete) {
-      const deleted = await Book.findByIdAndDelete(id);
-      if (!deleted) return res.status(404).json({ success: false, message: "Book not found" });
+      // Fetch doc first so we can delete assets
+      const doc = await Book.findById(id).lean();
+      if (!doc) return res.status(404).json({ success: false, message: "Book not found" });
+
+      // Collect asset paths (only local ones will be deleted)
+      const assets = [];
+      if (Array.isArray(doc.cover_image)) assets.push(...doc.cover_image);
+      else if (typeof doc.cover_image === "string") assets.push(doc.cover_image);
+      if (doc.file_url) assets.push(doc.file_url);
+
+      await deleteLocalFilesSafe(assets);
+      
+      // Remove book from publisher's books array
+      if (doc.publisher_id) {
+        await Publisher.findByIdAndUpdate(
+          doc.publisher_id,
+          { $pull: { books: id } }
+        );
+      }
+      
+      await Book.findByIdAndDelete(id);
+
       return res.json({ success: true, message: "Book permanently deleted" });
     }
 
@@ -542,6 +762,7 @@ export const getFeaturedBooks = async (req, res) => {
     const books = await Book.find({ is_active: true, is_featured: true })
       .sort({ updated_at: -1 })
       .limit(limit)
+      .populate("publisher_id", "name slug logo country website")
       .lean();
 
     return res.json({ success: true, data: books, meta: { limit } });
@@ -568,6 +789,7 @@ export const getTrendingBooks = async (req, res) => {
     const books = await Book.find(filter)
       .sort({ rating: -1, num_reviews: -1, updated_at: -1 })
       .limit(limit)
+      .populate("publisher_id", "name slug logo country website")
       .lean();
 
     return res.json({ success: true, data: books, meta: { limit, days: Number.isFinite(days) && days >= 0 ? days : 30 } });
@@ -593,6 +815,7 @@ export const getOnSaleBooks = async (req, res) => {
     const books = await Book.find({ is_active: true, is_on_sale: true })
       .sort({ updated_at: -1 })
       .limit(limit)
+      .populate("publisher_id", "name slug logo country website")
       .lean();
     return res.json({ success: true, data: books, meta: { limit } });
   } catch (error) {
@@ -607,6 +830,7 @@ export const getMostViewedBooks = async (req, res) => {
     const books = await Book.find({ is_active: true })
       .sort({ views: -1, updated_at: -1 })
       .limit(limit)
+      .populate("publisher_id", "name slug logo country website")
       .lean();
     return res.json({ success: true, data: books, meta: { limit } });
   } catch (error) {
@@ -621,10 +845,25 @@ export const getDealsOfTheWeek = async (req, res) => {
     const books = await Book.find({ is_active: true, is_deal_of_the_week: true })
       .sort({ updated_at: -1 })
       .limit(limit)
+      .populate("publisher_id", "name slug logo country website")
       .lean();
     return res.json({ success: true, data: books, meta: { limit } });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Failed to fetch deals of the week", error: error.message });
+  }
+};
+
+// NEW: GET /api/books/count
+// Returns total number of books and active count
+export const getBooksCount = async (req, res) => {
+  try {
+    const [total, active] = await Promise.all([
+      Book.countDocuments({}),
+      Book.countDocuments({ is_active: true }),
+    ]);
+    return res.json({ success: true, data: { total, active } });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to fetch books count", error: error.message });
   }
 };
 

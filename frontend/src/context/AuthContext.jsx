@@ -5,6 +5,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useMemo,
 } from "react";
 import { userAPI } from "../api/user-api";
 
@@ -22,13 +23,16 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeRole, setActiveRole] = useState("user");
+  const [roles, setRoles] = useState([]); // all roles assigned to user
 
   const [loading, setLoading] = useState(false); // renamed for consistency
+  const [isLoading, setIsLoading] = useState(false); // global indicator for top-level UI
   const [error, setError] = useState(null);
 
   // Generic fetch wrapper
   const fetchData = useCallback(async (apiCall, onSuccess) => {
     setLoading(true);
+    setIsLoading(true);
     setError(null);
     try {
       const data = await apiCall();
@@ -39,109 +43,201 @@ export const AuthProvider = ({ children }) => {
       throw err;
     } finally {
       setLoading(false);
+      setIsLoading(false);
     }
+  }, []);
+
+  // Fallback login using env base URL if userAPI.login fails to fetch (network/CORS/baseurl)
+  const fallbackLogin = useCallback(async (credentials) => {
+    const base = (import.meta.env.VITE_BACKEND_URL || "").replace(/\/+$/, "");
+    const endpoint = `${base || ""}/api/auth/login`;
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data?.message || "Login failed");
+    }
+    // Persist token if present so other API clients can use it
+    const token =
+      data?.token ||
+      data?.accessToken ||
+      data?.data?.token ||
+      data?.data?.accessToken;
+    if (token) {
+      localStorage.setItem("token", token);
+    }
+    return data;
   }, []);
 
   // Check if user is logged in on app load
   useEffect(() => {
-    fetchData(
-      async () => {
+    let mounted = true;
+    const abortController = new AbortController();
+
+    const checkAuth = async () => {
+      if (abortController.signal.aborted) return;
+      
+      setLoading(true);
+      setIsLoading(true);
+      setError(null);
+      
+      try {
         if (userAPI.isAuthenticated()) {
-          return await userAPI.getMe();
+          const userData = await userAPI.getMe();
+          
+          if (mounted && userData && !abortController.signal.aborted) {
+            setUser(userData.data);
+            setIsAuthenticated(true);
+            const rolesArr =
+              userData.data?.roles ||
+              (userData.data?.role ? [userData.data.role] : []);
+            setRoles(rolesArr);
+            const stored = localStorage.getItem("activeRole");
+            const initial =
+              stored && rolesArr.includes(stored)
+                ? stored
+                : rolesArr.includes("user")
+                ? "user"
+                : rolesArr[0] || "user";
+            setActiveRole(initial);
+          }
         }
-        return null;
-      },
-      (userData) => {
-        if (userData) {
+      } catch (err) {
+        // If token is invalid/expired, clear auth state
+        if (err?.message?.includes("token") || err?.message?.includes("Unauthorized") || err?.message?.includes("No user found")) {
+          if (mounted && !abortController.signal.aborted) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("activeRole");
+            setUser(null);
+            setIsAuthenticated(false);
+            setRoles([]);
+            setActiveRole("user");
+          }
+        } else if (mounted && !abortController.signal.aborted) {
+          setError(err);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    checkAuth();
+
+    return () => {
+      mounted = false;
+      abortController.abort();
+    };
+  }, []);
+
+  // Login function (stable reference)
+  const login = useCallback(
+    (credentials) =>
+      fetchData(
+        async () => {
+          try {
+            await userAPI.login(credentials);
+          } catch (err) {
+            if (
+              err?.name === "TypeError" ||
+              (typeof err?.message === "string" && err.message.toLowerCase().includes("failed to fetch"))
+            ) {
+              await fallbackLogin(credentials);
+            } else {
+              throw err;
+            }
+          }
+          return await userAPI.getMe();
+        },
+        (userData) => {
           setUser(userData.data);
           setIsAuthenticated(true);
-          const roles =
-            userData.data?.roles ||
-            (userData.data?.role ? [userData.data.role] : []);
-          const stored = localStorage.getItem("activeRole");
-          const initial =
-            stored && roles.includes(stored)
-              ? stored
-              : roles.includes("user")
-              ? "user"
-              : roles[0] || "user";
+          const rolesArr = userData.data?.roles || (userData.data?.role ? [userData.data.role] : []);
+          setRoles(rolesArr);
+          const initial = rolesArr.includes("user") ? "user" : rolesArr[0] || "user";
           setActiveRole(initial);
+          localStorage.setItem("activeRole", initial);
         }
-      }
-    );
-  }, [fetchData]);
+      ),
+    [fetchData, fallbackLogin]
+  );
 
-  // Login function
-  const login = (credentials) =>
-    fetchData(
-      async () => {
-        await userAPI.login(credentials);
-        return await userAPI.getMe();
-      },
-      (userData) => {
-        setUser(userData.data);
-        setIsAuthenticated(true);
-        const roles =
-          userData.data?.roles ||
-          (userData.data?.role ? [userData.data.role] : []);
-        const initial = roles.includes("user") ? "user" : roles[0] || "user";
-        setActiveRole(initial);
-        localStorage.setItem("activeRole", initial);
-      }
-    );
+  // Register function (stable)
+  const register = useCallback(
+    (userData) =>
+      fetchData(
+        async () => {
+          await userAPI.register(userData);
+          return await userAPI.getMe();
+        },
+        (profile) => {
+          setUser(profile.data);
+          setIsAuthenticated(true);
+        }
+      ),
+    [fetchData]
+  );
 
-  // Register function
-  const register = (userData) =>
-    fetchData(
-      async () => {
-        await userAPI.register(userData);
-        return await userAPI.getMe();
-      },
-      (profile) => {
-        setUser(profile.data);
-        setIsAuthenticated(true);
-      }
-    );
-
-  // Logout function
-  const logout = () => {
+  // Logout function (stable)
+  const logout = useCallback(() => {
     userAPI.logout();
     setUser(null);
     setIsAuthenticated(false);
-  };
+    setIsLoading(false);
+    setLoading(false);
+    setActiveRole("user");
+    setRoles([]);
+  }, []);
 
-  // Update user profile
-  const updateUser = (updatedUser) => {
-    setUser(updatedUser);
-    const roles =
-      updatedUser?.roles || (updatedUser?.role ? [updatedUser.role] : []);
-    if (!roles.includes(activeRole)) {
-      const next = roles.includes("user") ? "user" : roles[0] || "user";
-      setActiveRole(next);
-      localStorage.setItem("activeRole", next);
-    }
-  };
+  // Update user profile (stable)
+  const updateUser = useCallback(
+    (updatedUser) => {
+      setUser(updatedUser);
+      const rolesArr = updatedUser?.roles || (updatedUser?.role ? [updatedUser.role] : []);
+      setRoles(rolesArr);
+      if (!rolesArr.includes(activeRole)) {
+        const next = rolesArr.includes("user") ? "user" : rolesArr[0] || "user";
+        setActiveRole(next);
+        localStorage.setItem("activeRole", next);
+      }
+    },
+    [activeRole]
+  );
 
-  const switchRole = (role) => {
-    const roles = user?.roles || (user?.role ? [user.role] : []);
-    if (!roles.includes(role)) return false;
-    setActiveRole(role);
-    localStorage.setItem("activeRole", role);
-    return true;
-  };
+  const switchRole = useCallback(
+    (role) => {
+      const rolesArr = roles.length ? roles : (user?.roles || (user?.role ? [user.role] : []));
+      if (!rolesArr.includes(role)) return false;
+      setActiveRole(role);
+      localStorage.setItem("activeRole", role);
+      return true;
+    },
+    [roles, user]
+  );
 
-  const value = {
-    user,
-    isAuthenticated,
-    loading,
-    error,
-    login,
-    register,
-    logout,
-    updateUser,
-    activeRole,
-    switchRole,
-  };
+  const value = useMemo(
+    () => ({
+      user,
+      isAuthenticated,
+      loading,
+      isLoading,
+      setIsLoading,
+      error,
+      login,
+      register,
+      logout,
+      updateUser,
+      activeRole,
+      roles,
+      switchRole,
+    }),
+    [user, isAuthenticated, loading, isLoading, error, login, register, logout, updateUser, activeRole, roles, switchRole]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

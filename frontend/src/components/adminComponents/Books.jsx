@@ -4,22 +4,25 @@ import initialBooks from "../../data/dummyBooks.json";
 import { BooksContext } from "@/context/BooksContext";
 import FiltersBar from "./books/FiltersBar";
 import BooksTable from "./books/BooksTable";
-import PaginationBar from "./books/PaginationBar";
+import { computeFinalConfiguredPrice, defaultPrintState } from "../bookViewComponents/BookPrintPricing";
+import Pagination from "./common/Pagination";
+import WorkflowSkeleton from "./common/WorkflowSkeleton";
 import AddEditBookModal from "./books/AddEditBookModal";
 import DetailsModal from "./books/DetailsModal";
 import DeleteConfirmModal from "./books/DeleteConfirmModal";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 import { toGenreArray, normalizeBook } from "./books/utils";
 import CategoryManager from "./categories/CategoryManager";
+import { useDebounce } from "./common/useDebounce";
 
-const API_BASE = "http://localhost:5000"; // added
+const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://192.168.0.104:5000";
 
 const Books = () => {
   const { fetchBooks, deleteBook, addBook } = useContext(BooksContext);
 
   // Data
   const [books, setBooks] = useState(initialBooks);
+  const [loading, setLoading] = useState(true);
 
   // UI State
   const [filters, setFilters] = useState({
@@ -28,11 +31,13 @@ const Books = () => {
     stock: "all",
     sortDate: "none",
   });
+  const [activeTab, setActiveTab] = useState("inventory"); // 'inventory' | 'categories'
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
   // Add: search state
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
@@ -57,6 +62,23 @@ const Books = () => {
   const [imagesNamesText, setImagesNamesText] = useState("");
   const [filesNamesText, setFilesNamesText] = useState("");
   const [uploadingBulk, setUploadingBulk] = useState(false);
+
+  // Global print pricing config & mode
+  const [printSettings, setPrintSettings] = useState(null);
+  const pricingMode = printSettings?.mode || "relative";
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/settings/print-config");
+        const data = await res.json();
+        if (alive && res.ok && data.success && data.data) setPrintSettings(data.data);
+      } catch {
+        // ignore
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   // Simple CSV parser with quoted fields support
   const parseCSV = (text) => {
@@ -123,18 +145,47 @@ const Books = () => {
         const idx = headers.indexOf(key);
         return idx >= 0 ? cells[idx]?.trim() : "";
       };
+      const normalizeIsbn = (val) => {
+        const raw = String(val || "").trim();
+        if (!raw) return "";
+        // Extract digits first
+        let digits = raw.replace(/\D/g, "");
+        if (!digits && /e\+/i.test(raw)) {
+          // Handle scientific notation like 9.78E+12
+          const n = Number(raw);
+          if (Number.isFinite(n)) {
+            digits = Math.round(n).toString();
+          }
+        }
+        if (digits.length >= 13) return digits.slice(0, 13);
+        if (digits.length === 10) return digits;
+        return digits;
+      };
       const fd = new FormData();
       // required fields
       fd.append("title", get("title") || "");
       fd.append("author", get("author") || "");
-      fd.append("price", get("price") || "");
+      // Pricing: if derived mode use computed derived price (contentFee + per-page + margin), else take CSV price
+      if (pricingMode === "derived" && printSettings) {
+        const pagesRaw = get("pages");
+        const pagesNum = Number(pagesRaw) || 0;
+        const { price: derivedPrice } = computeFinalConfiguredPrice({
+          baseContentPrice: 0,
+          pages: pagesNum,
+          cfg: defaultPrintState,
+          settings: printSettings,
+        });
+        fd.append("price", String(derivedPrice));
+      } else {
+        fd.append("price", get("price") || "");
+      }
       fd.append("stock", get("stock") || "0");
       fd.append("meta_title", get("meta_title") || get("title") || "");
       // optionals
       const maybe = [
         "genre",
         "language",
-        "isbn",
+        // isbn handled separately to normalize digits
         "description",
         "publisher",
         "published_date",
@@ -151,6 +202,9 @@ const Books = () => {
         const v = get(k);
         if (v !== "") fd.append(k, v);
       });
+      // Normalize and append ISBN if present
+      const isbn = normalizeIsbn(get("isbn"));
+      if (isbn) fd.append("isbn", isbn);
       // Also map alternative headers if present
       const altCoverOne = get("image_url") || get("cover_url");
       if (altCoverOne) fd.append("cover_image_url", altCoverOne);
@@ -158,18 +212,23 @@ const Books = () => {
       if (altCoverMany) fd.append("cover_image_urls", altCoverMany);
 
       // booleans/numbers
-      const bools = [
-        "is_active",
-        "is_featured",
-        "is_on_sale",
-        "is_deal_of_the_week",
-      ];
-      bools.forEach((k) => {
-        const v = get(k);
-        if (v !== "") fd.append(k, /^true|1|yes$/i.test(v));
-      });
+      const rawIsOnSale = get("is_on_sale");
+      const isOnSale = /^true|1|yes$/i.test(rawIsOnSale);
+      const rawActive = get("is_active");
+      const rawFeatured = get("is_featured");
+      const rawDealWeek = get("is_deal_of_the_week");
+      if (rawActive !== "")
+        fd.append("is_active", /^true|1|yes$/i.test(rawActive) ? "1" : "0");
+      if (rawFeatured !== "")
+        fd.append("is_featured", /^true|1|yes$/i.test(rawFeatured) ? "1" : "0");
+      if (rawIsOnSale !== "") fd.append("is_on_sale", isOnSale ? "1" : "0");
+      if (rawDealWeek !== "")
+        fd.append(
+          "is_deal_of_the_week",
+          /^true|1|yes$/i.test(rawDealWeek) ? "1" : "0"
+        );
       const salePrice = get("sale_price");
-      if (salePrice !== "") fd.append("sale_price", salePrice);
+      if (isOnSale && salePrice !== "") fd.append("sale_price", salePrice);
       const dealStart = get("deal_start");
       const dealEnd = get("deal_end");
       if (dealStart) fd.append("deal_start", dealStart);
@@ -202,18 +261,26 @@ const Books = () => {
     toast.success(`Import finished. Added: ${added}, Errors: ${errors}.`);
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
+  // Fetch books + expose a refetch like Orders
+  const refetch = async () => {
+    try {
+      setLoading(true);
       const data = await fetchBooks({ status: "all" });
-      console.log(data.data);
-      
       setBooks(data.data);
-    };
-    fetchData();
+    } catch {
+      toast.error("Failed to fetch books");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchBooks]);
 
   // Reset page when filters/data/search change
-  useEffect(() => setCurrentPage(1), [filters, books, search]);
+  useEffect(() => setCurrentPage(1), [filters, books, debouncedSearch]);
 
   // Genre options
   const genreOptions = useMemo(() => {
@@ -238,7 +305,7 @@ const Books = () => {
       return Number.isFinite(ms) ? ms : null;
     };
 
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
 
     return (books || [])
       .filter((b) => {
@@ -297,7 +364,7 @@ const Books = () => {
           return (Number(b.price) || 0) - (Number(a.price) || 0);
         return 0;
       });
-  }, [books, filters, search]);
+  }, [books, filters, debouncedSearch]);
 
   // Pagination
   const totalItems = filteredSortedBooks.length;
@@ -308,10 +375,6 @@ const Books = () => {
     startIdx,
     startIdx + pageSize
   );
-
-  // console.log("Total books after filtering:", filteredSortedBooks.length);
-  // console.log("Total pages:", totalPages);
-  // console.log("Current page:", safePage);
 
   // Actions
   const openAddModal = () => {
@@ -442,9 +505,7 @@ const Books = () => {
         {
           headers: {
             ...(token && { Authorization: `Bearer ${token}` }),
-            // Do not set Content-Type; browser will set proper boundary for FormData
           },
-          // Do not send cookies to avoid CORS credentials issues
         }
       );
 
@@ -471,99 +532,200 @@ const Books = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-6">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Books</h1>
-        <div className="flex items-center gap-2">
-          {/* NEW: Bulk upload trigger */}
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+        <div className="flex-col sm:items-center sm:justify-between gap-2 mb-1 sm:mb-3">
+          <h1 className="text-lg sm:text-xl font-bold" name="books-page-title">
+            Books & Categories Management
+          </h1>
+          <p className="text-gray-600 text-sm">
+            Manage your book inventory and categories here.
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="px-2 py-1 rounded bg-gray-100 border text-[11px] uppercase tracking-wide" title="Global pricing mode">
+              Mode: {pricingMode === 'derived' ? 'Derived (Auto)' : 'Relative (Manual)'}
+            </span>
+            {pricingMode === 'derived' && printSettings && (
+              <span className="px-2 py-1 rounded bg-gray-50 border text-[11px]" title="Derived pricing formula">
+                Content Fee: ৳{Number(printSettings.contentFee || 0).toFixed(2)} · Base/Page: ৳{Number(printSettings.basePerPage || 0).toFixed(2)} · Margin: {printSettings.margin?.type === 'flat' ? `৳${Number(printSettings.margin?.value||0).toFixed(2)}` : `${Number(printSettings.margin?.value||0)}%`}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={refetch}
+            className="px-3 py-2 bg-black text-white text-xs sm:text-sm rounded-lg hover:bg-gray-800 transition-colors md:ml-4"
+            name="books-refresh-btn"
+          >
+            Refresh Books
+          </button>
+          {/* Actions: Bulk Upload, Import CSV, Add Book */}
           <button
             type="button"
-            className="border px-5 py-2 rounded-[2px] hover:bg-gray-100 transition"
+            className="px-3 py-2 border rounded-lg hover:bg-gray-100 transition text-xs sm:text-sm"
             onClick={openBulkModal}
             title="Bulk upload images and files"
+            name="books-bulk-upload-btn"
           >
             Bulk Upload Assets
           </button>
-          {/* existing CSV import */}
           <input
             ref={csvInputRef}
             type="file"
             accept=".csv,text/csv"
             onChange={handleCSVSelected}
             className="hidden"
+            name="books-import-csv-input"
           />
           <button
             type="button"
-            className="border px-5 py-2 rounded-[2px] hover:bg-gray-100 transition disabled:opacity-50"
+            className="px-3 py-2 border rounded-lg hover:bg-gray-100 transition disabled:opacity-50 text-xs sm:text-sm"
             onClick={handleOpenCSV}
             disabled={importing}
             title="Bulk Import from CSV"
+            name="books-import-csv-btn"
           >
             Import CSV
           </button>
           <button
-            className="bg-slate-950 text-white px-5 py-2 rounded shadow hover:bg-slate-800 transition"
+            className="bg-black text-white px-3 py-2 rounded-lg shadow hover:bg-gray-800 transition text-xs sm:text-sm"
             onClick={openAddModal}
+            name="books-add-btn"
           >
             + Add Book
           </button>
         </div>
       </div>
 
-      {importing && (
-        <div className="mb-3 text-sm text-gray-600">
-          Importing {importProgress.done}/{importProgress.total} &middot;
-          Errors: {importProgress.errors}
-        </div>
-      )}
-
-      {/* Add: Search bar */}
-      <div className="mt-2 mb-2">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by title, author, ISBN, or genre"
-          className="w-full sm:max-w-md border px-3 py-2 rounded-[2px]"
-        />
+      {/* Tabs */}
+      <div className="bg-white border border-zinc-200 rounded-md p-2 flex gap-2 w-full">
+        <button
+          className={`px-3 py-1.5 rounded-md text-sm font-medium ${
+            activeTab === "inventory"
+              ? "bg-black text-white"
+              : "bg-gray-100 hover:bg-gray-200"
+          }`}
+          onClick={() => setActiveTab("inventory")}
+        >
+          Inventory
+        </button>
+        <button
+          className={`px-3 py-1.5 rounded-md text-sm font-medium ${
+            activeTab === "categories"
+              ? "bg-black text-white"
+              : "bg-gray-100 hover:bg-gray-200"
+          }`}
+          onClick={() => setActiveTab("categories")}
+        >
+          Categories
+        </button>
       </div>
 
-      <FiltersBar
-        filters={filters}
-        setFilters={setFilters}
-        genreOptions={genreOptions}
-        onClear={() =>
-          setFilters({
-            genre: "all",
-            sortPrice: "none",
-            stock: "all",
-            sortDate: "none",
-          })
-        }
-      />
+      {activeTab === "inventory" && (
+        <>
+          {/* Controls Card: Search + Filters */}
+          <div className="mb-3 sm:mb-6 bg-white p-3 sm:p-4 rounded-md border-zinc-200 border flex flex-col gap-3">
+            <div className="w-full ">
+              <div className="">
+                <input
+                  type="text"
+                  placeholder="Search by title, author, ISBN, or genre"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-3 pr-9 sm:pr-10 py-2 text-sm sm:text-base border  rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                  name="books-search-input"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    aria-label="Clear search"
+                    onClick={() => setSearch("")}
+                    className="absolute inset-y-0 right-2 flex items-center px-1 text-gray-400 hover:text-gray-600"
+                    name="books-clear-search-btn"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            </div>
 
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-3 overflow-x-auto">
-          <BooksTable
-            books={currentPageBooks}
-            toGenreArray={toGenreArray}
-            onViewDetails={setDetailsBook}
-            onEdit={handleEdit}
-            onDelete={openDeleteConfirm}
-          />
+            {/* Filters Grid */}
+            <FiltersBar
+              filters={filters}
+              setFilters={setFilters}
+              genreOptions={genreOptions}
+              onClear={() =>
+                setFilters({
+                  genre: "all",
+                  sortPrice: "none",
+                  stock: "all",
+                  sortDate: "none",
+                })
+              }
+            />
 
-          <PaginationBar
-            totalItems={totalItems}
-            startIdx={startIdx}
+            {importing && (
+              <div className="text-sm text-gray-600">
+                Importing {importProgress.done}/{importProgress.total} · Errors:{" "}
+                {importProgress.errors}
+              </div>
+            )}
+          </div>
+
+          {/* Books Count */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
+            <div className="mb-3 text-sm text-gray-600">
+              Showing {currentPageBooks.length} of {filteredSortedBooks.length}{" "}
+              books
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto bg-white border-zinc-200 border rounded-md">
+            {loading ? (
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="p-2 sm:p-3 text-left border-b">Cover</th>
+                    <th className="p-2 sm:p-3 text-left border-b">Title</th>
+                    <th className="p-2 sm:p-3 text-left border-b hidden sm:table-cell">
+                      Author
+                    </th>
+                    <th className="p-2 sm:p-3 text-left border-b hidden md:table-cell">
+                      Genre
+                    </th>
+                    <th className="p-2 sm:p-3 text-center border-b">Stock</th>
+                    <th className="p-2 sm:p-3 text-right border-b">Price</th>
+                    <th className="p-2 sm:p-3 text-center border-b">Actions</th>
+                  </tr>
+                </thead>
+                <WorkflowSkeleton rows={10} variant="table" columns={7} />
+              </table>
+            ) : (
+              <BooksTable
+                books={currentPageBooks}
+                toGenreArray={toGenreArray}
+                onViewDetails={setDetailsBook}
+                onEdit={handleEdit}
+                onDelete={openDeleteConfirm}
+                pricingMode={pricingMode}
+                printSettings={printSettings}
+              />
+            )}
+          </div>
+
+          {/* Pagination */}
+          <Pagination
+            page={safePage}
+            total={totalItems}
             pageSize={pageSize}
-            totalPages={totalPages}
-            currentPage={safePage}
-            onPrev={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            onNext={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            onGoto={setCurrentPage} // Make sure this is included
+            onPageChange={setCurrentPage}
+            namePrefix="books"
           />
-        </div>
-      </div>
+        </>
+      )}
 
       {showAddModal && (
         <AddEditBookModal
@@ -575,15 +737,17 @@ const Books = () => {
         />
       )}
 
-      {/* NEW: Bulk upload modal */}
+      {/* Bulk upload modal */}
       {showBulkModal && (
         <div
           className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50"
           onClick={closeBulkModal}
+          name="books-bulk-modal-overlay"
         >
           <div
-            className="bg-white rounded-[2px] shadow-xl w-full max-w-2xl p-6"
+            className="bg-white rounded-md shadow-xl w-full max-w-2xl p-6"
             onClick={(e) => e.stopPropagation()}
+            name="books-bulk-modal"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Bulk Upload Assets</h3>
@@ -591,6 +755,7 @@ const Books = () => {
                 className="text-gray-600"
                 onClick={closeBulkModal}
                 disabled={uploadingBulk}
+                name="books-bulk-close-btn"
               >
                 ✕
               </button>
@@ -607,6 +772,7 @@ const Books = () => {
                   }
                   disabled={uploadingBulk}
                   className="w-full border px-3 py-2 rounded-[2px]"
+                  name="bulk-images-input"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   {bulkImages.length} selected
@@ -625,6 +791,7 @@ const Books = () => {
                   }
                   disabled={uploadingBulk}
                   className="w-full border px-3 py-2 rounded-[2px]"
+                  name="bulk-files-input"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   {bulkFiles.length} selected
@@ -641,6 +808,7 @@ const Books = () => {
                   onChange={(e) => setRenameMapText(e.target.value)}
                   disabled={uploadingBulk}
                   className="mt-1 w-full border px-3 py-2 rounded-[2px] text-sm"
+                  name="bulk-rename-map-input"
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -655,6 +823,7 @@ const Books = () => {
                     onChange={(e) => setImagesNamesText(e.target.value)}
                     disabled={uploadingBulk}
                     className="mt-1 w-full border px-3 py-2 rounded-[2px] text-sm"
+                    name="bulk-images-names-input"
                   />
                 </div>
                 <div>
@@ -668,6 +837,7 @@ const Books = () => {
                     onChange={(e) => setFilesNamesText(e.target.value)}
                     disabled={uploadingBulk}
                     className="mt-1 w-full border px-3 py-2 rounded-[2px] text-sm"
+                    name="bulk-files-names-input"
                   />
                 </div>
               </div>
@@ -677,6 +847,7 @@ const Books = () => {
                   className="px-4 py-2 border rounded-[2px] text-sm"
                   onClick={closeBulkModal}
                   disabled={uploadingBulk}
+                  name="bulk-cancel-btn"
                 >
                   Cancel
                 </button>
@@ -684,6 +855,7 @@ const Books = () => {
                   type="submit"
                   className="px-5 py-2 bg-slate-950 text-white rounded-[2px] text-sm hover:bg-slate-800 disabled:opacity-60"
                   disabled={uploadingBulk}
+                  name="bulk-upload-btn"
                 >
                   {uploadingBulk ? "Uploading..." : "Upload"}
                 </button>
@@ -692,8 +864,6 @@ const Books = () => {
           </div>
         </div>
       )}
-
-      <ToastContainer position="top-center" autoClose={3000} hideProgressBar />
 
       {detailsBook && (
         <DetailsModal
@@ -713,10 +883,11 @@ const Books = () => {
       )}
 
       {/* Category Management Section */}
-      <div className="mt-16">
-        <hr className="my-10" />
-        <CategoryManager />
-      </div>
+      {activeTab === "categories" && (
+        <div className="bg-white rounded-md border p-4">
+          <CategoryManager />
+        </div>
+      )}
     </div>
   );
 };

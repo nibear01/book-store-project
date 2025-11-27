@@ -1,5 +1,4 @@
 import Authors from "@/components/authorComponents/Authors";
-import React from "react";
 
 const AuthorPage = () => {
   return (

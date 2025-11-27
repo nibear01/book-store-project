@@ -1,0 +1,36 @@
+{
+  "title": "সব বই দেখুন",
+  "filters": {
+    "category": "বিভাগ",
+    "price": "মূল্য পরিসীমা",
+    "author": "লেখক",
+    "language": "ভাষা",
+    "rating": "রেটিং",
+    "availability": "প্রাপ্যতা",
+    "inStock": "স্টকে আছে",
+    "outOfStock": "স্টকে নেই",
+    "clearAll": "সব ফিল্টার মুছুন"
+  },
+  "sorting": {
+    "sortBy": "সাজান",
+    "newest": "নতুন আগে",
+    "oldest": "পুরাতন আগে",
+    "priceLowToHigh": "মূল্য: কম থেকে বেশি",
+    "priceHighToLow": "মূল্য: বেশি থেকে কম",
+    "nameAZ": "নাম: ক-য",
+    "nameZA": "নাম: য-ক",
+    "rating": "সর্বোচ্চ রেটেড"
+  },
+  "product": {
+    "quickView": "দ্রুত দেখুন",
+    "outOfStock": "স্টকে নেই",
+    "sale": "ছাড়",
+    "new": "নতুন",
+    "byAuthor": "{{author}} লিখেছেন",
+    "rating": "{{rating}} রেটিং"
+  },
+  "pagination": {
+    "showing": "{{total}} বইয়ের মধ্যে {{from}}-{{to}} দেখানো হচ্ছে",
+    "page": "পৃষ্ঠা {{current}}/{{total}}"
+  }
+}

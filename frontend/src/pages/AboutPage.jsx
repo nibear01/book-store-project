@@ -1,6 +1,8 @@
 import libraryImage from "../assets/library.jpg";
+import { useTranslation } from "react-i18next";
 
 const AboutPage = () => {
+  const { t } = useTranslation('common');
   return (
     <div className="relative">
       <div className="w-full h-[50vh] md:h-[60vh]">
@@ -14,7 +16,7 @@ const AboutPage = () => {
       <div className="relative max-w-6xl mx-auto px-4">
         <div className="bg-white rounded-[2px] mt-12 md:-mt-16 px-6 md:px-10 py-8 md:py-12">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-800 text-center">
-            Welcome to Bookstop
+            {t('common:navbar.about')} - BoiBilash
           </h1>
 
           <p className="italic text-gray-600 mt-6 text-center">

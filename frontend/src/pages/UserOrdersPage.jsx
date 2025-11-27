@@ -2,8 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getUserOrders } from "../api/order-api";
 import { toast } from "react-toastify";
+import UserOrdersSkeleton from "../components/skeletons/UserOrdersSkeleton";
+import { useTranslation } from "react-i18next";
 
 const UserOrdersPage = () => {
+  const { t } = useTranslation('common');
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,15 +58,7 @@ const UserOrdersPage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-          </div>
-        </div>
-      </div>
-    );
+    return <UserOrdersSkeleton cards={3} />;
   }
 
   if (error) {
@@ -71,7 +66,7 @@ const UserOrdersPage = () => {
       <div className=" bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">My Orders</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">{t('common:navbar.orders')}</h1>
             <div className="bg-red-50 border border-red-200 rounded-md p-4">
               <p className="text-red-800">{error}</p>
             </div>
@@ -79,7 +74,7 @@ const UserOrdersPage = () => {
               onClick={fetchUserOrders}
               className="mt-4 bg-gray-900 text-white px-6 py-2 rounded-md hover:bg-gray-800 transition-colors"
             >
-              Try Again
+              {t('common:orders.tryAgainButton')}
             </button>
           </div>
         </div>
@@ -92,9 +87,11 @@ const UserOrdersPage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Orders</h1>
+          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+            {t('common:navbar.orders')}
+          </h1>
           <p className="mt-2 text-gray-600">
-            View and track your order history
+            {t('common:orders.viewOrderHistory')}
           </p>
         </div>
 
@@ -112,17 +109,16 @@ const UserOrdersPage = () => {
               </svg>
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No orders yet
+              {t('common:orders.noOrders')}
             </h3>
             <p className="text-gray-600 mb-6">
-              You haven't placed any orders yet. Start shopping to see your
-              orders here.
+              {t('common:orders.noOrdersDesc')}
             </p>
             <button
               onClick={() => navigate("/shop")}
               className="bg-gray-900 text-white px-6 py-3 rounded-md hover:bg-gray-800 transition-colors"
             >
-              Start Shopping
+              {t('common:orders.startShopping')}
             </button>
           </div>
         ) : (
@@ -137,10 +133,10 @@ const UserOrdersPage = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">
-                        Order #{order.order_number}
+                        {t('common:orders.orderNumber', { number: order.order_number })}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        Placed on {formatDate(order.createdAt)}
+                        {t('common:orders.placedOn')} {formatDate(order.createdAt)}
                       </p>
                     </div>
                     <div className="mt-2 sm:mt-0">
@@ -149,8 +145,7 @@ const UserOrdersPage = () => {
                           order.order_status
                         )}`}
                       >
-                        {order.order_status.charAt(0).toUpperCase() +
-                          order.order_status.slice(1)}
+                        {t(`common:status.${order.order_status}`)}
                       </span>
                     </div>
                   </div>
@@ -160,7 +155,7 @@ const UserOrdersPage = () => {
                 <div className="px-6 py-4">
                   <div className="space-y-3">
                     {order.items.map((item, index) => (
-                      <div key={index} className="flex items-center space-x-4">
+                      <div key={index} className="flex items-start space-x-4">
                         <div className="flex-shrink-0">
                           {item.book_cover ? (
                             <img
@@ -201,11 +196,26 @@ const UserOrdersPage = () => {
                             {item.book_title || "Unknown Book"}
                           </h4>
                           <p className="text-sm text-gray-600">
-                            Quantity: {item.quantity}
+                            {t('common:orders.quantity')}: {item.quantity}
                           </p>
+                          {(() => {
+                            const v = item?.variant || {
+                              paperQuality: "economy",
+                              printSide: "single",
+                              paperSize: "A4",
+                              colorMode: "bw",
+                            };
+                            return (
+                              <div className="text-xs text-gray-600 mt-1">
+                                POD: Quality {v.paperQuality || "-"}, Side{" "}
+                                {v.printSide || "-"}, Size {v.paperSize || "-"},
+                                Color {v.colorMode || "-"}
+                              </div>
+                            );
+                          })()}
                         </div>
                         <div className="text-sm font-medium text-gray-900">
-                          ৳{(item.price * item.quantity).toFixed(2)}
+                          {t('common:currency')}{(item.price * item.quantity).toFixed(2)}
                         </div>
                       </div>
                     ))}
@@ -217,14 +227,14 @@ const UserOrdersPage = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                     <div className="text-sm text-gray-600 space-y-1">
                       <p>
-                        <span className="font-medium">Subtotal:</span> ৳
+                        <span className="font-medium">{t('common:orders.subtotal')}:</span> {t('common:currency')}
                         {(order.subtotal_amount ?? order.total_amount).toFixed(
                           2
                         )}
                       </p>
                       {order.discount_amount > 0 && (
                         <p className="text-green-600">
-                          <span className="font-medium">Discount:</span> -৳
+                          <span className="font-medium">{t('common:orders.discount')}:</span> -{t('common:currency')}
                           {order.discount_amount.toFixed(2)}{" "}
                           {order.discount_label && (
                             <span className="italic">
@@ -234,16 +244,16 @@ const UserOrdersPage = () => {
                         </p>
                       )}
                       <p>
-                        <span className="font-medium">Shipping:</span> ৳
+                        <span className="font-medium">{t('common:orders.shipping')}:</span> {t('common:currency')}
                         {(order.shipping_amount || 0).toFixed(2)}
                       </p>
                       <p className="font-semibold">
-                        <span className="font-medium">Total:</span> ৳
+                        <span className="font-medium">{t('common:orders.total')}:</span> {t('common:currency')}
                         {(order.grand_total ?? order.total_amount).toFixed(2)}
                       </p>
                       {order.shipping_address && (
                         <p className="mt-1">
-                          <span className="font-medium">Shipping to:</span>{" "}
+                          <span className="font-medium">{t('common:orders.shippingTo')}:</span>{" "}
                           {order.shipping_address.city},{" "}
                           {order.shipping_address.state}
                         </p>
@@ -253,7 +263,7 @@ const UserOrdersPage = () => {
                       onClick={() => handleViewOrder(order._id)}
                       className="mt-3 sm:mt-0 bg-gray-900 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
                     >
-                      View Details
+                      {t('common:buttons.viewDetails')}
                     </button>
                   </div>
                 </div>
@@ -268,7 +278,7 @@ const UserOrdersPage = () => {
             onClick={() => navigate("/account")}
             className="text-gray-600 hover:text-gray-900 transition-colors"
           >
-            ← Back to Account
+            ← {t('common:orders.backToAccount')}
           </button>
         </div>
       </div>

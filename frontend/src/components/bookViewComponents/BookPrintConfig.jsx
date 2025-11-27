@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   QUALITIES,
   SIDES,
   SIZES,
   COLOR,
-  computeConfiguredPrice,
+  computeFinalConfiguredPrice,
   defaultPrintState,
 } from "./BookPrintPricing";
 
@@ -26,7 +27,8 @@ import {
 // All constants & compute function imported from BookPrintPricing to satisfy
 // react-refresh rule (this file now only exports a component by default).
 
-const BookPrintConfig = ({ basePrice = 0, value, onChange }) => {
+const BookPrintConfig = ({ basePrice = 0, pages = 0, value, onChange }) => {
+  const { t } = useTranslation(['bookView', 'common']);
   // Normalize incoming value only once (avoid mutating external object)
   const initialRef = useRef(null);
   if (initialRef.current === null) {
@@ -51,22 +53,45 @@ const BookPrintConfig = ({ basePrice = 0, value, onChange }) => {
 
   // Clamp / sanitize base price
   const safeBase = Number.isFinite(basePrice) && basePrice >= 0 ? basePrice : 0;
+  const safePages = Number.isFinite(pages) && pages >= 0 ? pages : 0;
 
-  const price = useMemo(
-    () => computeConfiguredPrice(safeBase, local),
-    [safeBase, local]
-  );
+  // Load backend print pricing settings once
+  const [settings, setSettings] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/settings/print-config");
+        const data = await res.json();
+        if (!alive) return;
+        if (res.ok && data.success && data.data) {
+          setSettings(data.data);
+        } else {
+          setSettings(null); // fallback to legacy compute
+        }
+      } catch {
+        setSettings(null);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const { price, breakdown } = useMemo(() => (
+    computeFinalConfiguredPrice({ baseContentPrice: safeBase, pages: safePages, cfg: local, settings })
+  ), [safeBase, safePages, local, settings]);
 
   // Emit changes only when derived output or selection changes (avoid loops)
   const lastEmitted = useRef(null);
   useEffect(() => {
-    const payload = { ...local, price };
+    const payload = { ...local, price, breakdown };
     const json = JSON.stringify(payload);
     if (json !== lastEmitted.current) {
       lastEmitted.current = json;
       onChange && onChange(payload);
     }
-  }, [local, price, onChange]);
+  }, [local, price, breakdown, onChange]);
 
   const makeSetter = (key) => (id) => {
     setLocal((prev) => (prev[key] === id ? prev : { ...prev, [key]: id }));
@@ -103,26 +128,26 @@ const BookPrintConfig = ({ basePrice = 0, value, onChange }) => {
   return (
     <div className="mt-4 space-y-6">
       <Section
-        title="Paper Quality"
-        options={QUALITIES}
+        title={t('bookView.printConfig.paperQuality')}
+        options={QUALITIES.map(q => ({ ...q, label: t(`bookView.printConfig.quality.${q.id}`), note: t(`bookView.printConfig.quality.${q.id}Note`) }))}
         activeId={local.paperQuality}
         setActive={makeSetter("paperQuality")}
       />
       <Section
-        title="Print Side"
-        options={SIDES}
+        title={t('bookView.printConfig.printSide')}
+        options={SIDES.map(s => ({ ...s, label: t(`bookView.printConfig.side.${s.id}`), note: t(`bookView.printConfig.side.${s.id}Note`) }))}
         activeId={local.printSide}
         setActive={makeSetter("printSide")}
       />
       <Section
-        title="Paper Size"
-        options={SIZES}
+        title={t('bookView.printConfig.paperSize')}
+        options={SIZES.map(z => ({ ...z, label: t(`bookView.printConfig.size.${z.id}`), note: t(`bookView.printConfig.size.${z.id}Note`) }))}
         activeId={local.paperSize}
         setActive={makeSetter("paperSize")}
       />
       <Section
-        title="Color Mode"
-        options={COLOR}
+        title={t('bookView.printConfig.colorMode')}
+        options={COLOR.map(c => ({ ...c, label: t(`bookView.printConfig.color.${c.id}`), note: t(`bookView.printConfig.color.${c.id}Note`) }))}
         activeId={local.colorMode}
         setActive={makeSetter("colorMode")}
       />

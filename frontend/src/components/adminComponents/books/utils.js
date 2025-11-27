@@ -31,6 +31,14 @@ export const toGenreArray = (g) =>
         .map((s) => s.trim())
         .filter(Boolean);
 
+const toBool = (v) => {
+  if (typeof v === 'boolean') return v;
+  if (typeof v === 'number') return v !== 0;
+  const s = String(v ?? '').trim().toLowerCase();
+  if (!s) return false;
+  return s === 'true' || s === '1' || s === 'yes' || s === 'y';
+};
+
 export const normalizeBook = (b) => ({
   id: b.id || b._id || b.id,
   title: b.title || "",
@@ -41,18 +49,18 @@ export const normalizeBook = (b) => ({
   file_url: b.file_url || "",
   price: typeof b.price === "number" ? b.price : Number(b.price) || 0,
   stock: typeof b.stock === "number" ? b.stock : Number(b.stock) || 0,
-  is_active: Boolean(b.is_active),
-  is_featured: Boolean(b.is_featured),
+  is_active: toBool(b.is_active),
+  is_featured: toBool(b.is_featured),
   meta_description: b.meta_description || "",
   meta_title: b.meta_title || "",
   meta_keywords: Array.isArray(b.meta_keywords) ? b.meta_keywords : b.meta_keywords || [],
   isbn: b.isbn || "",
   description: b.description || "",
   pages: typeof b.pages === "number" ? b.pages : Number(b.pages) || 0,
-  is_on_sale: !!b.is_on_sale,
+  is_on_sale: toBool(b.is_on_sale),
   sale_price:
     typeof b.sale_price === "number" ? b.sale_price : b.sale_price ? Number(b.sale_price) : null,
-  is_deal_of_the_week: !!b.is_deal_of_the_week,
+  is_deal_of_the_week: toBool(b.is_deal_of_the_week),
   deal_start: b.deal_start || null,
   deal_end: b.deal_end || null,
 });

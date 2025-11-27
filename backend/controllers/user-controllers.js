@@ -5,10 +5,11 @@ import Wishlist from "../models/wishlist-model.js";
 import { generateToken } from "../middlewares/auth-middleware.js";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
-import path from "path"; // added
+import path from "path";
 import mongoose from "mongoose";
 import Review from "../models/review-model.js";
 import Book from "../models/book-model.js";
+import { getPasswordResetTemplate } from "../utils/email-templates.js";
 // import bcrypt from "bcrypt";
 
 // @desc    Get allowed roles (Admin only)
@@ -188,7 +189,7 @@ export const loginUserByPhone = async (req, res) => {
 // @access  Private/Admin
 export const getAllUsers = async (req, res) => {
     try {
-        const { page = 1, limit = 10, status, role, roles } = req.query;
+        const { page = 1, limit = 10, status, role, roles, q, sort } = req.query;
 
         // Build filter object
         const filter = {};
@@ -196,11 +197,31 @@ export const getAllUsers = async (req, res) => {
         if (roles) filter.roles = { $in: Array.isArray(roles) ? roles : [roles] };
         if (role) filter.roles = role; // backward compat
 
+        // Text search on name/email (case-insensitive)
+        if (q && typeof q === 'string' && q.trim()) {
+            const regex = new RegExp(q.trim(), 'i');
+            filter.$or = [
+                { name: regex },
+                { email: regex },
+            ];
+        }
+
+        // Sort handling: supports '-createdAt'|'createdAt' or '-created_at'|'created_at'
+        let sortSpec = { created_at: -1 };
+        if (typeof sort === 'string' && sort.length) {
+            const s = sort.trim();
+            const desc = s.startsWith('-');
+            const field = s.replace(/^-/, '');
+            // Map frontend createdAt to schema created_at
+            const mapped = field === 'createdAt' ? 'created_at' : field === 'updatedAt' ? 'updated_at' : field;
+            sortSpec = { [mapped]: desc ? -1 : 1 };
+        }
+
         const users = await User.find(filter)
             // NOTE: Including password for testing purposes as requested
-            .limit(limit * 1)
-            .skip((page - 1) * limit)
-            .sort({ created_at: -1 });
+            .limit(Number(limit) * 1)
+            .skip((Number(page) - 1) * Number(limit))
+            .sort(sortSpec);
 
         const total = await User.countDocuments(filter);
 
@@ -582,14 +603,13 @@ export const forgotPassword = async (req, res) => {
             auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
         });
 
+        const html = getPasswordResetTemplate({ resetUrl, name: user.name, lang: 'en' });
+
         await transporter.sendMail({
-            from: process.env.SMTP_FROM || "BookStore <no-reply@bookstore.local>",
+            from: process.env.SMTP_FROM || "BoiBilash <no-reply@BoiBilash.app>",
             to: email,
-            subject: "Password Reset Request",
-            html: `<p>You requested a password reset.</p>
-             <p>Click the link below to reset your password (valid for 1 hour):</p>
-             <p><a href="${resetUrl}">${resetUrl}</a></p>
-             <p>If you did not request this, please ignore this email.</p>`
+            subject: "Reset Your Password - BoiBilash",
+            html
         });
 
         return res.status(200).json({ success: true, message: "Password reset email sent" });

@@ -1,0 +1,41 @@
+{
+  "hero": {
+    "title": "Discover Your Next Great Read",
+    "subtitle": "Explore thousands of books across all genres",
+    "searchPlaceholder": "Search for books, authors, or ISBN...",
+    "browseBooks": "Browse Books",
+    "newArrivals": "New Arrivals"
+  },
+  "sections": {
+    "featured": "Featured Books",
+    "newReleases": "New Releases",
+    "onSale": "Books on Sale",
+    "bestSellers": "Best Sellers",
+    "dealsOfWeek": "Deals of the Week",
+    "viewAll": "View All"
+  },
+  "deals": {
+    "title": "Deals of the Week",
+    "dealBadge": "Deal of the Week",
+    "pages": "pages",
+    "save": "Save",
+    "addToCart": "Add to Cart",
+    "adding": "Adding...",
+    "addedToCart": "Added to Cart",
+    "viewDetails": "View details",
+    "previous": "Previous",
+    "next": "Next",
+    "noDeals": "No deals available.",
+    "error": "Error:",
+    "retry": "Retry",
+    "loading": "Loading deals..."
+  },
+  "newsletter": {
+    "yourName": "Your name",
+    "enterEmail": "Enter your email",
+    "alreadySubscribed": "📧 This email is already subscribed to our newsletter!",
+    "thanksSubscribed": "✅ Thanks! You're now subscribed.",
+    "validEmail": "Please enter a valid email address.",
+    "enterName": "Please enter your name."
+  }
+}

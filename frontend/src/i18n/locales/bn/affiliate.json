@@ -1,0 +1,29 @@
+{
+  "landing": {
+    "title": "অ্যাফিলিয়েট পার্টনার হন",
+    "subtitle": "আমাদের বই প্রচার করে কমিশন অর্জন করুন",
+    "benefits": "সুবিধা",
+    "howItWorks": "কীভাবে কাজ করে",
+    "getStarted": "এখনই শুরু করুন"
+  },
+  "dashboard": {
+    "welcome": "স্বাগতম, {{name}}",
+    "promoCode": "আপনার প্রমো কোড",
+    "commissionRate": "কমিশন হার",
+    "totalEarnings": "মোট আয়",
+    "availableBalance": "উপলব্ধ ব্যালেন্স",
+    "totalOrders": "মোট অর্ডার",
+    "withdraw": "উত্তোলন",
+    "viewStatistics": "পরিসংখ্যান দেখুন"
+  },
+  "register": {
+    "title": "অ্যাফিলিয়েট হিসাবে নিবন্ধন",
+    "name": "পুরো নাম",
+    "email": "ইমেইল",
+    "phone": "ফোন",
+    "password": "পাসওয়ার্ড",
+    "address": "ঠিকানা",
+    "registerButton": "নিবন্ধন",
+    "haveAccount": "ইতিমধ্যে অ্যাকাউন্ট আছে?"
+  }
+}

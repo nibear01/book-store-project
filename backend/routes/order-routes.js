@@ -9,6 +9,10 @@ import {
   importOrdersFromCSV,
   deleteOrder,
   getOrderStats,
+  listWorkflowOrders,
+  getWorkflowOrder,
+  advanceWorkflowStage,
+  getNextWorkflowStages,
 } from "../controllers/order-controllers.js";
 
 import { protect, authorize, requireAnyAdminRole } from "../middlewares/auth-middleware.js";
@@ -43,6 +47,60 @@ router.post(
   authorize("admin", "order_manager"),
   upload.fields([{ name: "file", maxCount: 1 }]),
   importOrdersFromCSV
+);
+
+// Workflow-specific routes (restricted visibility)
+router.get(
+  "/workflow",
+  protect,
+  authorize(
+    "admin",
+    "order_manager",
+    "customer_support",
+    "finance_manager",
+    "printing_manager",
+    "delivery_manager"
+  ),
+  listWorkflowOrders
+);
+router.get(
+  "/workflow/:id",
+  protect,
+  authorize(
+    "admin",
+    "order_manager",
+    "customer_support",
+    "finance_manager",
+    "printing_manager",
+    "delivery_manager"
+  ),
+  getWorkflowOrder
+);
+router.get(
+  "/workflow/:id/next-stages",
+  protect,
+  authorize(
+    "admin",
+    "order_manager",
+    "customer_support",
+    "finance_manager",
+    "printing_manager",
+    "delivery_manager"
+  ),
+  getNextWorkflowStages
+);
+router.patch(
+  "/workflow/:id/advance",
+  protect,
+  authorize(
+    "admin",
+    "order_manager",
+    "customer_support",
+    "finance_manager",
+    "printing_manager",
+    "delivery_manager"
+  ),
+  advanceWorkflowStage
 );
 
 export default router;

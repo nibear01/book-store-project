@@ -1,13 +1,19 @@
-import React, { useContext, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useContext, useEffect, useCallback } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { BooksContext } from "@/context/BooksContext";
 import { useCategories } from "../hooks/useCategories";
 import FiltersSidebar from "../components/categories/FiltersSidebar";
 import BooksContent from "../components/categories/BooksContent";
 import ButtonFill from "@/Button/ButtonFill";
+import { useTranslation } from "react-i18next";
 
 const CategoriesPage = () => {
+  const { t } = useTranslation('common');
   const { url, books, loading, error, fetchBooks } = useContext(BooksContext);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const params = new URLSearchParams(location.search);
+  const categorySlug = params.get("category");
   const book = books.data || [];
 
   const {
@@ -15,6 +21,7 @@ const CategoriesPage = () => {
     selectedCategory,
     sortOption,
     priceRange,
+    priceLimits,
     ratingFilter,
     languageFilter,
     availabilityFilter,
@@ -45,7 +52,25 @@ const CategoriesPage = () => {
     handleTouchStart,
     handleTouchMove,
     handleTouchEnd,
-  } = useCategories(book);
+  } = useCategories(book, categorySlug);
+
+  // Ensure clearing category also clears the URL ?category param
+  const handleResetFiltersAndUrl = useCallback(() => {
+    resetFilters();
+    navigate({ pathname: "/categories" }, { replace: false });
+  }, [resetFilters, navigate]);
+
+  // When category is deselected (cross) or set to All, also clear URL
+  const handleCategorySelectWithUrl = useCallback(
+    (category) => {
+      const next = category || "All";
+      handleCategorySelect(next);
+      if (next === "All") {
+        navigate({ pathname: "/categories" }, { replace: false });
+      }
+    },
+    [handleCategorySelect, navigate]
+  );
 
   // Server-side filtering with useEffect
   useEffect(() => {
@@ -94,13 +119,14 @@ const CategoriesPage = () => {
 
   const totalPages = books?.pagination?.pages || 1;
   const currentPage = books?.pagination?.page || page;
+  const priceLimitsError = priceRange[0] < 0 || priceRange[1] < 0; // basic check; could be expanded
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       {/* Button */}
       <div className="flex justify-center md:justify-end">
         <Link to="/bookrequest">
-          <ButtonFill>Request Book</ButtonFill>
+          <ButtonFill>{t('shop.requestBook')}</ButtonFill>
         </Link>
       </div>
 
@@ -117,14 +143,16 @@ const CategoriesPage = () => {
             searchQuery={searchQuery}
             categories={categories}
             filterSections={filterSections}
-            onCategorySelect={handleCategorySelect}
+            onCategorySelect={handleCategorySelectWithUrl}
             onPriceRangeChange={setPriceRange}
             onRatingFilterChange={setRatingFilter}
             onLanguageFilterChange={setLanguageFilter}
             onAvailabilityFilterChange={setAvailabilityFilter}
             onSearchQueryChange={setSearchQuery}
             onToggleFilterSection={toggleFilterSection}
-            onResetFilters={resetFilters}
+            onResetFilters={handleResetFiltersAndUrl}
+            priceMinLimit={priceLimits.min}
+            priceMaxLimit={priceLimits.max}
           />
 
           {/* Right content - books */}
@@ -139,7 +167,26 @@ const CategoriesPage = () => {
             activeGroupIndex={activeGroupIndex}
             groupCount={groupCount}
             viewMode={viewMode}
+            sortOption={sortOption}
             onViewModeChange={setViewMode}
+            onSortOptionChange={(newSort) => {
+              const sortMap = {
+                featured: "featured",
+                newest: "newest",
+                oldest: "oldest",
+                priceLowHigh: "priceLowHigh",
+                priceHighLow: "priceHighLow",
+                rating: "rating",
+                bestselling: "bestselling"
+              };
+              const mappedSort = sortMap[newSort] || newSort;
+              // Update local state in useCategories hook
+              if (typeof window !== 'undefined') {
+                // Trigger the setSortOption from useCategories
+                const event = new CustomEvent('sortOptionChange', { detail: mappedSort });
+                window.dispatchEvent(event);
+              }
+            }}
             onMobileStrategyChange={setMobileViewStrategy}
             onGroupChange={setActiveGroupIndex}
             onTouchStart={handleTouchStart}
@@ -153,11 +200,11 @@ const CategoriesPage = () => {
         {totalPages > 1 && (
           <div className="mt-8 flex items-center justify-center gap-2">
             <button
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm disabled:opacity-50"
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm disabled:opacity-50 hover:border-gray-400"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={currentPage <= 1}
             >
-              Prev
+              {t('pagination.prev')}
             </button>
             {Array.from({ length: totalPages })
               .slice(0, 10)
@@ -169,8 +216,8 @@ const CategoriesPage = () => {
                     onClick={() => setPage(pageNum)}
                     className={`px-3 py-2 border rounded-md text-sm ${
                       currentPage === pageNum
-                        ? "bg-black text-white border-black"
-                        : "border-gray-300 hover:border-black"
+                        ? "bg-black text-white border-gray-black"
+                        : "border-gray-300 hover:border-gray-400"
                     }`}
                   >
                     {pageNum}
@@ -178,14 +225,20 @@ const CategoriesPage = () => {
                 );
               })}
             <button
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm disabled:opacity-50"
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm disabled:opacity-50 hover:border-gray-400"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages}
             >
-              Next
+              {t('pagination.next')}
             </button>
           </div>
         )}
+          {/* Settings/Error notice */}
+          {priceLimitsError && (
+            <div className="mt-6 text-center text-sm text-red-600" role="alert">
+              {t('shop.priceRangeError')}
+            </div>
+          )}
       </div>
     </div>
   );

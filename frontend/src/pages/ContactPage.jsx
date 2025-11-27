@@ -1,10 +1,52 @@
-import React from "react";
+import React, { useState } from "react";
+import axios from "axios";
+import { toast } from "react-toastify";
+import { useTranslation } from "react-i18next";
 import FacebookIcon from "@mui/icons-material/Facebook";
 import InstagramIcon from "@mui/icons-material/Instagram";
 import YouTubeIcon from "@mui/icons-material/YouTube";
 import XIcon from "@mui/icons-material/X";
 
 export default function ContactUs() {
+  const { t } = useTranslation('common');
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!formData.name || !formData.email || !formData.message) {
+      toast.error("Please fill in all required fields!");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/contact`,
+        formData
+      );
+      toast.success(res.data.message);
+      setFormData({ name: "", email: "", subject: "", message: "" });
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to send message.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="w-full">
       {/* Map Section */}
@@ -20,7 +62,7 @@ export default function ContactUs() {
 
       {/* Contact Information */}
       <section className="py-12 px-4 md:px-16 lg:px-28">
-        <h2 className="text-3xl font-semibold text-center mb-6">Contact Us</h2>
+        <h2 className="text-3xl font-semibold text-center mb-6">{t('common:navbar.contact')}</h2>
         <p className="text-center italic text-gray-600 max-w-2xl mx-auto mb-12">
           We will answer any questions you may have about our online sales,
           rights, or partnership service right here.
@@ -29,7 +71,8 @@ export default function ContactUs() {
         <div className="text-center">
           <h3 className="font-semibold text-lg">Bangladesh Office</h3>
           <p className="italic">
-             123 Main Street, Gulshan, Dhaka<br />
+            123 Main Street, Gulshan, Dhaka
+            <br />
             Bangladesh
           </p>
           <p className="italic mt-2 text-gray-700">
@@ -43,18 +86,10 @@ export default function ContactUs() {
         <div className="mt-14">
           <h3 className="text-center text-lg font-medium mb-4">Social Media</h3>
           <div className="flex justify-center gap-8 text-xl">
-            <a href="#" className="hover:text-gray-600">
-              <FacebookIcon />
-            </a>
-            <a href="#" className="hover:text-gray-600">
-              <InstagramIcon />
-            </a>
-            <a href="#" className="hover:text-gray-600">
-              <YouTubeIcon />
-            </a>
-            <a href="#" className="hover:text-gray-600">
-              <XIcon />
-            </a>
+            <a href="#" className="hover:text-gray-600"><FacebookIcon /></a>
+            <a href="#" className="hover:text-gray-600"><InstagramIcon /></a>
+            <a href="#" className="hover:text-gray-600"><YouTubeIcon /></a>
+            <a href="#" className="hover:text-gray-600"><XIcon /></a>
           </div>
         </div>
       </section>
@@ -62,36 +97,51 @@ export default function ContactUs() {
       {/* Get In Touch Form */}
       <section className="py-12 px-4 md:px-16 lg:px-28">
         <h2 className="text-3xl font-semibold text-center mb-6">Get In Touch</h2>
-        <form className="max-w-3xl mx-auto space-y-4">
+        <form className="max-w-3xl mx-auto space-y-4" onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
               type="text"
+              name="name"
               placeholder="Name *"
+              value={formData.name}
+              onChange={handleChange}
               required
               className="border border-gray-300 rounded-[2px] p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
             />
             <input
               type="email"
+              name="email"
               placeholder="Email *"
+              value={formData.email}
+              onChange={handleChange}
               required
               className="border border-gray-300 rounded-[2px] p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
             />
           </div>
           <input
             type="text"
+            name="subject"
             placeholder="Subject"
+            value={formData.subject}
+            onChange={handleChange}
             className="border border-gray-300 rounded-[2px] p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
           />
           <textarea
+            name="message"
             placeholder="Details please! Your review helps other shoppers."
             rows="5"
+            value={formData.message}
+            onChange={handleChange}
             className="border border-gray-300 rounded-[2px] p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
           ></textarea>
           <button
             type="submit"
-            className="cursor-pointer bg-black text-white px-6 py-3 rounded-[2px] hover:bg-gray-800 transition"
+            disabled={loading}
+            className={`cursor-pointer bg-black text-white px-6 py-3 rounded-[2px] hover:bg-gray-800 transition ${
+              loading ? "opacity-60 cursor-not-allowed" : ""
+            }`}
           >
-            Submit Message
+            {loading ? "Sending..." : "Submit Message"}
           </button>
         </form>
       </section>

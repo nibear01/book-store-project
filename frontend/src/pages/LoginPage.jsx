@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { isValidPhoneNumber } from "libphonenumber-js";
+import { useTranslation } from "react-i18next";
 
 // Icons
 import Visibility from "@mui/icons-material/Visibility";
@@ -15,8 +16,9 @@ import ErrorOutline from "@mui/icons-material/ErrorOutline";
 // import CheckCircle from "@mui/icons-material/CheckCircle";
 
 const LoginPage = () => {
+  const { t } = useTranslation(['auth', 'common']);
   const navigate = useNavigate();
-  const { login, isAuthenticated, user } = useAuth();
+  const { login, isAuthenticated, user, setIsLoading: setGlobalLoading } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -31,9 +33,17 @@ const LoginPage = () => {
   const [touched, setTouched] = useState({});
   const [rememberMe, setRememberMe] = useState(false);
 
+  // Reset global loading state when visiting login page
+  useEffect(() => {
+    if (typeof setGlobalLoading === 'function') {
+      setGlobalLoading(false);
+    }
+  }, [setGlobalLoading]);
+
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    // Only redirect when we have both authentication and the user profile loaded.
+    if (isAuthenticated && user) {
       navigate(user?.role === "admin" ? "/admin/dashboard" : "/", {
         replace: true,
       });
@@ -47,11 +57,11 @@ const LoginPage = () => {
     // Email validation
     if (loginMethod === "email" && touched.email) {
       if (!formData.email.trim()) {
-        newErrors.email = "Email is required";
+        newErrors.email = t('auth:login.emailRequired');
       } else {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(formData.email)) {
-          newErrors.email = "Please enter a valid email address";
+          newErrors.email = t('auth:login.emailInvalid');
         }
       }
     }
@@ -59,21 +69,21 @@ const LoginPage = () => {
     // Phone validation
     if (loginMethod === "phone" && touched.phone) {
       if (!phoneNumber) {
-        newErrors.phone = "Phone number is required";
+        newErrors.phone = t('auth:login.phoneRequired');
       } else if (!isValidPhoneNumber(phoneNumber)) {
-        newErrors.phone = "Please enter a valid phone number";
+        newErrors.phone = t('auth:login.phoneInvalid');
       }
     }
 
     // Password validation
     if (touched.password) {
       if (!formData.password) {
-        newErrors.password = "Password is required";
+        newErrors.password = t('auth:login.passwordRequired');
       }
     }
 
     setErrors(newErrors);
-  }, [formData, phoneNumber, touched, loginMethod]);
+  }, [formData, phoneNumber, touched, loginMethod, t]);
 
   const handleBlur = (field) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -92,12 +102,6 @@ const LoginPage = () => {
     if (touched.phone) {
       setTouched((prev) => ({ ...prev, phone: true }));
     }
-  };
-
-  const toggleLoginMethod = () => {
-    setLoginMethod(loginMethod === "email" ? "phone" : "email");
-    setErrors({});
-    setTouched({});
   };
 
   const isFormValid = () => {
@@ -145,13 +149,17 @@ const LoginPage = () => {
 
       const loggedInUser = await login(loginData);
 
-      toast.success("🎉 Login successful!");
+      toast.success("Login successful!");
 
-      setTimeout(() => {
-        navigate(loggedInUser?.role === "admin" ? "/admin/dashboard" : "/", {
-          replace: true,
-        });
-      }, 1000);
+      // Wait a brief moment for auth context to update before navigation
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Navigate based on returned profile (userAPI.getMe returns { data: { ... } })
+      const role = loggedInUser?.data?.role || loggedInUser?.role || user?.role;
+      
+      navigate(role === "admin" ? "/admin/dashboard" : "/", {
+        replace: true,
+      });
     } catch (error) {
       console.error("Login failed:", error);
 
@@ -159,7 +167,7 @@ const LoginPage = () => {
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
-        "Login failed. Please check your credentials and try again.";
+        t('auth:login.loginFailed');
 
       toast.error(errorMessage);
 
@@ -172,21 +180,6 @@ const LoginPage = () => {
     }
   };
 
-  // Demo account login for testing
-  const handleDemoLogin = (role = "user") => {
-    const demoAccounts = {
-      user: { email: "demo@example.com", password: "Demo123!" },
-      admin: { email: "admin@example.com", password: "Admin123!" },
-    };
-
-    const demoAccount = demoAccounts[role];
-    setFormData(demoAccount);
-    setLoginMethod("email");
-    setTouched({ email: true, password: true });
-
-    toast.info(`Demo ${role} credentials filled! Click Login to continue.`);
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
       <div className="w-full max-w-md">
@@ -194,9 +187,9 @@ const LoginPage = () => {
           {/* Header */}
           <div className="pt-8 text-center">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome Back
+              {t('auth:login.title')}
             </h1>
-            <p className="text-gray-600">Sign in to your account</p>
+            <p className="text-gray-600">{t('auth:login.subtitle')}</p>
           </div>
 
           <div className="p-8">
@@ -212,7 +205,7 @@ const LoginPage = () => {
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  Email Login
+                  {t('auth:login.emailLogin')}
                 </button>
                 <button
                   type="button"
@@ -223,7 +216,7 @@ const LoginPage = () => {
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  Phone Login
+                  {t('auth:login.phoneLogin')}
                 </button>
               </div>
             </div>
@@ -233,7 +226,7 @@ const LoginPage = () => {
               {loginMethod === "email" ? (
                 <div className="space-y-2">
                   <label className="flex items-center text-sm font-medium text-gray-700">
-                    Email Address
+                    {t('auth:login.email')}
                   </label>
                   <div className="relative">
                     <input
@@ -263,7 +256,7 @@ const LoginPage = () => {
               ) : (
                 <div className="space-y-2">
                   <label className="flex items-center text-sm font-medium text-gray-700">
-                    Phone Number
+                    {t('auth:signup.phone')}
                   </label>
                   <div
                     className={`phone-input-custom border rounded-lg transition-all duration-200 ${
@@ -295,7 +288,7 @@ const LoginPage = () => {
               {/* Password Field */}
               <div className="space-y-2">
                 <label className="flex items-center text-sm font-medium text-gray-700">
-                  Password
+                  {t('auth:login.password')}
                 </label>
                 <div className="relative">
                   <input
@@ -304,7 +297,7 @@ const LoginPage = () => {
                     value={formData.password}
                     onChange={handleChange}
                     onBlur={() => handleBlur("password")}
-                    placeholder="Enter your password"
+                    placeholder={t('auth:login.password')}
                     className={`w-full p-3 border rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 pr-10 ${
                       errors.password
                         ? "border-red-500 focus:ring-red-200"
@@ -342,14 +335,14 @@ const LoginPage = () => {
                       onChange={(e) => setRememberMe(e.target.checked)}
                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     />
-                    <span className="ml-2">Remember me</span>
+                    <span className="ml-2">{t('auth:login.rememberMe')}</span>
                   </label>
 
                   <Link
                     to="/forgot-password"
-                    className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
+                    className="text-sm text-gray-800 hover:text-gray-600 transition-colors"
                   >
-                    Forgot password?
+                    {t('auth:login.forgotPassword')}
                   </Link>
                 </div>
               </div>
@@ -363,14 +356,15 @@ const LoginPage = () => {
                     ? "bg-gray-300 cursor-not-allowed text-gray-500"
                     : "bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 }`}
+                name="login-submit-btn"
               >
                 {isLoading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Signing In...
+                    {t('common:buttons.loading')}
                   </>
                 ) : (
-                  "Sign In"
+                  t('auth:login.loginButton')
                 )}
               </button>
             </form>
@@ -402,12 +396,12 @@ const LoginPage = () => {
             {/* Signup Link */}
             <div className="text-center mt-6">
               <p className="text-gray-600 text-sm">
-                Don't have an account?{" "}
+                {t('auth:login.noAccount')}{" "}
                 <Link
                   to="/signup"
-                  className="text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"
+                  className="text-red-500 hover:text-red-400 font-medium transition-colors duration-200"
                 >
-                  Sign up here
+                  {t('auth:login.signupLink')}
                 </Link>
               </p>
             </div>

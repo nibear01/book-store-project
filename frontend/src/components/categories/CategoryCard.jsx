@@ -1,5 +1,3 @@
-import React from "react";
-
 const CategoryCard = ({ id, title, item, img, isSelected, onClick }) => (
   <div
     key={id}

@@ -57,7 +57,7 @@ const AdminPage = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen w-full bg-gray-50 overflow-x-hidden">
       {/* Mobile overlay */}
       {isMobile && isMobileOpen && (
         <div
@@ -81,14 +81,14 @@ const AdminPage = () => {
 
       {/* Main Content */}
       <div
-        className={`flex-1 p-4 md:p-6 transition-all duration-300 ${
+        className={`flex-1 w-full min-w-0 p-4 md:p-6 transition-all duration-300 ${
           isCollapsed && !isMobile ? "ml-20" : "ml-0 md:ml-64"
         }`}
         onClick={handleContentClick}
       >
-        <div className="mx-auto">
+        <div className="mx-auto w-full min-w-0">
           {/* Header with mobile menu button */}
-          <header className="mb-4 md:mb-6 border-b border-gray-200 pb-4 flex items-center justify-between">
+          <header className="mb-4 md:mb-6 border-b border-gray-200 pb-4 flex items-center justify-between min-w-0">
             <div>
               <div className="flex items-center gap-3">
                 {isMobile && (
@@ -111,18 +111,20 @@ const AdminPage = () => {
                 Manage your bookstore from here.
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <Link
-                to="/account"
-                className="px-3 py-2 text-sm rounded-[2px] border border-gray-300 hover:bg-gray-50"
-              >
-                My Account
-              </Link>
-            </div>
+            {user.roles.includes("user") && (
+              <div>
+                <Link
+                  to="/account"
+                  className="px-3 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-50"
+                >
+                  My Account
+                </Link>
+              </div>
+            )}
           </header>
 
           {/* Routed Pages */}
-          <div className="bg-white border border-gray-200 rounded-[2px] p-4 md:p-6">
+          <div className="bg-white border border-gray-200 rounded-md p-4 md:p-6 w-full min-w-0">
             <Outlet />
           </div>
         </div>

@@ -4,9 +4,11 @@ import { getAllOrders, updateOrderStatus, importOrdersFromCSV } from '../../api/
 import OrderTable from '../../components/OrderTable';
 import OrderFilters from '../../components/OrderFilters';
 import FileUpload from '../../components/FileUpload';
-import { toast } from 'react-toastify'; // Assuming toast library is used
+import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 
 const OrdersPage = () => {
+  const { t } = useTranslation('common');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -28,12 +30,12 @@ const OrdersPage = () => {
       setOrders(data.list);
       setTotalPages(data.pages);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to fetch orders');
-      toast.error('Failed to load orders');
+      setError(err.response?.data?.error || t('adminOrders.failedToFetch'));
+      toast.error(t('adminOrders.failedToLoad'));
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, t]);
 
   useEffect(() => {
     fetchOrders();
@@ -53,9 +55,9 @@ const OrdersPage = () => {
       setOrders(prevOrders =>
         prevOrders.map(order => order._id === orderId ? updatedOrder : order)
       );
-      toast.success('Order status updated');
+      toast.success(t('adminOrders.orderStatusUpdated'));
     } catch (err) {
-      toast.error(`Failed to update order status: ${err.message}`);
+      toast.error(`${t('adminOrders.failedToUpdate')}: ${err.message}`);
     }
   };
 
@@ -65,20 +67,20 @@ const OrdersPage = () => {
 
     try {
       const result = await importOrdersFromCSV(formData);
-      toast.success(`Orders imported: ${result.message}`);
+      toast.success(`${t('adminOrders.ordersImported')}: ${result.message}`);
       fetchOrders(); // Refresh the order list
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to import CSV');
+      toast.error(err.response?.data?.error || t('adminOrders.failedToImport'));
     }
   };
 
   return (
     <div className="admin-orders-page">
-      <h2>Manage Orders</h2>
+      <h2>{t('adminOrders.manageOrders')}</h2>
 
       {/* CSV Import Section */}
       <div className="csv-import-section">
-        <h3>Import Orders from CSV</h3>
+        <h3>{t('adminOrders.importOrders')}</h3>
         <FileUpload onFileUpload={handleCSVImport} accept=".csv" />
       </div>
 

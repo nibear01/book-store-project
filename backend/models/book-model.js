@@ -5,13 +5,13 @@ const bookSchema = new mongoose.Schema(
     title: { type: String, required: true },
     author: { type: String, required: true },
     description: String,
-    genre: [{ type: String, trim: true }], // was: String
+    genre: [{ type: String, trim: true }],
     language: String,
     slug: { type: String, trim: true, lowercase: true, unique: true, sparse: true },
     meta_title: { type: String, trim: true, required: true },
     meta_description: { type: String, trim: true },
     meta_keywords: [{ type: String, trim: true }],
-    isbn: String,
+    isbn: { type: String, trim: true, unique: true, sparse: true },
     cover_image: [{ type: String }],
     file_url: { type: String, default: null },
     price: { type: Number, required: true },
@@ -21,7 +21,8 @@ const bookSchema = new mongoose.Schema(
     num_reviews: { type: Number, default: 0 },
     is_active: { type: Boolean, default: true },
     is_featured: { type: Boolean, default: false },
-    publisher: { type: String, trim: true }, // added
+    publisher: { type: String, trim: true },
+    publisher_id: { type: mongoose.Schema.Types.ObjectId, ref: "Publisher" }, // added (reference to Publisher model)
     pages: { type: Number, default: 0 }, // added
     // isSourced: { type: Boolean, default: false }, // added
     // isPrintOnDemand: { type: Boolean, default: false }, // added

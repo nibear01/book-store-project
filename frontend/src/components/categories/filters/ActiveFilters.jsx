@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 const ActiveFilters = ({
   selectedCategory,
@@ -14,6 +15,7 @@ const ActiveFilters = ({
   onPriceRangeChange,
   onSearchQueryChange,
 }) => {
+  const { t } = useTranslation('common');
   const hasActiveFilters =
     selectedCategory !== "All" ||
     ratingFilter > 0 ||
@@ -27,7 +29,7 @@ const ActiveFilters = ({
 
   return (
     <div className="mb-6">
-      <h4 className="text-sm font-medium text-gray-800 mb-2">Active Filters</h4>
+      <h4 className="text-sm font-medium text-gray-800 mb-2">{t('filters.activeFilters')}</h4>
       <div className="flex flex-wrap gap-2">
         {selectedCategory !== "All" && (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-[2px] text-xs font-medium bg-gray-100 text-gray-800">
@@ -43,7 +45,7 @@ const ActiveFilters = ({
         )}
         {ratingFilter > 0 && (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-[2px] text-xs font-medium bg-gray-100 text-gray-800">
-            {ratingFilter}+ Stars
+            {ratingFilter}+ {t('filters.stars')}
             <button
               onClick={() => onRatingFilterChange(0)}
               className="ml-1.5 rounded-md p-0.5 hover:bg-gray-200"
@@ -67,7 +69,7 @@ const ActiveFilters = ({
         )}
         {availabilityFilter !== "all" && (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-[2px] text-xs font-medium bg-gray-100 text-gray-800">
-            {availabilityFilter === "inStock" ? "In Stock" : "Out of Stock"}
+            {availabilityFilter === "inStock" ? t('filters.inStock') : t('filters.outOfStock')}
             <button
               onClick={() => onAvailabilityFilterChange("all")}
               className="ml-1.5 rounded-md p-0.5 hover:bg-gray-200"
@@ -81,7 +83,7 @@ const ActiveFilters = ({
         )}
         {priceRange[0] > 0 && (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-[2px] text-xs font-medium bg-gray-100 text-gray-800">
-            ${priceRange[0]}+
+            {t('currency')}{priceRange[0]}+
             <button
               onClick={() => onPriceRangeChange([0, priceRange[1]])}
               className="ml-1.5 rounded-md p-0.5 hover:bg-gray-200"
@@ -93,7 +95,7 @@ const ActiveFilters = ({
         )}
         {priceRange[1] < 50 && (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-[2px] text-xs font-medium bg-gray-100 text-gray-800">
-            Under ${priceRange[1]}
+            {t('filters.under')} {t('currency')}{priceRange[1]}
             <button
               onClick={() => onPriceRangeChange([priceRange[0], 50])}
               className="ml-1.5 rounded-md p-0.5 hover:bg-gray-200"

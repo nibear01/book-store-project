@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import FilterSection from "../FilterSection";
 
 const AvailabilityFilter = ({
@@ -6,9 +7,11 @@ const AvailabilityFilter = ({
   onAvailabilityFilterChange,
   isOpen,
   onToggle,
-}) => (
+}) => {
+  const { t } = useTranslation('common');
+  return (
   <FilterSection
-    title="Availability"
+    title={t('filters.availability')}
     sectionId="availability"
     isOpen={isOpen}
     onToggle={onToggle}
@@ -27,7 +30,7 @@ const AvailabilityFilter = ({
           htmlFor="availability-all"
           className="ml-3 text-sm text-gray-700 cursor-pointer"
         >
-          All
+          {t('filters.all')}
         </label>
       </div>
       <div className="flex items-center">
@@ -43,7 +46,7 @@ const AvailabilityFilter = ({
           htmlFor="availability-inStock"
           className="ml-3 text-sm text-gray-700 cursor-pointer"
         >
-          In Stock
+          {t('filters.inStock')}
         </label>
       </div>
       <div className="flex items-center">
@@ -59,11 +62,12 @@ const AvailabilityFilter = ({
           htmlFor="availability-outOfStock"
           className="ml-3 text-sm text-gray-700 cursor-pointer"
         >
-          Out of Stock
+          {t('filters.outOfStock')}
         </label>
       </div>
     </div>
   </FilterSection>
-);
+  );
+};
 
 export default AvailabilityFilter;

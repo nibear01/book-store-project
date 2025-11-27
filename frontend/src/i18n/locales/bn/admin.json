@@ -1,0 +1,47 @@
+{
+  "sidebar": {
+    "dashboard": "ড্যাশবোর্ড",
+    "users": "ব্যবহারকারী",
+    "authorPanel": "লেখক প্যানেল",
+    "authors": "লেখক",
+    "authorRequests": "লেখক অনুরোধ",
+    "bookRequests": "বই অনুরোধ",
+    "booksCategories": "বই এবং বিভাগ",
+    "publishers": "প্রকাশক",
+    "orders": "অর্ডার",
+    "support": "সহায়তা",
+    "finance": "অর্থ",
+    "printing": "মুদ্রণ",
+    "delivery": "ডেলিভারি",
+    "marketing": "মার্কেটিং",
+    "affiliates": "অ্যাফিলিয়েট",
+    "subscribers": "সাবস্ক্রাইবার",
+    "settings": "সেটিংস",
+    "logout": "লগআউট"
+  },
+  "dashboard": {
+    "welcome": "স্বাগতম, {{name}}",
+    "totalSales": "মোট বিক্রয়",
+    "totalOrders": "মোট অর্ডার",
+    "totalUsers": "মোট ব্যবহারকারী",
+    "totalBooks": "মোট বই",
+    "recentOrders": "সাম্প্রতিক অর্ডার",
+    "topBooks": "সবচেয়ে বেশি বিক্রিত বই",
+    "statistics": "পরিসংখ্যান"
+  },
+  "common": {
+    "actions": "কর্ম",
+    "status": "স্ট্যাটাস",
+    "active": "সক্রিয়",
+    "inactive": "নিষ্ক্রিয়",
+    "pending": "অপেক্ষমাণ",
+    "approved": "অনুমোদিত",
+    "rejected": "প্রত্যাখ্যাত",
+    "search": "খুঁজুন...",
+    "filter": "ফিল্টার",
+    "export": "এক্সপোর্ট",
+    "import": "ইম্পোর্ট",
+    "addNew": "নতুন যোগ করুন",
+    "bulkActions": "বাল্ক অ্যাকশন"
+  }
+}

@@ -2,6 +2,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { FaShoppingCart, FaUser, FaSignOutAlt } from "react-icons/fa";
 import { Heart } from "lucide-react";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "../LanguageSwitcher";
 
 const DesktopNav = ({
   navigationLinks,
@@ -49,6 +51,8 @@ const DesktopNav = ({
       ? "/admin/users"
       : "/account";
 
+  const { t } = useTranslation('common');
+
   return (
     <>
       {/* Desktop Navigation */}
@@ -66,6 +70,8 @@ const DesktopNav = ({
 
       {/* Cart + Auth (Desktop) */}
       <div className="hidden md:flex items-center space-x-4">
+        {/* Language Switcher */}
+        <LanguageSwitcher />
         {/* Wishlist */}
         <button
           type="button"
@@ -101,14 +107,16 @@ const DesktopNav = ({
             {/* Avatar + name go to account */}
             <Link
               to="/account"
+              name="navbar_account_link_desktop"
               className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-50"
             >
               {(() => {
                 const src = String(user?.profile_image || "");
+                const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://192.168.0.104:5000";
                 const absolute = src
                   ? /^https?:\/\//i.test(src)
                     ? src
-                    : `http://localhost:5000${
+                    : `${BASE_URL}${
                         src.startsWith("/") ? src : `/${src}`
                       }`
                   : "";
@@ -146,7 +154,7 @@ const DesktopNav = ({
                   onClick={() => setIsProfileOpen(false)}
                   className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                 >
-                  My Account
+                  {t('common:navbar.account')}
                 </Link>
 
                 {/* Admin Roles quick access (navigate directly without switching activeRole) */}
@@ -176,7 +184,7 @@ const DesktopNav = ({
                     (
                       <div className="px-3 py-2">
                         <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
-                          Admin Assigned roles
+                          {t('common:navbar.admin')}
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {adminish.map((r) => (
@@ -296,7 +304,7 @@ const DesktopNav = ({
                   onClick={() => setIsProfileOpen(false)}
                   className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                 >
-                  My Orders
+                  {t('common:navbar.orders')}
                 </Link>
 
                 <button
@@ -306,7 +314,7 @@ const DesktopNav = ({
                   }}
                   className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                 >
-                  <FaSignOutAlt className="h-4 w-4" /> Logout
+                  <FaSignOutAlt className="h-4 w-4" /> {t('common:navbar.logout')}
                 </button>
               </div>
             )}
@@ -317,9 +325,9 @@ const DesktopNav = ({
             <Link
               key={link.name}
               to={link.path}
-              className={`px-4 py-2 text-sm font-medium rounded-[2px] transition ${
+              className={`px-4 py-2 text-sm font-medium rounded-md transition ${
                 link.name === "Sign Up"
-                  ? "bg-red-500 text-white hover:bg-red-600 shadow-sm"
+                  ? "bg-red-500 text-white hover:bg-white hover:text-red-500 border hover:border-red-500 shadow-xs transition duration-300"
                   : "text-gray-700 hover:text-[var(--hover-color)]"
               }`}
             >

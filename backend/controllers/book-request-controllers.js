@@ -1,4 +1,5 @@
 import BookRequest from "../models/book-request-model.js";
+import EmailOtp from "../models/email-otp-model.js";
 import { body, validationResult } from "express-validator";
 
 export const validateCreate = () => [
@@ -10,6 +11,37 @@ export const validateCreate = () => [
   body("publisher").optional().isString(),
   body("notes").optional().isString(),
 ];
+
+// Check if email has been verified before for book requests
+export const checkEmailVerification = async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    // Check if this email has any previously verified and submitted book requests
+    const existingRequest = await BookRequest.findOne({ 
+      email: email.toLowerCase().trim(),
+      status: { $in: ["pending", "approved", "rejected", "fulfilled"] }
+    });
+
+    if (existingRequest) {
+      return res.status(200).json({ 
+        success: true, 
+        verified: true,
+        message: "Email already verified from previous request" 
+      });
+    }
+
+    return res.status(200).json({ 
+      success: true, 
+      verified: false 
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: e.message });
+  }
+};
 
 export const createBookRequest = async (req, res) => {
   try {

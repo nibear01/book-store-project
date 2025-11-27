@@ -38,7 +38,8 @@ function mapBackendToLocalItems(wishlist) {
 
 export function WishlistProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, { items: [] });
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, setIsLoading } = useAuth();
+  const isInitialLoadRef = React.useRef(true);
 
   // Load wishlist on auth
   useEffect(() => {
@@ -49,11 +50,15 @@ export function WishlistProvider({ children }) {
         return;
       }
       try {
+        if (setIsLoading && isInitialLoadRef.current) setIsLoading(true);
         const res = await wishlistAPI.getWishlist();
         if (!mounted) return;
         dispatch({ type: 'SET_ITEMS', items: mapBackendToLocalItems(res.data) });
       } catch {
         // silent
+      } finally {
+        if (setIsLoading && isInitialLoadRef.current) setIsLoading(false);
+        isInitialLoadRef.current = false;
       }
     };
     load();

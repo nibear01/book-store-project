@@ -1,0 +1,36 @@
+{
+  "title": "Shop All Books",
+  "filters": {
+    "category": "Category",
+    "price": "Price Range",
+    "author": "Author",
+    "language": "Language",
+    "rating": "Rating",
+    "availability": "Availability",
+    "inStock": "In Stock",
+    "outOfStock": "Out of Stock",
+    "clearAll": "Clear All Filters"
+  },
+  "sorting": {
+    "sortBy": "Sort By",
+    "newest": "Newest First",
+    "oldest": "Oldest First",
+    "priceLowToHigh": "Price: Low to High",
+    "priceHighToLow": "Price: High to Low",
+    "nameAZ": "Name: A-Z",
+    "nameZA": "Name: Z-A",
+    "rating": "Highest Rated"
+  },
+  "product": {
+    "quickView": "Quick View",
+    "outOfStock": "Out of Stock",
+    "sale": "Sale",
+    "new": "New",
+    "byAuthor": "by {{author}}",
+    "rating": "{{rating}} rating"
+  },
+  "pagination": {
+    "showing": "Showing {{from}}-{{to}} of {{total}} books",
+    "page": "Page {{current}} of {{total}}"
+  }
+}

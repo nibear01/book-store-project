@@ -3,12 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
 import { XMarkIcon } from "@heroicons/react/24/outline";
+import { useTranslation } from "react-i18next";
 
 import DesktopNavbar from "./DesktopNav";
 import MobileNav from "./MobileNav";
 import { useWishlist } from "../../context/WishlistContext";
+import LanguageSwitcher from "../LanguageSwitcher";
 
 const Navbar = () => {
+  const { t } = useTranslation('common');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
   const { user, isAuthenticated, logout, activeRole, switchRole } = useAuth();
@@ -24,18 +27,19 @@ const Navbar = () => {
   const [rolesOpenLeft, setRolesOpenLeft] = useState(false);
 
   const navigationLinks = [
-    { name: "Home", path: "/" },
-    { name: "About", path: "/about" },
-    { name: "Categories", path: "/categories" },
-    { name: "Shop", path: "/shop" },
-    { name: "Authors", path: "/author" },
-    { name: "Terms", path: "/terms" },
-    { name: "Contact", path: "/contact" },
+    { name: t('common:navbar.home'), path: "/" },
+    { name: t('common:navbar.categories'), path: "/categories" },
+    { name: t('common:navbar.shop'), path: "/shop" },
+    { name: t('common:navbar.authors'), path: "/author" },
+    { name: t('common:navbar.publishers'), path: "/publishers" },
+    { name: t('common:navbar.about'), path: "/about" },
+    // { name: t('common:navbar.terms'), path: "/terms" },
+    { name: t('common:navbar.contact'), path: "/contact" },
   ];
 
   const authLinks = [
-    { name: "Login", path: "/login" },
-    { name: "Sign Up", path: "/signup" },
+    { name: t('common:navbar.login'), path: "/login" },
+    { name: t('common:navbar.signup'), path: "/signup" },
   ];
 
   const { state, subtotal, removeItem, updateQuantity } = useCart();
@@ -80,7 +84,7 @@ const Navbar = () => {
     };
   }, []);
 
-  const computeRolesSide = () => {
+  const computeRolesSide = React.useCallback(() => {
     // On mobile, always open to the left so it stays on-screen
     if (!isDesktop) return true;
     const el = rolesHeaderRef.current;
@@ -89,15 +93,14 @@ const Navbar = () => {
     const spaceRight = window.innerWidth - rect.right;
     // If less than submenu width (~220px), open to the left
     return spaceRight < 220;
-  };
+  }, [isDesktop, rolesHeaderRef]);
 
   useEffect(() => {
     // keep roles submenu side in sync when profile opens
     if (isProfileOpen) {
       setRolesOpenLeft(computeRolesSide());
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isProfileOpen, isDesktop]);
+  }, [isProfileOpen, isDesktop, computeRolesSide]);
 
   return (
     <nav ref={containerRef} className="bg-white shadow-md sticky top-0 z-50">
@@ -106,11 +109,11 @@ const Navbar = () => {
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link to="/" className="flex items-center">
-              <span className="text-2xl font-bold text-gray-900 tracking-tight">
-                BOOK
-                <span className="text-red-500">S</span>
-                TOP
-              </span>
+              <img
+                src="/logo.png"
+                alt="Bookstore Logo"
+                className="w-32 sm:w-36 md:w-40 lg:w-48 h-auto"
+              />
             </Link>
           </div>
 
@@ -154,6 +157,7 @@ const Navbar = () => {
             switchRole={switchRole}
             handleLogout={handleLogout}
             wishlistCount={wishlistCount}
+            setIsProfileOpen={setIsProfileOpen}
           />
         </div>
       </div>
@@ -169,7 +173,7 @@ const Navbar = () => {
           {/* Drawer */}
           <div className="absolute right-0 top-0 h-full w-[90%] sm:w-[420px] bg-white shadow-xl border-l border-gray-200 flex flex-col">
             <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Your Cart ({cartCount})</h3>
+              <h3 className="text-lg font-semibold">{t('common:navbar.cart')} ({cartCount})</h3>
               <button
                 type="button"
                 onClick={() => setIsCartOpen(false)}
@@ -199,11 +203,11 @@ const Navbar = () => {
                             }
                             className="text-xs text-gray-500 hover:text-red-600"
                           >
-                            Remove
+                            {t('common:buttons.delete')}
                           </button>
                         </div>
                         <div className="mt-1 text-sm text-gray-600">
-                          ${(item.price || 0).toFixed(2)}
+                          {t('currency')}{(item.price || 0).toFixed(2)}
                         </div>
                         <div className="mt-2 inline-flex items-center border">
                           <button
@@ -240,15 +244,15 @@ const Navbar = () => {
                 </ul>
               ) : (
                 <div className="h-full flex items-center justify-center text-gray-500">
-                  Your cart is empty
+                  {t('cart:cart.empty')}
                 </div>
               )}
             </div>
             <div className="p-4 border-t">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-gray-600">Subtotal</span>
+                <span className="text-sm text-gray-600">{t('cart:checkout.subtotal')}</span>
                 <span className="text-base font-semibold">
-                  ${(subtotal || 0).toFixed(2)}
+                  {t('currency')}{(subtotal || 0).toFixed(2)}
                 </span>
               </div>
               <div className="flex gap-2">
@@ -260,7 +264,7 @@ const Navbar = () => {
                   }}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
                 >
-                  View Cart
+                  {t('common:buttons.view')} {t('common:navbar.cart')}
                 </button>
                 <button
                   type="button"
@@ -270,7 +274,7 @@ const Navbar = () => {
                   }}
                   className="flex-1 px-4 py-2 bg-black text-white rounded-md text-sm hover:bg-gray-800"
                 >
-                  Checkout
+                  {t('cart:cart.checkout')}
                 </button>
               </div>
             </div>

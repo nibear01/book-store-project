@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { FaShoppingCart, FaUser, FaSignOutAlt } from "react-icons/fa";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { Heart } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "../LanguageSwitcher";
 
 const MobileNav = ({
   isMenuOpen,
@@ -18,7 +20,9 @@ const MobileNav = ({
   handleLogout,
   // NEW (optional): wishlist badge count
   wishlistCount = 0,
+  setIsProfileOpen,
 }) => {
+  const { t } = useTranslation('common');
   const navigate = useNavigate();
 
   // Lock body scroll when mobile menu is open
@@ -37,6 +41,11 @@ const MobileNav = ({
     <>
       {/* Mobile Menu Button + Cart */}
       <div className="md:hidden flex items-center space-x-2">
+        {/* Language Switcher */}
+        <div className="scale-90">
+          <LanguageSwitcher className="px-2 py-1" />
+        </div>
+
         <button
           type="button"
           onClick={() => navigate("/wishlist")}
@@ -117,15 +126,17 @@ const MobileNav = ({
                     {/* User Info */}
                     <Link
                       to="/account"
+                      name="navbar_account_link"
                       onClick={() => setIsMenuOpen(false)}
                       className="flex items-center gap-3 text-gray-800 px-3 py-3 rounded-md active:bg-gray-100"
                     >
                       {user?.profile_image ? (
                         (() => {
                           const src = String(user.profile_image || "");
+                          const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://192.168.0.104:5000";
                           const absolute = /^https?:\/\//i.test(src)
                             ? src
-                            : `http://localhost:5000${
+                            : `${BASE_URL}${
                                 src.startsWith("/") ? src : `/${src}`
                               }`;
                           return (
@@ -145,10 +156,9 @@ const MobileNav = ({
                         {user?.name || user?.email}
                       </span>
                     </Link>
-
                     {/* Roles */}
                     <div className="px-3">
-                      <div className="text-xs text-gray-500 mb-2">Roles</div>
+                      <div className="text-xs text-gray-500 mb-2">{t('common:navbar.admin')}</div>
                       <div className="flex flex-wrap gap-2">
                         {(() => {
                           const roles =
@@ -198,7 +208,18 @@ const MobileNav = ({
                         })()}
                       </div>
                     </div>
-
+                    <div className="border-t border-gray-200" />
+                    <Link
+                      to="/orders"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setIsProfileOpen && setIsProfileOpen(false);
+                      }}
+                      className="block px-3 py-2 text-sm text-gray-800 hover:bg-gray-50"
+                    >
+                      {t('common:navbar.orders')}
+                    </Link>{" "}
+                    <div />
                     {/* Logout */}
                     <div className="px-3">
                       <button
@@ -206,7 +227,7 @@ const MobileNav = ({
                         className="flex items-center gap-2 w-full px-3 py-3 text-[15px] font-medium text-gray-800 rounded-md active:bg-gray-100"
                       >
                         <FaSignOutAlt className="h-4 w-4" />
-                        <span>Logout</span>
+                        <span>{t('common:navbar.logout')}</span>
                       </button>
                     </div>
                   </div>

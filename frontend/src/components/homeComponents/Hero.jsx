@@ -1,9 +1,10 @@
-import React, {
+import {
   useEffect,
   useMemo,
   useRef,
   useState,
   useCallback,
+  memo,
 } from "react";
 import img1 from "../../assets/images/img1-12 (4).png";
 import img2 from "../../assets/pexels-pixabay-159866.jpg";
@@ -11,14 +12,8 @@ import img3 from "../../assets/pexels-minan1398-694740.jpg";
 import img4 from "../../assets/images/img1-12 (4).png";
 import ButtonFill from "@/Button/ButtonFill";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
-/**
- * Responsive notes:
- * - Height:    mobile h-[420px] → md:h-[70vh] → lg:h-[85vh] → xl:h-screen
- * - Text:      text-base → md:text-lg → lg:text-xl (titles scale too)
- * - Controls:  bigger hit-targets on mobile, spaced further on desktop
- * - Dots:      slightly larger on md+
- */
 const defaultImages = [
   { src: img1, alt: "Hero slide 1" },
   { src: img2, alt: "Hero slide 2" },
@@ -32,6 +27,7 @@ const Hero = ({
   fullWidth = true, // false = centered container with side padding
   pauseOnHover = true,
 }) => {
+  const { t } = useTranslation('common');
   const [activeIndex, setActiveIndex] = useState(0);
   const trackRef = useRef(null);
   const hoveringRef = useRef(false);
@@ -133,7 +129,7 @@ const Hero = ({
   };
 
   // responsive container + height
-  const widthClass = fullWidth ? "w-full" : "max-w-7xl mx-auto px-4";
+  const widthClass = fullWidth ? "w-full" : "max-w-7xl mx-auto";
   const heightClass = "h-[350px] md:h-[50vh] lg:h-[60vh] xl:h-[70vh]";
 
   // track style (viewport-based width per slide)
@@ -161,6 +157,7 @@ const Hero = ({
 
   return (
     <section
+      name="hero-section"
       className={`relative ${widthClass} ${heightClass} select-none m-5d:m-8 lg:m-10 rounded-none md:rounded-2xl shadow-sm md:shadow-md`}
       aria-roledescription="carousel"
       aria-label="Featured slides"
@@ -174,10 +171,11 @@ const Hero = ({
     >
       <div className="relative w-full h-full overflow-hidden bg-black rounded-none md:rounded-2xl">
         {/* Slides track */}
-        <div ref={trackRef} className="flex h-full gap-0" style={trackStyle}>
+        <div ref={trackRef} name="hero-track" className="flex h-full gap-0" style={trackStyle}>
           {images.map(({ src, alt }, i) => (
             <div
               key={i}
+              name="hero-slide"
               className="relative w-screen h-full flex-shrink-0 overflow-hidden"
               style={{ lineHeight: 0 }}
               role="group"
@@ -214,7 +212,7 @@ const Hero = ({
               talking about this month.
             </p>
 
-            <Link to="/shop" className="mt-6 inline-block">
+            <Link to="/shop" name="hero-shop-now-link" className="mt-6 inline-block">
               <ButtonFill>Shop Now</ButtonFill>
             </Link>
           </div>
@@ -223,7 +221,8 @@ const Hero = ({
         {/* Controls (touch-friendly on mobile; spaced on desktop) */}
         <button
           onClick={prevSlide}
-          aria-label="Previous slide"
+          name="hero-prev-btn"
+          aria-label={t('home.hero.previousSlide')}
           className="absolute left-2 sm:left-3 md:left-6 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 shadow-md
                      p-2 sm:p-2.5 md:p-3 rounded-full z-30"
         >
@@ -232,7 +231,8 @@ const Hero = ({
 
         <button
           onClick={nextSlide}
-          aria-label="Next slide"
+          name="hero-next-btn"
+          aria-label={t('home.hero.nextSlide')}
           className="absolute right-2 sm:right-3 md:right-6 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 shadow-md
                      p-2 sm:p-2.5 md:p-3 rounded-full z-30"
         >
@@ -243,4 +243,4 @@ const Hero = ({
   );
 };
 
-export default Hero;
+export default memo(Hero);

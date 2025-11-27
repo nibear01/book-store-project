@@ -2,6 +2,57 @@
 import mongoose from "mongoose";
 import Cart from "../models/cart-model.js";
 import Book from "../models/book-model.js";
+import { getPrintPricingConfig, computePrintPrice } from "../utils/print-pricing.js";
+
+const DEFAULT_VARIANT = {
+  paperQuality: "economy",
+  printSide: "single",
+  paperSize: "A4",
+  colorMode: "bw",
+};
+
+function sanitizeVariant(variant) {
+  if (!variant || typeof variant !== "object") return null;
+  return {
+    paperQuality: variant.paperQuality || null,
+    printSide: variant.printSide || null,
+    paperSize: variant.paperSize || null,
+    colorMode: variant.colorMode || null,
+  };
+}
+
+function toPlainBook(bookDoc) {
+  // Support both Mongoose document and plain object
+  return typeof bookDoc?.toObject === "function" ? bookDoc.toObject() : bookDoc;
+}
+
+function round2(n) {
+  return Number(Number(n).toFixed(2));
+}
+
+function buildFinalUnitPrice({ book, variant, cfg }) {
+  const bookPlain = toPlainBook(book);
+  const v = variant || DEFAULT_VARIANT;
+  const breakdown = computePrintPrice({ book: bookPlain, variant: v, cfg });
+  let final = breakdown.finalPrice;
+
+  // Derived mode: apply sale as baseline + variant differential
+  if (cfg?.mode === "derived" && bookPlain?.is_on_sale && Number.isFinite(Number(bookPlain?.sale_price))) {
+    const adminSale = Number(bookPlain.sale_price);
+    const baseDefault = computePrintPrice({ book: bookPlain, variant: DEFAULT_VARIANT, cfg });
+    const variantDiff = breakdown.finalPrice - baseDefault.finalPrice;
+    final = round2(adminSale + variantDiff);
+  }
+
+  // Relative mode: if sale, recompute with sale as content price
+  if (cfg?.mode === "relative" && bookPlain?.is_on_sale && Number.isFinite(Number(bookPlain?.sale_price))) {
+    const saleBook = { ...bookPlain, price: Number(bookPlain.sale_price) };
+    const saleBreakdown = computePrintPrice({ book: saleBook, variant: v, cfg });
+    final = round2(saleBreakdown.finalPrice);
+  }
+
+  return { unitPrice: round2(final), breakdown: { ...breakdown, finalPrice: round2(final) } };
+}
 
 // @desc    Get user's cart
 // @route   GET /api/cart
@@ -11,51 +62,49 @@ export const getCart = async (req, res) => {
     const userId = req.user._id;
 
     let cart = await Cart.findOne({ user: userId })
-      .populate('items.book', 'title author cover_image price stock')
+      .populate(
+        "items.book",
+        "title author cover_image price stock pages is_on_sale sale_price is_deal_of_the_week"
+      )
       .lean();
 
     if (!cart) {
-      cart = {
-        user: userId,
-        items: [],
-        total_price: 0
-      };
+      cart = { user: userId, items: [], total_price: 0 };
     }
 
-    // Check stock availability for each item
+    const cfg = await getPrintPricingConfig();
     const updatedItems = await Promise.all(
       cart.items.map(async (item) => {
-        const book = await Book.findById(item.book._id);
+        const bookDoc = await Book.findById(item.book._id);
+        const book = toPlainBook(bookDoc);
         const availableStock = book?.stock || 0;
         const actualQuantity = Math.min(item.quantity, availableStock);
 
+        const safeVariant = sanitizeVariant(item.variant) || DEFAULT_VARIANT;
+        const { unitPrice, breakdown } = buildFinalUnitPrice({ book, variant: safeVariant, cfg });
+
         return {
           ...item,
+          price: unitPrice,
+          pricing: breakdown,
           quantity: actualQuantity,
           max_available: availableStock,
-          is_available: availableStock > 0
+          is_available: availableStock > 0,
         };
       })
     );
 
-    // Recalculate total price
-    const total_price = updatedItems.reduce((total, item) => {
-      return total + (item.price * item.quantity);
-    }, 0);
+    const total_price = updatedItems.reduce((total, item) => total + item.price * item.quantity, 0);
 
     res.status(200).json({
       success: true,
-      data: {
-        ...cart,
-        items: updatedItems,
-        total_price
-      }
+      data: { ...cart, items: updatedItems, total_price },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Error fetching cart",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -65,7 +114,7 @@ export const getCart = async (req, res) => {
 // @access  Private
 export const addToCart = async (req, res) => {
   try {
-    const { bookId, quantity = 1 } = req.body;
+    const { bookId, quantity = 1, variant } = req.body;
     const userId = req.user._id;
 
     // Validate input
@@ -84,8 +133,8 @@ export const addToCart = async (req, res) => {
       });
     }
 
-    // Check if book exists and is available
-    const book = await Book.findOne({ _id: bookId, is_active: true });
+  // Check if book exists and is available
+  const book = await Book.findOne({ _id: bookId, is_active: true });
     if (!book) {
       return res.status(404).json({
         success: false,
@@ -129,12 +178,19 @@ export const addToCart = async (req, res) => {
 
       cart.items[existingItemIndex].quantity = newQuantity;
     } else {
-      // Add new item
+      // Compute price consistently with server-side pricing rules
+      const cfg = await getPrintPricingConfig();
+      const safeVariant = sanitizeVariant(variant);
+      const { unitPrice, breakdown } = buildFinalUnitPrice({ book, variant: safeVariant || DEFAULT_VARIANT, cfg });
+
       cart.items.push({
         book: bookId,
         title: book.title,
-        price: book.price,
-        quantity: quantityNum
+        price: unitPrice,
+        quantity: quantityNum,
+        configured: !!safeVariant,
+        variant: safeVariant,
+        pricing: breakdown,
       });
     }
 
@@ -147,7 +203,7 @@ export const addToCart = async (req, res) => {
 
     // Populate the cart with book details
     const populatedCart = await Cart.findById(cart._id)
-      .populate('items.book', 'title author cover_image price stock');
+      .populate('items.book', 'title author cover_image price stock pages is_on_sale sale_price is_deal_of_the_week');
 
     res.status(200).json({
       success: true,

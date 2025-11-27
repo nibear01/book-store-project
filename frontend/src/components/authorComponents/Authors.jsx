@@ -2,10 +2,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import ButtonFill from "@/Button/ButtonFill";
 import { authorAPI } from "@/api/author-api";
+import { useTranslation } from "react-i18next";
 
 const INITIAL_LIMIT = 20;
 const LOAD_MORE = 12;
 const DEBOUNCE_MS = 250;
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || "";
 
 // Simple initials avatar if image missing
 const InitialsAvatar = ({ name }) => {
@@ -33,6 +35,7 @@ const AuthorCardSkeleton = () => (
 );
 
 const Authors = () => {
+  const { t } = useTranslation('common');
   const [authors, setAuthors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -82,6 +85,17 @@ const Authors = () => {
     setVisible(INITIAL_LIMIT);
   }, [query]);
 
+  // Helper: build absolute image url from relative
+  const makeImgUrl = (p) => {
+    if (!p) return "";
+    const src = Array.isArray(p) ? p[0] : p;
+    if (!src) return "";
+    if (/^https?:\/\//i.test(src)) return src;
+    const base = (BASE_URL || "").replace(/\/+$/, "");
+    const rel = String(src).replace(/^\/+/, "");
+    return base ? `${base}/${rel}` : `/${rel}`;
+  };
+
   const visibleAuthors = filtered.slice(0, visible);
 
   return (
@@ -90,14 +104,14 @@ const Authors = () => {
       <div className="pt-6 mb-8 sm:mb-12 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
         <nav className="flex items-center text-[16px] text-gray-600 space-x-2">
           <Link to="/" className="hover:text-gray-800 transition-colors">
-            Home
+            {t('navbar.home')}
           </Link>
           <span>/</span>
-          <span className="text-gray-900 font-medium">Authors</span>
+          <span className="text-gray-900 font-medium">{t('authors.title')}</span>
         </nav>
         <div>
           <Link to="/authorrequest">
-            <ButtonFill>Author Request</ButtonFill>
+            <ButtonFill>{t('authors.authorRequest')}</ButtonFill>
           </Link>
         </div>
       </div>
@@ -105,9 +119,9 @@ const Authors = () => {
       {/* Header + search */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <h1 className="text-[22px] font-semibold">
-          Authors{" "}
+          {t('authors.title')}{" "}
           <span className="text-gray-500 font-normal text-[17px]">
-            • {filtered.length} result{filtered.length !== 1 ? "s" : ""}
+            • {filtered.length} {filtered.length !== 1 ? t('authors.results') : t('authors.result')}
           </span>
         </h1>
 
@@ -117,9 +131,9 @@ const Authors = () => {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               type="text"
-              placeholder="Search authors by name or tag…"
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 pr-24 shadow-sm focus:border-black focus:outline-none"
-              aria-label="Search authors"
+              placeholder={t('authors.searchPlaceholder')}
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 pr-24 shadow-sm focus:border-gray-400 focus:outline-none"
+              aria-label={t('authors.searchPlaceholder')}
             />
             {searchInput && (
               <button
@@ -127,7 +141,7 @@ const Authors = () => {
                 onClick={() => setSearchInput("")}
                 className="absolute right-20 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 text-sm"
               >
-                Clear
+                {t('authors.clear')}
               </button>
             )}
             <button
@@ -135,7 +149,7 @@ const Authors = () => {
               onClick={() => setQuery(searchInput.trim())}
               className="absolute right-1 top-1/2 -translate-y-1/2 rounded-md bg-black px-3 py-1.5 text-white text-sm hover:bg-black/90"
             >
-              Search
+              {t('authors.search')}
             </button>
           </div>
         </div>
@@ -153,29 +167,29 @@ const Authors = () => {
         </div>
       ) : visibleAuthors.length === 0 ? (
         <p className="mt-6 text-gray-600">
-          {query ? "No authors matched your search." : "No authors found."}
+          {query ? t('authors.noAuthorsMatched') : t('authors.noAuthorsFound')}
         </p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6 mt-6">
           {visibleAuthors.map((a) => {
-            const name = a?.name || "Unknown";
-            const booksCount = a?.book_count ?? a?.books_count ?? 0;
-            const slug = a?.slug || a?.id || "#";
+            const name = a?.name || t('authors.unknown');
+            const booksCount =
+              (Array.isArray(a?.books) ? a.books.length : undefined) ??
+              a?.book_count ??
+              a?.books_count ??
+              0;
+            const slug = a?.slug || a?._id || a?.id || "#";
             const photo = a?.photo || a?.avatar || null;
 
             return (
               <div
-                key={a?.id || a?._id || name}
-                className="flex flex-col items-center text-center bg-white p-4 rounded-md shadow-sm"
+                key={a?._id || a?.id || name}
+                className="group flex flex-col items-center text-center bg-white p-5 rounded-md border hover:shadow-md transition-shadow"
               >
-                <div className="w-24 h-24 rounded-full overflow-hidden border border-gray-200">
+                <div className="w-24 h-24 rounded-full overflow-hidden border border-gray-200 bg-gray-50">
                   {photo ? (
                     <img
-                      src={
-                        photo.startsWith?.("http")
-                          ? photo
-                          : `http://localhost:5000${photo}`
-                      }
+                      src={makeImgUrl(photo)}
                       alt={name}
                       className="w-full h-full object-cover"
                       loading="lazy"
@@ -189,15 +203,17 @@ const Authors = () => {
                     <InitialsAvatar name={name} />
                   )}
                 </div>
-                <h3 className="mt-2 text-sm font-medium text-gray-900 line-clamp-2">
+                <h3 className="mt-3 text-sm font-semibold text-gray-900 line-clamp-2">
                   {name}
                 </h3>
                 <p className="text-xs text-gray-500">
-                  {booksCount} book{booksCount !== 1 ? "s" : ""}
+                  {booksCount} {t('authors.books')}
                 </p>
-                <div className="mt-4">
-                  <Link to={`/authors/${slug}`}>
-                    <ButtonFill>Visit</ButtonFill>
+                <div className="mt-4 w-full">
+                  <Link to={`/authors/${slug}`} className="block">
+                    <button className="w-full rounded-md bg-black px-4 py-2 text-white text-sm hover:bg-black/90">
+                      {t('authors.viewProfile')}
+                    </button>
                   </Link>
                 </div>
               </div>
@@ -216,14 +232,14 @@ const Authors = () => {
               }
               className="w-full sm:w-auto px-4 py-2 rounded-md bg-black text-white hover:bg-black/90"
             >
-              Show more
+              {t('shop.showMore')}
             </button>
           ) : (
             <button
               onClick={() => setVisible(INITIAL_LIMIT)}
               className="w-full sm:w-auto px-4 py-2 rounded-md bg-gray-200 text-gray-900 hover:bg-gray-300"
             >
-              Show less
+              {t('shop.showLess')}
             </button>
           )}
         </div>

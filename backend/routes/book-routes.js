@@ -13,6 +13,7 @@ import {
   getOnSaleBooks,
   getMostViewedBooks,
   getDealsOfTheWeek,
+  getBooksCount,
   bulkUploadAssets,
 } from "../controllers/book-controllers.js";
 import { uploadBookAssets } from "../middlewares/upload-middleware.js";
@@ -49,6 +50,9 @@ router.get("/most-viewed", getMostViewedBooks);
 // GET /api/books/deals
 // Query: ?limit=10
 router.get("/deals", getDealsOfTheWeek);
+
+// GET /api/books/count
+router.get("/count", getBooksCount);
 
 // GET /api/books/:slug
 // Path: /api/books/:slug

@@ -1,7 +1,6 @@
 // src/api/order-api.js
 import axios from "axios";
-const API_BASE_URL = "http://localhost:5000/api";
-//const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'; // Use .env for base URL
+const API_BASE_URL = `${import.meta.env.VITE_BACKEND_URL || 'http://192.168.0.104:5000'}/api`;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -38,3 +37,13 @@ export const importOrdersFromCSV = (formData) =>
     .then((res) => res.data);
 export const deleteOrder = (id) =>
   api.delete(`/orders/admin/${id}`).then((res) => res.data);
+
+// -------- Workflow (internal) endpoints --------
+export const listWorkflowOrders = (params) =>
+  api.get("/orders/workflow", { params }).then((res) => res.data);
+export const getWorkflowOrder = (id) =>
+  api.get(`/orders/workflow/${id}`).then((res) => res.data);
+export const getNextWorkflowStages = (id) =>
+  api.get(`/orders/workflow/${id}/next-stages`).then((res) => res.data);
+export const advanceWorkflowStage = (id, payload) =>
+  api.patch(`/orders/workflow/${id}/advance`, payload).then((res) => res.data);

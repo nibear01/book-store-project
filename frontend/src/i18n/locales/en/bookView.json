@@ -1,0 +1,127 @@
+{
+  "bookView": {
+    "by": "by",
+    "reviewsCount": "reviews",
+    "home": "Home",
+    "products": "Products",
+    "missingProductId": "Missing product ID",
+    "checkoutError": "Failed to proceed to checkout",
+    "addToCart": "Add to Cart",
+    "buyNow": "Buy Now",
+    "needLogin": "You'll need to",
+    "login": "login",
+    "toCompletePurchase": "to complete your purchase",
+    "priceNote": "Price reflects selected printing options.",
+    "language": "Language",
+    "isbn": "ISBN",
+    "published": "Published",
+    "tabs": {
+      "description": "Description",
+      "details": "Details",
+      "reviews": "Reviews",
+      "author": "Author"
+    },
+    "details": {
+      "bookDetails": "Book Details",
+      "additionalInfo": "Additional Information",
+      "title": "Title",
+      "author": "Author",
+      "isbnLabel": "ISBN",
+      "publisher": "Publisher",
+      "publicationDate": "Publication Date",
+      "pages": "Pages",
+      "languageLabel": "Language",
+      "genres": "Genre(s)",
+      "format": "Format",
+      "availability": "Availability",
+      "inStock": "In Stock",
+      "outOfStock": "Out of Stock",
+      "digital": "Digital & Physical",
+      "physical": "Physical",
+      "unknown": "Unknown",
+      "notAvailable": "N/A"
+    },
+    "description": {
+      "noDescription": "No description available for this title."
+    },
+    "related": {
+      "title": "You Might Also Like",
+      "error": "Related books feature is currently unavailable",
+      "loading": "Loading related books...",
+      "noBooks": "No related books with the current book.",
+      "tryExploring": "Try exploring other categories or authors.",
+      "dealOfWeek": "Deal of the Week",
+      "onSale": "On Sale",
+      "noCover": "No Book Cover"
+    },
+    "printConfig": {
+      "title": "Printing Options",
+      "paperQuality": "Paper Quality",
+      "printSide": "Print Side",
+      "paperSize": "Paper Size",
+      "colorMode": "Color Mode",
+      "reset": "Reset to Default",
+      "quality": {
+        "economy": "Economy",
+        "economyNote": "Budget, lighter stock",
+        "standard": "Standard",
+        "standardNote": "Everyday quality",
+        "premium": "Premium",
+        "premiumNote": "Heavier, smooth finish"
+      },
+      "side": {
+        "single": "Single-Sided",
+        "singleNote": "Printed on one side",
+        "double": "Double-Sided",
+        "doubleNote": "Front & back print"
+      },
+      "size": {
+        "A5": "A5",
+        "A5Note": "Compact",
+        "A4": "A4",
+        "A4Note": "Standard",
+        "A3": "A3",
+        "A3Note": "Large format"
+      },
+      "color": {
+        "bw": "B/W",
+        "bwNote": "Black & white",
+        "color": "Full Color",
+        "colorNote": "Vivid color print"
+      }
+    },
+    "reviews": {
+      "basedOn": "Based on",
+      "review": "review",
+      "reviews": "reviews",
+      "noReviews": "No reviews yet",
+      "writeReview": "Write a Review",
+      "cancel": "Cancel",
+      "pleaseLogin": "Please",
+      "toWriteReview": "to write a review",
+      "nameOptional": "Name (optional)",
+      "yourDisplayName": "Your display name",
+      "rating": "Rating",
+      "select": "Select…",
+      "comment": "Comment",
+      "shareYourThoughts": "Share what you liked or disliked…",
+      "submitReview": "Submit Review",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "noReviewsYet": "No reviews yet. Be the first to review this book!",
+      "anonymous": "Anonymous",
+      "dateUnknown": "Date unknown"
+    },
+    "author": {
+      "authorLabel": "AUTHOR",
+      "viewProfile": "View Profile",
+      "books": "Books",
+      "email": "Email",
+      "emailVerified": "Email Verified",
+      "emailUnverified": "Email Unverified",
+      "bioNotAvailable": "Biography not available for this author.",
+      "active": "active"
+    }
+  }
+}

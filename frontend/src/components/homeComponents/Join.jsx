@@ -1,7 +1,10 @@
 import ButtonFill from "@/Button/ButtonFill";
-import React, { useState } from "react";
+import { useState, memo } from "react";
+import { toast } from "react-toastify";
+import { useTranslation } from "react-i18next";
 
 const Join = () => {
+  const { t } = useTranslation(['home', 'common']);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -14,13 +17,11 @@ const Join = () => {
     const form = event.currentTarget;
     const formData = new FormData(form);
 
-    // Spam honeypot
     if (formData.get("botcheck")) {
       setSubmitting(false);
       return;
     }
 
-    // Normalize + validate email
     const rawEmail = String(formData.get("email") || "").trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
       setSubmitting(false);
@@ -29,7 +30,6 @@ const Join = () => {
     }
     formData.set("email", rawEmail);
 
-    // Normalize + validate name
     const rawName = String(formData.get("name") || "").trim();
     if (!rawName) {
       setSubmitting(false);
@@ -38,129 +38,136 @@ const Join = () => {
     }
     formData.set("name", rawName);
 
-    // Web3Forms required + helpful fields
-    formData.append("access_key", "276695ce-1e44-4cb0-bc1f-df51e6a92587");
-    formData.append("replyto", rawEmail); // reply-to user
-    formData.append("from_name", rawName); // inbox sender name
-    if (!formData.get("subject")) {
-      formData.append("subject", `Newsletter Signup — ${rawName}`);
-    }
-
     try {
-      const res = await fetch("https://api.web3forms.com/submit", {
+      const res = await fetch("/api/subscribers", {
         method: "POST",
-        headers: { Accept: "application/json" },
-        body: formData,
-      }).then((r) => r.json());
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: rawName, email: rawEmail }),
+      });
+      const data = await res.json().catch(() => ({}));
 
-      if (res.success) {
+      if (!res.ok) {
+        throw new Error(data?.message || "Subscription failed. Please try again.");
+      }
+
+      const alreadyExisted =
+        Boolean(data?.meta?.alreadyExisted) ||
+        /already/i.test(data?.message || "");
+
+      if (alreadyExisted) {
+        setError(t('home:newsletter.alreadySubscribed'));
+        toast.info(t('home:newsletter.alreadySubscribed'));
+      } else {
+        toast.success(t('home:newsletter.thanksSubscribed'));
         setSubmitted(true);
         form.reset();
         setTimeout(() => setSubmitted(false), 5000);
-      } else {
-        setError(res.message || "Submission failed. Please try again.");
       }
-    } catch {
-      setError("Network error. Please check your connection and try again.");
+
+    } catch (e) {
+      const msg =
+        e?.message || "Network error. Please check your connection and try again.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <section className="px-4 py-10 mx-auto sm:px-6 lg:px-8">
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-green-600 to-emerald-600">
-        <div className="relative z-10 flex flex-col items-center justify-between gap-10 px-6 py-16 md:px-16 md:py-20 lg:flex-row md:gap-12">
-          {/* Left Content */}
-          <div className="max-w-xl text-center text-white md:text-left">
-            <h2 className="mb-3 text-2xl font-semibold sm:text-3xl md:text-4xl">
-              Subscribe to our newsletter
+    <section className="px-4 py-12 mx-auto sm:px-6 lg:px-8">
+      <div className="
+        relative overflow-hidden rounded-2xl 
+        bg-gradient-to-br from-emerald-600 via-green-600 to-emerald-700
+        shadow-xl shadow-emerald-600/25 
+        px-5 py-12 sm:px-8 sm:py-16
+      ">
+        {/* Floating glow */}
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-10 -left-10 w-44 h-44 bg-white/10 rounded-full blur-3xl"></div>
+
+        <div className="relative z-10 flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between">
+          
+          {/* Left Text */}
+          <div className="max-w-xl text-center text-white lg:text-left">
+            <h2 className="mb-3 text-3xl font-semibold sm:text-4xl md:text-5xl leading-tight drop-shadow">
+              {t('common:footer.newsletter')}
             </h2>
-            <p className="text-sm text-emerald-100 sm:text-base">
-              Book releases, reading lists, and hand-picked deals — straight to
-              your inbox.
+            <p className="text-sm sm:text-base text-emerald-100/90">
+              {t('common:footer.newsletterDesc')}
             </p>
           </div>
 
           {/* Form */}
-          <div className="w-full md:w-auto">
+          <div className="w-full lg:w-auto">
             <form
               onSubmit={onSubmit}
-              className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-end sm:gap-2"
               noValidate
+              className="
+                flex flex-col gap-3 
+                sm:flex-row sm:gap-2
+                max-sm:bg-white/10 max-sm:backdrop-blur max-sm:p-4 max-sm:rounded-xl
+              "
             >
-              {/* Honeypot (hidden) */}
-              <input
-                type="text"
-                name="botcheck"
-                className="hidden"
-                tabIndex={-1}
-                autoComplete="off"
-              />
+              <input type="text" name="botcheck" className="hidden" autoComplete="off" />
 
-              {/* Name (required) */}
-              <div className="w-full sm:w-auto">
-                <label htmlFor="name" className="sr-only">
-                  Name
-                </label>
+              {/* Name */}
+              <div className="w-full sm:w-64">
                 <input
                   id="name"
                   type="text"
                   name="name"
                   required
-                  placeholder="Your name"
-                  className="w-full px-4 py-3 text-gray-900 placeholder-gray-500 bg-white rounded-xl sm:rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300"
+                  placeholder={t('home:newsletter.yourName')}
+                  className="
+                    w-full px-4 py-3 rounded-xl 
+                    text-gray-900 placeholder-gray-500 
+                    bg-white/90 shadow-sm
+                    focus:outline-none focus:ring-2 focus:ring-green-300
+                  "
                 />
               </div>
 
-              {/* Email (required) */}
-              <div className="w-full sm:w-auto">
-                <label htmlFor="email" className="sr-only">
-                  Email address
-                </label>
+              {/* Email */}
+              <div className="w-full sm:w-64">
                 <input
                   id="email"
                   type="email"
                   name="email"
                   required
-                  placeholder="Enter your email"
-                  className="w-full px-4 py-3 text-gray-900 placeholder-gray-500 bg-white md:w-72 rounded-xl sm:rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300"
+                  placeholder={t('home:newsletter.enterEmail')}
+                  className="
+                    w-full px-4 py-3 rounded-xl 
+                    text-gray-900 placeholder-gray-500 
+                    bg-white/90 shadow-sm
+                    focus:outline-none focus:ring-2 focus:ring-green-300
+                  "
                 />
               </div>
-
-              {/* Hidden subject (will be overridden with name in handler if absent) */}
-              <input
-                type="hidden"
-                name="subject"
-                value="Newsletter Signup — Books"
-              />
 
               <ButtonFill
                 type="submit"
                 disabled={submitting}
                 aria-busy={submitting ? "true" : "false"}
               >
-                {submitting ? "Sending.." : "Subscribe"}
+                {submitting ? t('common:buttons.sending') : t('common:footer.subscribe')}
               </ButtonFill>
             </form>
 
-            {/* Messages */}
-            <div
-              className="mt-3 min-h-[1.5rem]"
-              aria-live="polite"
-              role="status"
-            >
+            {/* Status Message */}
+            <div className="mt-3 min-h-[1.5rem]" aria-live="polite">
               {submitted && (
-                <p className="text-emerald-100">
-                  ✅ Thanks, your subscription was successful.
+                <p className="text-emerald-50">
+                  {t('home:newsletter.thanksSubscribed')}
                 </p>
               )}
-              {!!error && <p className="text-red-50">⚠️ {error}</p>}
+              {!!error && (
+                <p className="text-red-50">⚠️ {error}</p>
+              )}
             </div>
 
-            <p className="mt-2 text-xs text-emerald-100/80">
-              By subscribing, you agree to receive emails about books and
-              related content. You can unsubscribe at any time.
+            <p className="mt-2 text-xs text-emerald-100/80 text-center sm:text-left">
+              {t('common:footer.unsubscribeAnytime')}
             </p>
           </div>
         </div>
@@ -169,4 +176,4 @@ const Join = () => {
   );
 };
 
-export default Join;
+export default memo(Join);
