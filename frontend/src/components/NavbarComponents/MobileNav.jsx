@@ -1,10 +1,9 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaShoppingCart, FaUser, FaSignOutAlt } from "react-icons/fa";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { Heart } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import LanguageSwitcher from "../LanguageSwitcher";
 
 const MobileNav = ({
   isMenuOpen,
@@ -41,11 +40,6 @@ const MobileNav = ({
     <>
       {/* Mobile Menu Button + Cart */}
       <div className="md:hidden flex items-center space-x-2">
-        {/* Language Switcher */}
-        <div className="scale-90">
-          <LanguageSwitcher className="px-2 py-1" />
-        </div>
-
         <button
           type="button"
           onClick={() => navigate("/wishlist")}

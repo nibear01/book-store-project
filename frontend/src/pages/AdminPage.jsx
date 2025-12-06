@@ -114,10 +114,10 @@ const AdminPage = () => {
             {user.roles.includes("user") && (
               <div>
                 <Link
-                  to="/account"
+                  to="/"
                   className="px-3 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-50"
                 >
-                  My Account
+                  User View
                 </Link>
               </div>
             )}

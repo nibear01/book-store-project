@@ -8,6 +8,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+backend/.env
+frontend/.env
+
+backend/node_modules
+frontend/node_modules
+# Dependency directories   
+
 node_modules
 dist
 dist-ssr

@@ -91,7 +91,7 @@ const DeliveryCostSettings = () => {
                     insideDhaka: Number(e.target.value),
                   }))
                 }
-                className="border border-gray-300 rounded-[2px] p-2 sm:p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
+                className="border border-gray-300 rounded-md p-2 sm:p-2 w-full focus:outline-none focus:ring focus:ring-gray-400"
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -113,7 +113,7 @@ const DeliveryCostSettings = () => {
                     outsideDhaka: Number(e.target.value),
                   }))
                 }
-                className="border border-gray-300 rounded-[2px] p-2 sm:p-3 w-full focus:outline-none focus:ring focus:ring-gray-400"
+                className="border border-gray-300 rounded-md p-2 sm:p-2 w-full focus:outline-none focus:ring focus:ring-gray-400"
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -125,7 +125,7 @@ const DeliveryCostSettings = () => {
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <button
               type="submit"
-              className="cursor-pointer bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-[2px] hover:bg-gray-800 transition w-full sm:w-auto text-center"
+              className="cursor-pointer bg-black text-white px-2 sm:px-6 py-2 sm:py-2.5 rounded-md hover:bg-gray-800 transition w-full sm:w-auto text-center"
               disabled={savingDeliveryCost}
             >
               {savingDeliveryCost ? "Saving..." : "Save Delivery Costs"}

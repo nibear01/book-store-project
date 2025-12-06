@@ -40,6 +40,19 @@ export const authorRequestAPI = {
     });
     return res?.data || res;
   },
+
+  // Convert an author request into an Author and delete the request
+  convert: async (id) => {
+    const res = await request(`/author-requests/${id}/convert`, {
+      method: "POST",
+    });
+    return res?.data || res;
+  },
+
+  remove: async (id) => {
+    const res = await request(`/author-requests/${id}`, { method: "DELETE" });
+    return res?.data || res;
+  },
 };
 
 export default authorRequestAPI;

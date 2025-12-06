@@ -81,9 +81,65 @@ export const getAuthorById = async (req, res) => {
 // Read one by slug
 export const getAuthorBySlug = async (req, res) => {
   try {
-    const author = await Author.findOne({ slug: req.params.slug }).populate("books");
-    if (!author) return res.status(404).json({ message: "Author not found" });
-    res.json(author);
+    const slugParam = req.params.slug || "";
+    const decoded = decodeURIComponent(slugParam);
+
+    // 1) Try exact slug match
+    let author = await Author.findOne({ slug: slugParam }).populate("books");
+    if (author) return res.json(author);
+
+    // 2) Try exact decoded slug (in case router received encoded spaces etc.)
+    if (decoded && decoded !== slugParam) {
+      author = await Author.findOne({ slug: decoded }).populate("books");
+      if (author) return res.json(author);
+    }
+
+    // 3) Try by name exact match (mobile clients may send the name string instead of the slug)
+    if (decoded) {
+      author = await Author.findOne({ name: decoded }).populate("books");
+      if (author) return res.json(author);
+    }
+
+    // 4) Try case-insensitive name search
+    if (decoded) {
+      const regex = new RegExp(`^${decoded}$`, "i");
+      author = await Author.findOne({ name: regex }).populate("books");
+      if (author) return res.json(author);
+    }
+
+    // 5) Try normalizing into a slug (both unicode-preserving and legacy ascii) then find
+    const unicodeSlugify = (str) =>
+      String(str)
+        .normalize("NFKD")
+        .toLowerCase()
+        .trim()
+        .replace(/[^\p{L}\p{N}]+/gu, "-")
+        .replace(/(^-|-$)+/g, "");
+
+    const legacyAsciiSlugify = (str) =>
+      String(str)
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)+/g, "");
+
+    const candidates = new Set([
+      slugParam,
+      decoded,
+      unicodeSlugify(slugParam),
+      unicodeSlugify(decoded),
+      legacyAsciiSlugify(slugParam),
+      legacyAsciiSlugify(decoded),
+    ].filter(Boolean));
+
+    for (const c of candidates) {
+      author = await Author.findOne({ slug: c }).populate("books");
+      if (author) return res.json(author);
+    }
+
+    return res.status(404).json({ message: "Author not found" });
   } catch (e) {
     res.status(400).json({ message: e.message });
   }

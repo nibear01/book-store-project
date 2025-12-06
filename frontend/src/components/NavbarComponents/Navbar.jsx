@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import DesktopNavbar from "./DesktopNav";
 import MobileNav from "./MobileNav";
 import { useWishlist } from "../../context/WishlistContext";
-import LanguageSwitcher from "../LanguageSwitcher";
+import SearchBar from "./SearchBar";
 
 const Navbar = () => {
   const { t } = useTranslation('common');
@@ -104,7 +104,7 @@ const Navbar = () => {
 
   return (
     <nav ref={containerRef} className="bg-white shadow-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-5">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
@@ -112,7 +112,7 @@ const Navbar = () => {
               <img
                 src="/logo.png"
                 alt="Bookstore Logo"
-                className="w-32 sm:w-36 md:w-40 lg:w-48 h-auto"
+                className="w-34 sm:w-34 md:w-38 lg:w-46 h-auto"
               />
             </Link>
           </div>
@@ -159,6 +159,11 @@ const Navbar = () => {
             wishlistCount={wishlistCount}
             setIsProfileOpen={setIsProfileOpen}
           />
+        </div>
+
+        {/* Mobile Search Bar Row - visible only on mobile */}
+        <div className="md:hidden border-t border-gray-100 py-3">
+          <SearchBar isMobile={true} onResultClick={() => {}} />
         </div>
       </div>
 

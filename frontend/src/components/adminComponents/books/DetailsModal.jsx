@@ -78,6 +78,11 @@ const DetailsModal = ({ book, toGenreArray, onClose }) => {
                 to {book.deal_end ? String(book.deal_end).slice(0, 10) : "—"}
               </p>
             )}
+            {book.isPrintOnDemand && (
+              <p>
+                <span className="font-semibold">Print on Demand:</span> Yes
+              </p>
+            )}
             {book.description && (
               <p className="mt-2">
                 <span className="font-semibold">Description:</span>{" "}

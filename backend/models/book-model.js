@@ -24,8 +24,7 @@ const bookSchema = new mongoose.Schema(
     publisher: { type: String, trim: true },
     publisher_id: { type: mongoose.Schema.Types.ObjectId, ref: "Publisher" }, // added (reference to Publisher model)
     pages: { type: Number, default: 0 }, // added
-    // isSourced: { type: Boolean, default: false }, // added
-    // isPrintOnDemand: { type: Boolean, default: false }, // added
+    isPrintOnDemand: { type: Boolean, default: false }, // added
 
     // On sale / most viewed / deals of the week
     is_on_sale: { type: Boolean, default: false },

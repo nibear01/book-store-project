@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Globe } from 'lucide-react';
 
-const LanguageSwitcher = ({ className = "" }) => {
+const LanguageSwitcher = ({ className = "", compact = false }) => {
   const { i18n } = useTranslation();
 
   const toggleLanguage = () => {
@@ -14,12 +14,12 @@ const LanguageSwitcher = ({ className = "" }) => {
   return (
     <button
       onClick={toggleLanguage}
-      className={`flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-100 transition-colors ${className}`}
+      className={`flex items-center gap-1.5 rounded-md transition-colors ${className || 'px-3 py-2 hover:bg-gray-100'}`}
       aria-label="Toggle Language"
       title={i18n.language === 'en' ? 'Switch to Bengali' : 'ইংরেজিতে পরিবর্তন করুন'}
     >
-      <Globe className="w-5 h-5" />
-      <span className="text-sm font-medium">
+      <Globe className={compact ? "w-4 h-4" : "w-5 h-5"} />
+      <span className={compact ? "text-xs font-medium" : "text-sm font-medium"}>
         {i18n.language === 'en' ? 'বাংলা' : 'English'}
       </span>
     </button>

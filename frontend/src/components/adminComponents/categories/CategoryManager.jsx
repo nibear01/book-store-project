@@ -186,7 +186,7 @@ const CategoryManager = () => {
         </div> */}
         <button
           onClick={openNew}
-          className="bg-slate-950 text-white px-5 py-2 rounded-md text-sm hover:bg-slate-800"
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border bg-black text-white border-gray-300 hover:bg-gray-800 transition-colors"
           name="categories-add"
         >
           + Add Category
@@ -316,7 +316,7 @@ const CategoryManager = () => {
                     >
                       <button
                         onClick={() => handleEdit(c)}
-                        className="px-3 py-1 border rounded-md hover:bg-gray-100"
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 transition-colors"
                         name={`categories-edit-${c._id}`}
                       >
                         Edit
@@ -329,10 +329,10 @@ const CategoryManager = () => {
                             ? "Cannot delete: category has books"
                             : "Delete category"
                         }
-                        className={`px-3 py-1 border rounded-md ${
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
                           (c.book_count ?? 0) > 0
-                            ? "text-gray-400 cursor-not-allowed opacity-60"
-                            : "text-red-600 hover:bg-red-50"
+                            ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-60"
+                            : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
                         }`}
                         name={`categories-delete-${c._id}`}
                       >

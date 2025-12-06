@@ -574,3 +574,92 @@ export const getAuthorWelcomeTemplate = ({ name, lang = 'en' }) => {
     lang
   });
 };
+
+// Contact Form email template
+export const getContactFormTemplate = ({ name, email, subject, message }) => {
+  const baseUrl = getBaseUrl();
+  const currentDate = new Date().toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const content = `
+    <h2>📩 New Contact Form Submission</h2>
+    <p>You have received a new message from your BoiBiliash contact form.</p>
+    
+    <div class="divider"></div>
+    
+    <div class="highlight-box" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-left: 4px solid #3b82f6;">
+      <h3 style="margin: 0 0 16px; color: #1e40af; font-size: 18px; font-weight: 600;">Contact Details</h3>
+      
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 12px 0; border-bottom: 1px solid #bfdbfe;">
+            <strong style="color: #1e3a8a; display: inline-block; width: 120px;">Name:</strong>
+            <span style="color: #374151;">${name}</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 0; border-bottom: 1px solid #bfdbfe;">
+            <strong style="color: #1e3a8a; display: inline-block; width: 120px;">Email:</strong>
+            <a href="mailto:${email}" style="color: #3b82f6; text-decoration: none;">${email}</a>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 0; border-bottom: 1px solid #bfdbfe;">
+            <strong style="color: #1e3a8a; display: inline-block; width: 120px;">Subject:</strong>
+            <span style="color: #374151;">${subject}</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 0;">
+            <strong style="color: #1e3a8a; display: inline-block; width: 120px;">Submitted:</strong>
+            <span style="color: #6b7280; font-size: 14px;">${currentDate}</span>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="margin: 32px 0;">
+      <h3 style="color: #111827; font-size: 18px; font-weight: 600; margin: 0 0 16px;">Message:</h3>
+      <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; line-height: 1.8;">
+        <p style="margin: 0; color: #374151; white-space: pre-wrap;">${message}</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div style="text-align: center; padding: 20px; background: #f0f9ff; border-radius: 8px; margin: 24px 0;">
+      <p style="margin: 0 0 16px; color: #374151; font-size: 14px;">
+        <strong>Quick Action:</strong> Reply directly to this customer
+      </p>
+      <a href="mailto:${email}?subject=Re: ${encodeURIComponent(subject)}" 
+         class="button button-success" 
+         style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); text-decoration: none; display: inline-block;">
+        Reply to ${name}
+      </a>
+    </div>
+
+    <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; margin: 24px 0;">
+      <p style="margin: 0; color: #92400e; font-size: 13px;">
+        <span style="font-size: 20px; margin-right: 8px;">💡</span>
+        <strong>Tip:</strong> Responding quickly to customer inquiries improves satisfaction and builds trust.
+      </p>
+    </div>
+
+    <p style="color: #6b7280; font-size: 13px; margin: 24px 0 0; text-align: center;">
+      This message was sent via your BoiBiliash contact form at <a href="${baseUrl}/contact" style="color: #3b82f6; text-decoration: none;">${baseUrl}/contact</a>
+    </p>
+  `;
+
+  return getBaseTemplate({
+    subject: `New Contact Message: ${subject}`,
+    headerTitle: '�� Contact Form Message',
+    headerSubtitle: 'New inquiry from your BoiBiliash website',
+    content,
+  });
+};

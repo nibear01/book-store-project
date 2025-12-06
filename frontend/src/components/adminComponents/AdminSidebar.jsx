@@ -78,10 +78,13 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
 
   // Check if the screen is mobile size
   useEffect(() => {
+    let mounted = true;
     const checkIsMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      if (!mounted) return;
+      const isMobileView = window.innerWidth < 768;
+      setIsMobile(isMobileView);
       // Auto-collapse sidebar on mobile by default
-      if (window.innerWidth < 768) {
+      if (isMobileView) {
         setIsCollapsed(true);
       }
     };
@@ -90,6 +93,7 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
     window.addEventListener("resize", checkIsMobile);
 
     return () => {
+      mounted = false;
       window.removeEventListener("resize", checkIsMobile);
     };
   }, [setIsCollapsed]);
@@ -151,7 +155,7 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
   // Other standalone items
   const standaloneItems = [
     { name: "Books & Categories", path: "/admin/books", icon: BookOpen, show: isAdmin || roles.includes("book_manager") },
-    { name: "Marketing", path: "/admin/marketing", icon: Megaphone, show: isAdmin || roles.includes("marketing_manager") },
+    // { name: "Marketing", path: "/admin/marketing", icon: Megaphone, show: isAdmin || roles.includes("marketing_manager") },  will apply it later
   ].filter((i) => i.show);
 
   // Auto-expand categories when their items are active or when sidebar expands
@@ -255,7 +259,7 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
             <div className="flex-col">
               {/* <Link to="/" className="flex items-center"> */}
               <span className="text-2xl font-bold text-gray-900 tracking-tight">
-                BOOK<span className="text-red-500">S</span>TOP
+                BOI<span className="text-red-500">B</span>ILASH
               </span>
               {/* </Link> */}
               <h1 className="text-xl font-bold text-gray-800">Admin Panel</h1>

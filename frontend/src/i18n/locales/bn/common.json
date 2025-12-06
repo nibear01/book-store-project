@@ -2,7 +2,7 @@
   "currency": "৳",
   "navbar": {
     "home": "হোম",
-    "shop": "কিনুন",
+    "shop": "বই",
     "categories": "বিভাগ",
     "authors": "লেখক",
     "publishers": "প্রকাশক",
@@ -95,11 +95,11 @@
     "tryAgainButton": "আবার চেষ্টা করুন"
   },
   "status": {
-    "pending": "অপেক্ষমাণ",
-    "processing": "প্রক্রিয়াধীন",
-    "shipped": "পাঠানো হয়েছে",
-    "delivered": "বিতরণ করা হয়েছে",
-    "cancelled": "বাতিল করা হয়েছে"
+    "pending": "Pending",
+    "processing": "Processing",
+    "shipped": "Shipped",
+    "delivered": "Delivered",
+    "cancel": "Cancelled"
   },
   "common": {
     "or": "অথবা",

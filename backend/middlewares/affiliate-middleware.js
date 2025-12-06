@@ -70,8 +70,6 @@ export const checkAffiliateStatus = async (req, res, next) => {
   try {
     const affiliate = await Affiliate.findById(req.affiliateId);
 
-    console.log(affiliate);
-
     if (!affiliate) {
       return res.status(404).json({
         success: false,

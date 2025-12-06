@@ -63,4 +63,5 @@ export const normalizeBook = (b) => ({
   is_deal_of_the_week: toBool(b.is_deal_of_the_week),
   deal_start: b.deal_start || null,
   deal_end: b.deal_end || null,
+  isPrintOnDemand: toBool(b.isPrintOnDemand), // added
 });

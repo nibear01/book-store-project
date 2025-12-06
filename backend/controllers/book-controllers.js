@@ -151,7 +151,7 @@ const pickUpdatableFields = (payload = {}) => {
     "publisher",   // added (legacy string field)
     "publisher_id", // added (reference to Publisher model)
     "pages",       // added
-    // NEW
+    "isPrintOnDemand", // added
     "is_on_sale",
     "sale_price",
     "views",
@@ -210,6 +210,7 @@ const pickUpdatableFields = (payload = {}) => {
     "is_featured",
     "is_on_sale",
     "is_deal_of_the_week",
+    "isPrintOnDemand", // added
   ].forEach((k) => {
     if (out[k] !== undefined) out[k] = toBool(out[k]);
   });
@@ -319,7 +320,7 @@ export const getBooks = async (req, res) => {
   try {
     const {
       page = 1,
-      limit = 1000000,
+      limit = 10000000,
       search,
       genre,
       author,
@@ -338,7 +339,7 @@ export const getBooks = async (req, res) => {
     } = req.query;
 
     const p = Math.max(1, toNumber(page, 1));
-    const l = Math.min(100, Math.max(1, toNumber(limit, 10)));
+    const l = Math.min(10000000, Math.max(1, toNumber(limit, 10)));
 
     // CHANGED: status-aware active filter
     const filter = {};

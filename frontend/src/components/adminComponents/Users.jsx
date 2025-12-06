@@ -7,7 +7,7 @@ import { useDebounce } from "./common/useDebounce";
 import AddUser from "./user/AddUser";
 import ChangePasswordModal from "./user/ChangePasswordModal";
 import DeleteUserModal from "./user/DeleteUserModal";
-import { Edit, RefreshCcw, CheckCircle2, Ban as BanIcon, KeyRound, Trash2 } from "lucide-react";
+import { Edit, CheckCircle2, Ban as BanIcon, KeyRound, Trash2 } from "lucide-react";
 import EditUserModal from "./user/EditUserModal";
 import Pagination from "./user/Pagination";
 import { toast } from "react-toastify";
@@ -84,8 +84,9 @@ const Users = () => {
       });
       setLastUpdated(new Date());
     } catch (err) {
-      console.error("Error loading users:", err);
-      setError(err?.message || "Failed to load users");
+      const errorMsg = err?.message || "Failed to load users";
+      console.error("Error loading users:", errorMsg);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -206,7 +207,7 @@ const Users = () => {
       }
       await fetchUsers();
       closeEditModal();
-      toast.success(`✏️ User updated`);
+      toast.success(`User updated!`);
     } catch (e) {
       toast.error(e?.message || "Failed to update user");
     }

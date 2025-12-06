@@ -3,7 +3,7 @@ import { FaShoppingCart, FaUser, FaSignOutAlt } from "react-icons/fa";
 import { Heart } from "lucide-react";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
-import LanguageSwitcher from "../LanguageSwitcher";
+import SearchBar from "./SearchBar";
 
 const DesktopNav = ({
   navigationLinks,
@@ -14,15 +14,6 @@ const DesktopNav = ({
   setIsCartOpen,
   isProfileOpen,
   setIsProfileOpen,
-  // isRolesOpen,
-  // setIsRolesOpen,
-  // rolesHeaderRef,
-  // rolesOpenLeft,
-  // computeRolesSide,
-  // rolesCloseTimer,
-  // isDesktop,
-  // activeRole,
-  // switchRole,
   handleLogout,
   wishlistCount = 0,
 }) => {
@@ -56,22 +47,25 @@ const DesktopNav = ({
   return (
     <>
       {/* Desktop Navigation */}
-      <div className="hidden md:flex items-center space-x-6">
+      <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
         {navigationLinks.map((link) => (
           <Link
             key={link.name}
             to={link.path}
-            className="text-gray-700 hover:text[var(--hover-color)] hover:text-[var(--hover-color)] transition-colors text-[15px] font-medium"
+            className="text-gray-700 hover:text-[var(--hover-color)] transition-colors text-sm lg:text-[14px] font-medium whitespace-nowrap"
           >
             {link.name}
           </Link>
         ))}
       </div>
 
+      {/* Search Bar (Desktop) */}
+      <div className="hidden md:flex flex-1 max-w-sm lg:max-w-md mx-3 lg:mx-4">
+        <SearchBar />
+      </div>
+
       {/* Cart + Auth (Desktop) */}
-      <div className="hidden md:flex items-center space-x-4">
-        {/* Language Switcher */}
-        <LanguageSwitcher />
+      <div className="hidden md:flex items-center space-x-3">
         {/* Wishlist */}
         <button
           type="button"

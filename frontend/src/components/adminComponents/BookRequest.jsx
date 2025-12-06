@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Search } from "lucide-react";
 
 const STATUSES = ["pending", "approved", "rejected", "fulfilled"];
 
@@ -61,7 +62,12 @@ const BookRequest = () => {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "Failed to update status");
-      setRequests((list) => list.map((r) => (r._id === id ? { ...r, status: nextStatus } : r)));
+      if (nextStatus === "approved") {
+        // Backend deletes the request when approved; remove locally as well
+        setRequests((list) => list.filter((r) => r._id !== id));
+      } else {
+        setRequests((list) => list.map((r) => (r._id === id ? { ...r, status: nextStatus } : r)));
+      }
     } catch (e) {
       setError(e.message || "Failed to update status");
     } finally {
@@ -103,48 +109,50 @@ const BookRequest = () => {
   const paginatedRequests = visibleRequests.slice(startIdx, startIdx + pageSize);
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <h1 className="text-2xl font-semibold">Book Requests</h1>
-        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Search</label>
+    <div className="w-full">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Book Requests</h2>
+            <p className="text-gray-600 text-sm mt-1">Review and manage user book requests</p>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               name="book-request-search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Name, email, title, ISBN…"
-              className="border rounded-md px-2 py-1 text-sm min-w-[220px]"
+              placeholder="Search name, email, title, ISBN…"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black text-sm"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Status</label>
-            <select
-              name="book-request-status-filter"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="border rounded-md px-2 py-1 text-sm"
-            >
-              <option value="All">All</option>
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Sort</label>
-            <select
-              name="book-request-sort-order"
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              className="border rounded-md px-2 py-1 text-sm"
-            >
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-            </select>
-          </div>
+          <select
+            name="book-request-status-filter"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black text-sm bg-white"
+          >
+            <option value="All">All statuses</option>
+            {STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          <select
+            name="book-request-sort-order"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black text-sm bg-white"
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+          </select>
         </div>
       </div>
 
@@ -152,34 +160,64 @@ const BookRequest = () => {
         <div className="mb-3 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">{error}</div>
       )}
 
+      {/* Results Count */}
+      {!loading && visibleRequests.length > 0 && (
+        <div className="mb-4 text-sm text-gray-600">Showing {paginatedRequests.length} of {totalItems} requests</div>
+      )}
+
       {loading ? (
-        <div className="text-sm text-gray-600">Loading requests…</div>
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  {['Requester','Contact','Book','Status','Requested','Actions'].map(h => (
+                    <th key={h} className="text-left font-semibold text-gray-700 px-4 py-3">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 5 }).map((_, idx) => (
+                  <tr key={idx} className="border-t border-gray-200 animate-pulse">
+                    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-32"></div><div className="h-3 bg-gray-200 rounded w-24 mt-2"></div></td>
+                    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-40"></div></td>
+                    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-64"></div><div className="h-3 bg-gray-200 rounded w-40 mt-2"></div></td>
+                    <td className="px-4 py-3"><div className="h-6 bg-gray-200 rounded-full w-20"></div></td>
+                    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+                    <td className="px-4 py-3 text-right"><div className="flex justify-end gap-2"><div className="h-8 bg-gray-200 rounded w-16"></div><div className="h-8 bg-gray-200 rounded w-20"></div></div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       ) : visibleRequests.length === 0 ? (
         <div className="text-sm text-gray-600">No requests found.</div>
       ) : (
-        <div className="overflow-x-auto border rounded-md">
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-gray-600">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="text-left px-3 py-2">Requester</th>
-                <th className="text-left px-3 py-2">Contact</th>
-                <th className="text-left px-3 py-2">Book</th>
-                <th className="text-left px-3 py-2">Status</th>
-                <th className="text-left px-3 py-2">Requested</th>
-                <th className="text-left px-3 py-2">Actions</th>
+                <th className="text-left font-semibold text-gray-700 px-4 py-3">Requester</th>
+                <th className="text-left font-semibold text-gray-700 px-4 py-3">Contact</th>
+                <th className="text-left font-semibold text-gray-700 px-4 py-3">Book</th>
+                <th className="text-left font-semibold text-gray-700 px-4 py-3">Status</th>
+                <th className="text-left font-semibold text-gray-700 px-4 py-3">Requested</th>
+                <th className="text-left font-semibold text-gray-700 px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginatedRequests.map((r) => (
-                <tr key={r._id} className="border-t">
-                  <td className="px-3 py-2">
+                <tr key={r._id} className="border-t border-gray-200 hover:bg-gray-50">
+                  <td className="px-4 py-3">
                     <div className="font-medium text-gray-900">{r.name}</div>
                     <div className="text-gray-500">{r.user ? "Registered user" : "Guest"}</div>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-4 py-3">
                     <div className="text-gray-900">{r.email}</div>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-4 py-3">
                     <div className="font-medium text-gray-900 truncate max-w-[240px]" title={`${r.title} by ${r.author || "Unknown"}`}>
                       {r.title}
                     </div>
@@ -187,7 +225,7 @@ const BookRequest = () => {
                       {r.author || "—"} • {r.isbn || "—"}
                     </div>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-4 py-3">
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
                         r.status === "approved"
@@ -202,13 +240,13 @@ const BookRequest = () => {
                       {r.status}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-gray-600">{fmt(r.createdAt)}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex flex-wrap gap-2">
+                  <td className="px-4 py-3 text-gray-600">{fmt(r.createdAt)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2 justify-start">
                       <button
                         name={`view-request-${r._id}`}
                         onClick={() => setSelected(r)}
-                        className="px-2 py-1 rounded text-white text-xs bg-blue-600 hover:bg-blue-700"
+                        className="px-3 py-1.5 rounded-md text-sm border border-gray-300 text-gray-700 hover:bg-black hover:text-white hover:border-black transition-all"
                       >
                         View
                       </button>
@@ -216,8 +254,10 @@ const BookRequest = () => {
                         name={`approve-request-${r._id}`}
                         onClick={() => updateStatus(r._id, "approved")}
                         disabled={updating[r._id] || r.status === "approved"}
-                        className={`px-2 py-1 rounded text-white text-xs ${
-                          r.status === "approved" ? "bg-gray-300" : "bg-emerald-600 hover:bg-emerald-700"
+                        className={`px-3 py-1.5 rounded-md text-sm transition-all ${
+                          r.status === "approved"
+                            ? "bg-gray-200 text-gray-600 cursor-not-allowed"
+                            : "border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white hover:border-emerald-600"
                         }`}
                       >
                         Approve
@@ -226,8 +266,10 @@ const BookRequest = () => {
                         name={`reject-request-${r._id}`}
                         onClick={() => updateStatus(r._id, "rejected")}
                         disabled={updating[r._id] || r.status === "rejected"}
-                        className={`px-2 py-1 rounded text-white text-xs ${
-                          r.status === "rejected" ? "bg-gray-300" : "bg-red-600 hover:bg-red-700"
+                        className={`px-3 py-1.5 rounded-md text-sm transition-all ${
+                          r.status === "rejected"
+                            ? "bg-gray-200 text-gray-600 cursor-not-allowed"
+                            : "border border-red-200 text-red-700 bg-red-50 hover:bg-red-600 hover:text-white hover:border-red-600"
                         }`}
                       >
                         Reject
@@ -236,8 +278,10 @@ const BookRequest = () => {
                         name={`fulfill-request-${r._id}`}
                         onClick={() => updateStatus(r._id, "fulfilled")}
                         disabled={updating[r._id] || r.status === "fulfilled"}
-                        className={`px-2 py-1 rounded text-white text-xs ${
-                          r.status === "fulfilled" ? "bg-gray-300" : "bg-blue-600 hover:bg-blue-700"
+                        className={`px-3 py-1.5 rounded-md text-sm transition-all ${
+                          r.status === "fulfilled"
+                            ? "bg-gray-200 text-gray-600 cursor-not-allowed"
+                            : "border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-600 hover:text-white hover:border-blue-600"
                         }`}
                       >
                         Fulfilled
@@ -249,8 +293,8 @@ const BookRequest = () => {
             </tbody>
           </table>
           {totalItems > pageSize && (
-            <div className="flex items-center justify-between gap-3 p-3 border-t">
-              <div className="text-xs text-gray-600">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-200 bg-gray-50">
+              <div className="text-sm text-gray-600">
                 Showing {startIdx + 1}-{Math.min(startIdx + pageSize, totalItems)} of {totalItems}
               </div>
               <div className="flex items-center gap-2">
@@ -258,9 +302,9 @@ const BookRequest = () => {
                   name="book-request-prev-page"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={safePage <= 1}
-                  className="px-3 py-1 border rounded-md text-sm disabled:opacity-50"
+                  className="px-3 py-1.5 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Prev
+                  Previous
                 </button>
                 <span className="text-sm text-gray-700">
                   Page <span className="font-medium">{safePage}</span> of {totalPages}
@@ -269,13 +313,14 @@ const BookRequest = () => {
                   name="book-request-next-page"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={safePage >= totalPages}
-                  className="px-3 py-1 border rounded-md text-sm disabled:opacity-50"
+                  className="px-3 py-1.5 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
               </div>
             </div>
           )}
+          </div>
         </div>
       )}
 

@@ -190,12 +190,14 @@ const BookViewPage = () => {
                 }}
               />
 
-              <BookPrintConfig
-                basePrice={Number(book.price || 0)}
-                pages={Number(book.pages || 0)}
-                value={printConfig}
-                onChange={setPrintConfig}
-              />
+              {book.isPrintOnDemand && (
+                <BookPrintConfig
+                  basePrice={Number(book.price || 0)}
+                  pages={Number(book.pages || 0)}
+                  value={printConfig}
+                  onChange={setPrintConfig}
+                />
+              )}
 
               <BookActions
                 book={{

@@ -7,7 +7,12 @@ import AddAuthorModal from "./author/AddAuthorModal.jsx";
 import EditAuthorModal from "./author/EditAuthorModal.jsx";
 import ManageBooksModal from "./author/ManageBooksModal.jsx";
 import DeleteConfirmationModal from "./author/DeleteConfirmationModal.jsx";
+import ViewBooksModal from "./author/ViewBooksModal.jsx";
 import { useDebouncedValue, useImageUrl } from "./author/hooks.js";
+import WorkflowSkeleton from "./common/WorkflowSkeleton";
+import Pagination from "./user/Pagination";
+import { Edit, BookOpen, Trash2, Eye } from "lucide-react";
+import { Button } from "../../Button/button.jsx";
 
 const AdminAuthorPageInner = () => {
   const {
@@ -35,10 +40,15 @@ const AdminAuthorPageInner = () => {
   const debouncedSearch = useDebouncedValue(searchTerm, 300);
   const [sortBy, setSortBy] = useState("none");
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const pageSize = 10; // Match users page size
+
   // Modal controls
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [manageAuthor, setManageAuthor] = useState(null);
+  const [viewBooksAuthor, setViewBooksAuthor] = useState(null);
 
   useEffect(() => {
     list().catch(() => {});
@@ -89,6 +99,13 @@ const AdminAuthorPageInner = () => {
       );
     return arr;
   }, [authors, debouncedSearch, sortBy]);
+
+  // Pagination calculations
+  const totalAuthors = filteredAuthors.length;
+  const totalPages = Math.ceil(totalAuthors / pageSize);
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const displayedAuthors = filteredAuthors.slice(startIndex, endIndex);
 
   // Utilities
   const makeImgUrl = useImageUrl(url);
@@ -151,37 +168,151 @@ const AdminAuthorPageInner = () => {
         className="bg-white border rounded-md p-3 sm:p-4 mb-3 sm:mb-4"
         name="authors-toolbar"
       >
-        <SearchSortBar
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
-          shownCount={filteredAuthors.length}
-          totalCount={authors.length}
-          onClear={() => {
-            setSearchTerm("");
-            setSortBy("none");
-          }}
-        />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex flex-1 flex-wrap items-center gap-3">
+            <input
+              type="text"
+              placeholder="Search authors by name, title, slug or bio…"
+              className="border border-zinc-200 rounded-md px-3 py-2 text-sm min-w-[220px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              data-testid="authors-search"
+              name="authors-search-input"
+            />
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600">Sort</label>
+              <select
+                className="border border-zinc-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                data-testid="authors-sort"
+                name="authors-sort-filter"
+              >
+                <option value="none">Default</option>
+                <option value="books_desc">Most books</option>
+                <option value="books_asc">Fewest books</option>
+              </select>
+            </div>
+          </div>
+        </div>
         <div
           className="mt-2 text-xs sm:text-sm text-gray-600"
           name="authors-results-info"
         >
-          Showing {filteredAuthors.length} of {authors.length} authors
+          Showing {displayedAuthors.length} of {totalAuthors} authors
         </div>
       </div>
 
       <div name="authors-table-wrap">
-        <AuthorTable
-          authors={filteredAuthors}
-          loading={loading}
-          makeImgUrl={makeImgUrl}
-          onManage={(a) => setManageAuthor(a)}
-          onEdit={(a) => setEditTarget(a)}
-          onDelete={requestDelete}
-          onRemoveBook={onRemoveBookFromRow}
-        />
+        {/* Table for desktop */}
+        <div className="bg-white border border-zinc-200 rounded-md overflow-hidden hidden md:block">
+          <AuthorTable
+            authors={displayedAuthors}
+            loading={loading}
+            makeImgUrl={makeImgUrl}
+            onManage={(a) => setManageAuthor(a)}
+            onEdit={(a) => setEditTarget(a)}
+            onDelete={requestDelete}
+            onRemoveBook={onRemoveBookFromRow}
+            onViewBooks={(a) => setViewBooksAuthor(a)}
+          />
+        </div>
+
+        {/* Mobile Cards View */}
+        <div className="md:hidden space-y-3">
+          {loading ? (
+            <WorkflowSkeleton rows={6} variant="cards" />
+          ) : displayedAuthors.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 italic bg-white rounded-md border border-zinc-200">
+              No authors found
+            </div>
+          ) : (
+            displayedAuthors.map((author) => (
+              <div
+                key={author._id}
+                className="bg-white p-4 rounded-md border border-zinc-200 hover:shadow-md transition-shadow"
+                data-testid={`author-card-${author._id}`}
+                name={`author-card-${author._id}`}
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center gap-3">
+                    {author.photo ? (
+                      <img
+                        src={makeImgUrl(author.photo)}
+                        alt={author.name}
+                        className="w-12 h-12 rounded object-cover"
+                      />
+                    ) : null}
+                    <div>
+                      <h3 className="font-medium text-gray-900">{author.name}</h3>
+                      <p className="text-sm text-gray-600">{author.title}</p>
+                      <p className="text-xs text-gray-500">{author.slug}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-md">
+                      {(author.books || []).length} {(author.books || []).length === 1 ? "book" : "books"}
+                    </span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    onClick={() => setEditTarget(author)}
+                    size="sm"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 transition-colors"
+                    data-testid={`author-edit-btn-${author._id}`}
+                    name={`author-edit-btn-${author._id}`}
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                    Edit
+                  </Button>
+                  <Button
+                    onClick={() => setManageAuthor(author)}
+                    size="sm"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100 transition-colors"
+                    data-testid={`author-manage-btn-${author._id}`}
+                    name={`author-manage-btn-${author._id}`}
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    Manage
+                  </Button>
+                  <Button
+                    onClick={() => setViewBooksAuthor(author)}
+                    size="sm"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border bg-green-50 text-green-700 border-green-200 hover:bg-green-100 transition-colors"
+                    data-testid={`author-view-books-btn-${author._id}`}
+                    name={`author-view-books-btn-${author._id}`}
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    View Books
+                  </Button>
+                  <Button
+                    onClick={() => requestDelete(author)}
+                    size="sm"
+                    variant="destructive"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border bg-red-50 text-red-700 border-red-200 hover:bg-red-100 transition-colors"
+                    data-testid={`author-delete-btn-${author._id}`}
+                    name={`author-delete-btn-${author._id}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Delete Author
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
+
+      {/* Pagination Controls */}
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        totalItems={totalAuthors}
+        pageSize={pageSize}
+        onPageChange={(newPage) => setPage(newPage)}
+        itemName="authors"
+      />
 
       <AddAuthorModal
         open={addOpen}
@@ -221,6 +352,13 @@ const AdminAuthorPageInner = () => {
         onCancel={cancelDelete}
         onConfirm={confirmDelete}
         loading={loading}
+      />
+
+      <ViewBooksModal
+        open={!!viewBooksAuthor}
+        author={viewBooksAuthor}
+        onClose={() => setViewBooksAuthor(null)}
+        makeImgUrl={makeImgUrl}
       />
     </div>
   );

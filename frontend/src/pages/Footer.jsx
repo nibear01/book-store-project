@@ -142,7 +142,6 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="border-t text-[14px] border-gray-700 mt-8 pt-4 text-center pb-5 text-gray-400">
           {t('common:footer.copyright', { year: new Date().getFullYear() })}
-          <span className="text-green-600"> imranslab Team</span>
         </div>
       </footer>
     </div>

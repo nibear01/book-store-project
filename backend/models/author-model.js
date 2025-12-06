@@ -19,14 +19,16 @@ const authorSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Generate a URL-friendly slug
+// Generate a URL-friendly slug supporting Unicode letters and digits
+// Keeps non-Latin script characters (e.g., Bengali) instead of stripping them
 const slugify = (str) =>
   String(str)
     .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9]+/g, "-")
+    // Replace any sequence of characters that are NOT letters (\p{L}) or digits (\p{N}) with a single dash
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
+    // Trim leading/trailing dashes
     .replace(/(^-|-$)+/g, "");
 
 // Ensure slug uniqueness by appending "-n" if needed

@@ -217,6 +217,7 @@ const Books = () => {
       const rawActive = get("is_active");
       const rawFeatured = get("is_featured");
       const rawDealWeek = get("is_deal_of_the_week");
+      const rawPrintOnDemand = get("isPrintOnDemand"); // added
       if (rawActive !== "")
         fd.append("is_active", /^true|1|yes$/i.test(rawActive) ? "1" : "0");
       if (rawFeatured !== "")
@@ -227,6 +228,8 @@ const Books = () => {
           "is_deal_of_the_week",
           /^true|1|yes$/i.test(rawDealWeek) ? "1" : "0"
         );
+      if (rawPrintOnDemand !== "") // added
+        fd.append("isPrintOnDemand", /^true|1|yes$/i.test(rawPrintOnDemand) ? "1" : "0");
       const salePrice = get("sale_price");
       if (isOnSale && salePrice !== "") fd.append("sale_price", salePrice);
       const dealStart = get("deal_start");
@@ -682,8 +685,8 @@ const Books = () => {
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto bg-white border-zinc-200 border rounded-md">
+          {/* Table - Desktop */}
+          <div className="hidden sm:block overflow-x-auto bg-white border-zinc-200 border rounded-md">
             {loading ? (
               <table className="w-full">
                 <thead className="bg-gray-50">
@@ -713,6 +716,108 @@ const Books = () => {
                 pricingMode={pricingMode}
                 printSettings={printSettings}
               />
+            )}
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="block sm:hidden space-y-4">
+            {loading ? (
+              <WorkflowSkeleton rows={5} variant="card" />
+            ) : currentPageBooks.length === 0 ? (
+              <div className="bg-white p-4 rounded-md border text-center text-gray-500">
+                No books found matching your criteria
+              </div>
+            ) : (
+              currentPageBooks.map((book) => {
+                const genreLabel = toGenreArray(book?.genre).join(", ");
+                const coverRaw = Array.isArray(book.cover_image)
+                  ? book.cover_image[0]
+                  : book.cover_image;
+                const cover =
+                  typeof coverRaw === "string"
+                    ? /^https?:\/\//i.test(coverRaw)
+                      ? coverRaw
+                      : `${API_BASE}${coverRaw}`
+                    : null;
+
+                return (
+                  <div key={book._id || book.id} className="bg-white p-4 rounded-md border border-zinc-200">
+                    <div className="flex gap-3">
+                      {/* Cover */}
+                      <div className="flex-shrink-0">
+                        {cover ? (
+                          <img
+                            src={cover}
+                            alt={book.title}
+                            className="h-16 w-12 object-cover rounded"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="h-16 w-12 bg-gray-100 rounded flex items-center justify-center text-gray-400">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              className="h-6 w-6"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                            >
+                              <path d="M4 5.5A2.5 2.5 0 016.5 3H18a1 1 0 011 1v16a1 1 0 01-1.447.894L14 19.118l-3.553 1.776A1 1 0 019 20V5H6.5A2.5 2.5 0 004 7.5v-2z"/>
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 truncate">{book.title}</h3>
+                        {book.author && (
+                          <p className="text-sm text-gray-600 truncate">{book.author}</p>
+                        )}
+                        {genreLabel && (
+                          <p className="text-sm text-gray-500 truncate">{genreLabel}</p>
+                        )}
+                        <div className="mt-2 flex items-center justify-between">
+                          <div className="text-sm">
+                            <span className="font-medium">Stock: </span>
+                            <span className={typeof book.stock === "number" && book.stock > 0 ? "text-green-600" : "text-red-600"}>
+                              {typeof book.stock === "number" ? book.stock : "N/A"}
+                            </span>
+                          </div>
+                          <div className="text-sm font-medium text-gray-900">
+                            ৳{Number(book.price || 0).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="mt-3 flex gap-2 justify-end">
+                      <button
+                        onClick={() => setDetailsBook(book)}
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border bg-green-50 text-green-700 border-green-200 hover:bg-green-100 transition-colors"
+                        name={`book-view-btn-mobile-${book._id || book.id}`}
+                      >
+                        View
+                      </button>
+                      <button
+                        onClick={() => handleEdit(book)}
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 transition-colors"
+                        name={`book-edit-btn-mobile-${book._id || book.id}`}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => openDeleteConfirm(book)}
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border bg-red-50 text-red-700 border-red-200 hover:bg-red-100 transition-colors"
+                        name={`book-delete-btn-mobile-${book._id || book.id}`}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
 

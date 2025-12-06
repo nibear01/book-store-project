@@ -1,4 +1,5 @@
 import AuthorRequest from "../models/author-request-model.js";
+import Author from "../models/author-model.js";
 import EmailOtp from "../models/email-otp-model.js";
 import nodemailer from "nodemailer";
 import { getOtpEmailTemplate, getAuthorWelcomeTemplate } from "../utils/email-templates.js";
@@ -191,6 +192,44 @@ export const updateAuthorRequestStatus = async (req, res) => {
       data: updated,
       ...(welcomePreview ? { welcomePreview } : {}),
     });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: e.message });
+  }
+};
+
+// Admin: convert an author request into an Author and remove the request
+export const convertAuthorRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const reqDoc = await AuthorRequest.findById(id);
+    if (!reqDoc) return res.status(404).json({ success: false, message: "Request not found" });
+
+    // Map request fields to Author
+    const authorPayload = {
+      name: reqDoc.fullName,
+      title: reqDoc.title || "Author",
+      bio: reqDoc.abstract || "",
+      status: "verified",
+    };
+
+    const created = await Author.create(authorPayload);
+
+    // Remove request after successful author creation
+    await AuthorRequest.findByIdAndDelete(reqDoc._id);
+
+    return res.status(201).json({ success: true, data: created, removedRequestId: String(reqDoc._id) });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: e.message });
+  }
+};
+
+// Admin: delete an author request
+export const deleteAuthorRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doc = await AuthorRequest.findByIdAndDelete(id);
+    if (!doc) return res.status(404).json({ success: false, message: "Request not found" });
+    return res.status(200).json({ success: true, deleted: true, data: { _id: String(id) } });
   } catch (e) {
     return res.status(500).json({ success: false, message: e.message });
   }

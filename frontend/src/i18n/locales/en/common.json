@@ -99,7 +99,7 @@
     "processing": "Processing",
     "shipped": "Shipped",
     "delivered": "Delivered",
-    "cancelled": "Cancelled"
+    "cancel": "Cancelled"
   },
   "common": {
     "or": "or",

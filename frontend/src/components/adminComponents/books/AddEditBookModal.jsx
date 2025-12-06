@@ -57,6 +57,7 @@ const emptyForm = {
   deal_start: "",
   deal_end: "",
   publisher_id: "",
+  isPrintOnDemand: false, // added
 };
 
 const AddEditBookModal = ({
@@ -160,6 +161,7 @@ const AddEditBookModal = ({
       // Extra fields to pass through to backend if provided
       cover_image_url: initialBook.cover_image_url || "",
       cover_image_urls: initialBook.cover_image_urls || "",
+      isPrintOnDemand: !!initialBook.isPrintOnDemand, // added
     });
 
     const cover = Array.isArray(initialBook.cover_image)
@@ -253,6 +255,7 @@ const AddEditBookModal = ({
       if (form.deal_start) formData.append("deal_start", form.deal_start);
       if (form.deal_end) formData.append("deal_end", form.deal_end);
       if (form.publisher_id) formData.append("publisher_id", form.publisher_id);
+      formData.append("isPrintOnDemand", form.isPrintOnDemand ? "1" : "0"); // added
 
       try {
         let result;
@@ -579,6 +582,17 @@ const AddEditBookModal = ({
                     setForm({ ...form, is_featured: e.target.checked })
                   }
                   name="books-input-is-featured"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-medium">Print on Demand?</label>
+                <input
+                  type="checkbox"
+                  checked={form.isPrintOnDemand}
+                  onChange={(e) =>
+                    setForm({ ...form, isPrintOnDemand: e.target.checked })
+                  }
+                  name="books-input-is-print-on-demand"
                 />
               </div>
             </div>

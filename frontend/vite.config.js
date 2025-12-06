@@ -12,8 +12,19 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0',
+    port: 5173,
     proxy: {
-      "/api": "http://localhost:5000",
+      "/api": {
+        target: process.env.VITE_BACKEND_URL || "http://localhost:5000",
+        changeOrigin: true,
+        secure: false,
+      },
     },
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    chunkSizeWarningLimit: 1000,
   },
 });

@@ -92,7 +92,7 @@ const PriceRangeSettings = () => {
                     min: Number(e.target.value),
                   }))
                 }
-                className="border border-gray-300 rounded-[2px] p-2 w-full focus:outline-none focus:ring focus:ring-gray-400"
+                className="border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring focus:ring-gray-400"
                 required
               />
             </div>
@@ -111,7 +111,7 @@ const PriceRangeSettings = () => {
                     max: Number(e.target.value),
                   }))
                 }
-                className="border border-gray-300 rounded-[2px] p-2 w-full focus:outline-none focus:ring focus:ring-gray-400"
+                className="border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring focus:ring-gray-400"
                 required
               />
             </div>
@@ -119,7 +119,7 @@ const PriceRangeSettings = () => {
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <button
               type="submit"
-              className="cursor-pointer bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-[2px] hover:bg-gray-800 transition w-full sm:w-auto text-center"
+              className="cursor-pointer bg-black text-white px-3 sm:px-3 py-2 sm:py-2 rounded-md hover:bg-gray-800 transition w-full sm:w-auto text-center"
               disabled={savingPriceRange}
             >
               {savingPriceRange ? "Saving..." : "Save Price Range"}

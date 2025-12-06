@@ -94,6 +94,15 @@ export const updateBookRequestStatus = async (req, res) => {
     const allowed = ["pending", "approved", "rejected", "fulfilled"];
     if (!allowed.includes(status)) return res.status(400).json({ success: false, message: "Invalid status" });
 
+    // If approving, delete the request automatically after marking approved
+    if (status === "approved") {
+      const existing = await BookRequest.findById(id);
+      if (!existing) return res.status(404).json({ success: false, message: "Request not found" });
+      // Optional: record a reviewedAt/note before deletion if needed
+      await BookRequest.findByIdAndDelete(id);
+      return res.status(200).json({ success: true, deleted: true, data: { _id: id, status } });
+    }
+
     const updated = await BookRequest.findByIdAndUpdate(
       id,
       { status, reviewNote, reviewedBy: req.user?._id, reviewedAt: new Date() },

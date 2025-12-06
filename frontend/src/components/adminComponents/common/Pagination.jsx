@@ -9,8 +9,49 @@ export default function Pagination({ page, total, pageSize, onPageChange, namePr
     onPageChange(p);
   };
 
-  const pages = [];
-  for (let i = 1; i <= totalPages; i++) pages.push(i);
+  // Smart pagination: show sliding window of 10 pages
+  const getPageNumbers = () => {
+    const maxVisible = 10;
+    const pages = [];
+
+    if (totalPages <= maxVisible) {
+      // Show all pages if total is less than max visible
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Calculate the start of the current window
+      // Current window is based on: Math.floor((page - 1) / maxVisible) * maxVisible + 1
+      const currentWindow = Math.floor((page - 1) / maxVisible);
+      const start = currentWindow * maxVisible + 1;
+      const end = Math.min(start + maxVisible - 1, totalPages);
+
+      // Always show first page
+      if (start > 1) {
+        pages.push(1);
+        if (start > 2) {
+          pages.push('...');
+        }
+      }
+
+      // Show current window
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      // Always show last page
+      if (end < totalPages) {
+        if (end < totalPages - 1) {
+          pages.push('...');
+        }
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  };
+
+  const pageNumbers = getPageNumbers();
 
   return (
     <div className="flex items-center justify-between flex-wrap gap-2 p-2 text-xs" {...(namePrefix ? { name: `${namePrefix}-pagination` } : {})}>
@@ -22,29 +63,41 @@ export default function Pagination({ page, total, pageSize, onPageChange, namePr
         <button
           onClick={() => go(page - 1)}
           disabled={page === 1}
-          className="px-2 sm:px-3 py-1.5 border rounded disabled:opacity-40 text-sm"
+          className="px-2 sm:px-3 py-1.5 border rounded disabled:opacity-40 text-sm hover:bg-gray-100"
           {...(namePrefix ? { name: `${namePrefix}-pagination-prev` } : {})}
         >
           Prev
         </button>
-        {pages.map((p) => (
-          <button
-            key={p}
-            onClick={() => go(p)}
-            className={`px-2 sm:px-3 py-1.5 rounded border text-sm ${
-              p === page
-                ? "bg-black text-white border-black"
-                : "hover:bg-gray-100"
-            }`}
-            {...(namePrefix ? { name: `${namePrefix}-pagination-page-${p}` } : {})}
-          >
-            {p}
-          </button>
-        ))}
+        {pageNumbers.map((p, idx) => {
+          if (p === '...') {
+            return (
+              <span
+                key={`ellipsis-${idx}`}
+                className="px-2 py-1.5 text-gray-500"
+              >
+                ...
+              </span>
+            );
+          }
+          return (
+            <button
+              key={p}
+              onClick={() => go(p)}
+              className={`px-2 sm:px-3 py-1.5 rounded border text-sm ${
+                p === page
+                  ? "bg-black text-white border-black"
+                  : "hover:bg-gray-100"
+              }`}
+              {...(namePrefix ? { name: `${namePrefix}-pagination-page-${p}` } : {})}
+            >
+              {p}
+            </button>
+          );
+        })}
         <button
           onClick={() => go(page + 1)}
           disabled={page === totalPages}
-          className="px-2 sm:px-3 py-1.5 border rounded disabled:opacity-40"
+          className="px-2 sm:px-3 py-1.5 border rounded disabled:opacity-40 hover:bg-gray-100"
           {...(namePrefix ? { name: `${namePrefix}-pagination-next` } : {})}
         >
           Next

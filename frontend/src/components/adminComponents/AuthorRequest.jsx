@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Search } from "lucide-react";
 import { useAuthorRequests } from "../../context/AuthorRequestContext.jsx";
-import { useAuthors } from "../../context/AuthorContext.jsx";
+import { authorRequestAPI } from "@/api/author-request-api";
 import AuthorReqDetails from "./author/AuthorReqDetails.jsx";
 
 const STATUSES = ["pending", "verified", "cancelled", "unverified"]; // must match backend enum
 
 const AuthorRequest = () => {
   const { requests, loading, error, list, updateStatus } = useAuthorRequests();
-  const { create: createAuthor } = useAuthors();
 
   const [statusFilter, setStatusFilter] = useState("All");
   const [search, setSearch] = useState("");
@@ -86,21 +86,17 @@ const AuthorRequest = () => {
     }
   };
 
-  // NEW: map request -> author payload
-  const mapRequestToAuthor = (r) => ({
-    name: r.fullName,
-    title: r.title,
-    bio: r.abstract || "",
-    status: "verified",
-  });
+  // Note: createAuthor not needed; conversion handled on backend
 
-  // NEW: verify request and create corresponding author
+  // NEW: verify request and create corresponding author via backend conversion
   const verifyAndMove = async (reqItem) => {
     if (!reqItem?._id) return;
     setUpdating((m) => ({ ...m, [reqItem._id]: true }));
     try {
-      await updateStatus(reqItem._id, "verified");
-      await createAuthor(mapRequestToAuthor(reqItem));
+      // Convert on backend (creates Author, deletes the request)
+      await authorRequestAPI.convert(reqItem._id);
+      // Refresh list to reflect deletion
+      await list({ status: statusFilter !== "All" ? statusFilter : undefined });
     } catch {
       // errors surfaced via contexts
     } finally {
@@ -109,63 +105,53 @@ const AuthorRequest = () => {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <div className="flex-1">
-          <h1 className="text-xl font-bold">Author Requests</h1>
-          <p className="text-gray-600 text-sm">
-            Manage your author requests and details.
-          </p>
+    <div className="w-full">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Author Requests</h2>
+            <p className="text-gray-600 text-sm mt-1">Review and manage author applications</p>
+          </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-          <div className="flex items-center gap-2">
-            <label htmlFor="search-input" className="text-sm text-gray-600">
-              Search
-            </label>
+        {/* Filters */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               id="search-input"
               name="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Name, email, title…"
-              className="border rounded-md px-2 py-1 text-sm min-w-[220px]"
+              placeholder="Search name, email, title…"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black text-sm"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <label htmlFor="status-filter" className="text-sm text-gray-600">
-              Status
-            </label>
-            <select
-              id="status-filter"
-              name="statusFilter"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="border rounded-md px-2 py-1 text-sm"
-            >
-              <option value="All">All</option>
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <label htmlFor="sort-order" className="text-sm text-gray-600">
-              Sort
-            </label>
-            <select
-              id="sort-order"
-              name="sortOrder"
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              className="border rounded-md px-2 py-1 text-sm"
-            >
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-            </select>
-          </div>
+          <select
+            id="status-filter"
+            name="statusFilter"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black text-sm bg-white"
+          >
+            <option value="All">All statuses</option>
+            {STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          <select
+            id="sort-order"
+            name="sortOrder"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black text-sm bg-white"
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+          </select>
         </div>
       </div>
 
@@ -175,38 +161,69 @@ const AuthorRequest = () => {
         </div>
       )}
 
+      {/* Results Count */}
+      {!loading && visibleRequests.length > 0 && (
+        <div className="mb-4 text-sm text-gray-600">Showing {paginatedRequests.length} of {totalItems} requests</div>
+      )}
+
       {loading ? (
-        <div className="text-sm text-gray-600">Loading requests…</div>
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  {['Applicant','Contact','Work','Lang','Status','Submitted','Actions'].map(h => (
+                    <th key={h} className="text-left font-semibold text-gray-700 px-4 py-3">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 5 }).map((_, idx) => (
+                  <tr key={idx} className="border-t border-gray-200 animate-pulse">
+                    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-32"></div></td>
+                    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-40"></div></td>
+                    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-64"></div></td>
+                    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-16"></div></td>
+                    <td className="px-4 py-3"><div className="h-6 bg-gray-200 rounded-full w-20"></div></td>
+                    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+                    <td className="px-4 py-3 text-right"><div className="flex justify-end gap-2"><div className="h-8 bg-gray-200 rounded w-16"></div><div className="h-8 bg-gray-200 rounded w-20"></div></div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       ) : visibleRequests.length === 0 ? (
         <div className="text-sm text-gray-600">No requests found.</div>
       ) : (
-        <div className="overflow-x-auto border rounded-md">
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-gray-600">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="text-left px-3 py-2">Applicant</th>
-                <th className="text-left px-3 py-2">Contact</th>
-                <th className="text-left px-3 py-2">Work</th>
-                <th className="text-left px-3 py-2">Lang</th>
-                <th className="text-left px-3 py-2">Status</th>
-                <th className="text-left px-3 py-2">Submitted</th>
-                <th className="text-left px-3 py-2">Actions</th>
+                <th className="text-left font-semibold text-gray-700 px-4 py-3">Applicant</th>
+                <th className="text-left font-semibold text-gray-700 px-4 py-3">Contact</th>
+                <th className="text-left font-semibold text-gray-700 px-4 py-3">Work</th>
+                <th className="text-left font-semibold text-gray-700 px-4 py-3">Lang</th>
+                <th className="text-left font-semibold text-gray-700 px-4 py-3">Status</th>
+                <th className="text-left font-semibold text-gray-700 px-4 py-3">Submitted</th>
+                <th className="text-left font-semibold text-gray-700 px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginatedRequests.map((r) => (
-                <tr key={r._id} className="border-t">
-                  <td className="px-3 py-2">
+                <tr key={r._id} className="border-t border-gray-200 hover:bg-gray-50">
+                  <td className="px-4 py-3">
                     <div className="font-medium text-gray-900">
                       {r.fullName}
                     </div>
                     <div className="text-gray-500">{r.affiliation || "—"}</div>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-4 py-3">
                     <div className="text-gray-900">{r.email}</div>
                     <div className="text-gray-500">{r.phone || "—"}</div>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-4 py-3">
                     <div
                       className="font-medium text-gray-900 truncate max-w-[240px]"
                       title={r.title}
@@ -220,8 +237,8 @@ const AuthorRequest = () => {
                       {r.abstract}
                     </div>
                   </td>
-                  <td className="px-3 py-2">{r.categoryType || "—"}</td>
-                  <td className="px-3 py-2">
+                  <td className="px-4 py-3">{r.categoryType || "—"}</td>
+                  <td className="px-4 py-3">
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
                         r.status === "verified"
@@ -236,15 +253,15 @@ const AuthorRequest = () => {
                       {r.status}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-gray-600">
+                  <td className="px-4 py-3 text-gray-600">
                     {fmt(r.createdAt)}
                   </td>
-                  <td className="px-3 py-2">
-                    <div className="flex flex-wrap gap-2">
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2 justify-start">
                       <button
                         name="view-details"
                         onClick={() => setSelected(r)}
-                        className="px-2 py-1 rounded text-white text-xs bg-blue-600 hover:bg-blue-700"
+                        className="px-3 py-1.5 rounded-md text-sm border border-gray-300 text-gray-700 hover:bg-black hover:text-white hover:border-black transition-all"
                       >
                         View
                       </button>
@@ -253,10 +270,10 @@ const AuthorRequest = () => {
                         name="verify-request"
                         onClick={() => verifyAndMove(r)}
                         disabled={updating[r._id] || r.status === "verified"}
-                        className={`px-2 py-1 rounded text-white text-xs ${
+                        className={`px-3 py-1.5 rounded-md text-sm transition-all ${
                           r.status === "verified"
-                            ? "bg-gray-300"
-                            : "bg-emerald-600 hover:bg-emerald-700"
+                            ? "bg-gray-200 text-gray-600 cursor-not-allowed"
+                            : "border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white hover:border-emerald-600"
                         }`}
                       >
                         Verify
@@ -265,22 +282,36 @@ const AuthorRequest = () => {
                         name="set-pending"
                         onClick={() => onUpdateStatus(r._id, "pending")}
                         disabled={updating[r._id] || r.status === "pending"}
-                        className={`px-2 py-1 rounded text-white text-xs ${
+                        className={`px-3 py-1.5 rounded-md text-sm transition-all ${
                           r.status === "pending"
-                            ? "bg-gray-300"
-                            : "bg-yellow-600 hover:bg-yellow-700"
+                            ? "bg-gray-200 text-gray-600 cursor-not-allowed"
+                            : "border border-yellow-200 text-yellow-700 bg-yellow-50 hover:bg-yellow-600 hover:text-white hover:border-yellow-600"
                         }`}
                       >
                         Pending
                       </button>
                       <button
                         name="cancel-request"
-                        onClick={() => onUpdateStatus(r._id, "cancelled")}
-                        disabled={updating[r._id] || r.status === "cancelled"}
-                        className={`px-2 py-1 rounded text-white text-xs ${
-                          r.status === "cancelled"
-                            ? "bg-gray-300"
-                            : "bg-red-600 hover:bg-red-700"
+                        onClick={async () => {
+                          if (!r?._id) return;
+                          const proceed = confirm("Delete this author request? This cannot be undone.");
+                          if (!proceed) return;
+                          setUpdating((m) => ({ ...m, [r._id]: true }));
+                          try {
+                            await authorRequestAPI.remove(r._id);
+                            await list({ status: statusFilter !== "All" ? statusFilter : undefined });
+                          } catch {
+                            // Error handled via context
+                          }
+                          finally {
+                            setUpdating((m) => ({ ...m, [r._id]: false }));
+                          }
+                        }}
+                        disabled={updating[r._id]}
+                        className={`px-3 py-1.5 rounded-md text-sm transition-all ${
+                          updating[r._id]
+                            ? "bg-gray-200 text-gray-600 cursor-not-allowed"
+                            : "border border-red-200 text-red-700 bg-red-50 hover:bg-red-600 hover:text-white hover:border-red-600"
                         }`}
                       >
                         Cancel
@@ -292,35 +323,34 @@ const AuthorRequest = () => {
             </tbody>
           </table>
           {totalItems > pageSize && (
-            <div className="flex items-center justify-between gap-3 p-3 border-t">
-              <div className="text-xs text-gray-600">
-                Showing {startIdx + 1}-
-                {Math.min(startIdx + pageSize, totalItems)} of {totalItems}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-200 bg-gray-50">
+              <div className="text-sm text-gray-600">
+                Showing {startIdx + 1}-{Math.min(startIdx + pageSize, totalItems)} of {totalItems}
               </div>
               <div className="flex items-center gap-2">
                 <button
                   name="prev-page"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={safePage <= 1}
-                  className="px-3 py-1 border rounded-md text-sm disabled:opacity-50"
+                  className="px-3 py-1.5 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Prev
+                  Previous
                 </button>
                 <span className="text-sm text-gray-700">
-                  Page <span className="font-medium">{safePage}</span> of{" "}
-                  {totalPages}
+                  Page <span className="font-medium">{safePage}</span> of {totalPages}
                 </span>
                 <button
                   name="next-page"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={safePage >= totalPages}
-                  className="px-3 py-1 border rounded-md text-sm disabled:opacity-50"
+                  className="px-3 py-1.5 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
               </div>
             </div>
           )}
+          </div>
         </div>
       )}
 

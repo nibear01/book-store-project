@@ -145,21 +145,21 @@ const BooksTable = ({ books, toGenreArray, onViewDetails, onEdit, onDelete, pric
                   <div className="flex gap-1 sm:gap-2 justify-center flex-wrap">
                       <button
                       onClick={() => onViewDetails(b)}
-                        className="px-2 py-1 bg-black text-white text-[11px] sm:text-xs rounded hover:bg-gray-700 transition-colors"
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border bg-green-50 text-green-700 border-green-200 hover:bg-green-100 transition-colors"
                         name={`book-view-btn-${b._id || b.id}`}
                     >
                       View
                     </button>
                       <button
                       onClick={() => onEdit(b)}
-                        className="px-2 py-1 bg-indigo-600 text-white text-[11px] sm:text-xs rounded hover:bg-indigo-700 transition-colors"
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 transition-colors"
                         name={`book-edit-btn-${b._id || b.id}`}
                     >
                       Edit
                     </button>
                       <button
                       onClick={() => onDelete(b)}
-                        className="px-2 py-1 bg-red-600 text-white text-[11px] sm:text-xs rounded hover:bg-red-700 transition-colors"
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border bg-red-50 text-red-700 border-red-200 hover:bg-red-100 transition-colors"
                         name={`book-delete-btn-${b._id || b.id}`}
                     >
                       Delete

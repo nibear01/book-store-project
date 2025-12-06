@@ -89,7 +89,7 @@ const PrintOnDemandSettings = () => {
                 onChange={(e) =>
                   setPrintCfg((p) => ({ ...p, mode: e.target.value }))
                 }
-                className="border border-gray-300 rounded-[2px] p-2 w-full"
+                className="border border-gray-300 rounded-md p-2 w-full"
               >
                 <option value="derived">
                   Derived (content + print + margin)
@@ -110,7 +110,7 @@ const PrintOnDemandSettings = () => {
                     contentFee: Number(e.target.value),
                   }))
                 }
-                className="border border-gray-300 rounded-[2px] p-2 w-full focus:outline-none focus:ring focus:ring-gray-400"
+                className="border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring focus:ring-gray-400"
                 required
               />
             </div>
@@ -127,7 +127,7 @@ const PrintOnDemandSettings = () => {
                     basePerPage: Number(e.target.value),
                   }))
                 }
-                className="border border-gray-300 rounded-[2px] p-2 w-full focus:outline-none focus:ring focus:ring-gray-400"
+                className="border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring focus:ring-gray-400"
                 required
               />
             </div>
@@ -141,7 +141,7 @@ const PrintOnDemandSettings = () => {
                     margin: { ...p.margin, type: e.target.value },
                   }))
                 }
-                className="border border-gray-300 rounded-[2px] p-2 w-full"
+                className="border border-gray-300 rounded-md p-2 w-full"
               >
                 <option value="percent">Percent (%)</option>
                 <option value="flat">Flat Amount</option>
@@ -160,7 +160,7 @@ const PrintOnDemandSettings = () => {
                     margin: { ...p.margin, value: Number(e.target.value) },
                   }))
                 }
-                className="border border-gray-300 rounded-[2px] p-2 w-full focus:outline-none focus:ring focus:ring-gray-400"
+                className="border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring focus:ring-gray-400"
                 required
               />
             </div>
@@ -190,7 +190,7 @@ const PrintOnDemandSettings = () => {
                           },
                         }))
                       }
-                      className="border border-gray-300 rounded-[2px] p-2 w-full"
+                      className="border border-gray-300 rounded-md p-2 w-full"
                     />
                   </label>
                 ))}
@@ -218,7 +218,7 @@ const PrintOnDemandSettings = () => {
                           },
                         }))
                       }
-                      className="border border-gray-300 rounded-[2px] p-2 w-full"
+                      className="border border-gray-300 rounded-md p-2 w-full"
                     />
                   </label>
                 ))}
@@ -246,7 +246,7 @@ const PrintOnDemandSettings = () => {
                           },
                         }))
                       }
-                      className="border border-gray-300 rounded-[2px] p-2 w-full"
+                      className="border border-gray-300 rounded-md p-2 w-full"
                     />
                   </label>
                 ))}
@@ -274,7 +274,7 @@ const PrintOnDemandSettings = () => {
                           },
                         }))
                       }
-                      className="border border-gray-300 rounded-[2px] p-2 w-full"
+                      className="border border-gray-300 rounded-md p-2 w-full"
                     />
                   </label>
                 ))}
@@ -285,7 +285,7 @@ const PrintOnDemandSettings = () => {
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <button
               type="submit"
-              className="cursor-pointer bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-[2px] hover:bg-gray-800 transition w-full sm:w-auto text-center"
+              className="cursor-pointer bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-md hover:bg-gray-800 transition w-full sm:w-auto text-center"
               disabled={savingPrintCfg}
             >
               {savingPrintCfg ? "Saving..." : "Save Print Pricing"}

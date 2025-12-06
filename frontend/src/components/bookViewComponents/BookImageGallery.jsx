@@ -289,7 +289,7 @@ const BookImageGallery = ({
 
   // Resolve image URL (handles backend files, absolute URLs, and frontend placeholders)
   const resolveImageUrl = (p) => {
-    if (!p) return "/images/book-placeholder.svg";
+    if (!p || typeof p !== 'string') return "/images/book-placeholder.svg";
     const isAbsolute = /^https?:\/\//i.test(p);
     if (isAbsolute) return p;
     // Keep frontend-served placeholder assets un-prefixed

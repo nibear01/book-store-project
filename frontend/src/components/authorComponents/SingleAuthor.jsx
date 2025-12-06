@@ -43,11 +43,11 @@ const SingleAuthor = () => {
       </nav>
 
       {loading ? (
-        <div className="text-gray-600">Loading author…</div>
+        <div className="text-gray-600 min-h-[70vh]">Loading author…</div>
       ) : error ? (
-        <div className="text-rose-600">{error}</div>
+        <div className="text-rose-600 min-h-[70vh]">{error}</div>
       ) : !author ? (
-        <div className="text-gray-600">Author not found.</div>
+        <div className="text-gray-600 min-h-[70vh]">Author not found.</div>
       ) : (
         <>
           {/* Header */}
