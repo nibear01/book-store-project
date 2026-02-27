@@ -3,7 +3,7 @@ import { useWishlist } from "../context/WishlistContext";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://192.168.0.105:5000";
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 const WishlistItem = React.memo(function WishlistItem({ item, onRemove, onView, t }) {
   const [imgLoaded, setImgLoaded] = useState(false);

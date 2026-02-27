@@ -179,7 +179,7 @@ export const createOrder = async (req, res) => {
     // Generate unique order number
     const orderNumber = `ORD-${Date.now()}-${Math.random()
       .toString(36)
-      .substr(2, 9)
+      .substring(2, 11)
       .toUpperCase()}`;
 
     // Load global print config once

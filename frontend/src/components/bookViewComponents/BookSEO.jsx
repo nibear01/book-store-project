@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-const url = import.meta?.env?.VITE_BACKEND_URL || 'http://192.168.0.104:5000';
+const url = import.meta?.env?.VITE_BACKEND_URL || 'http://localhost:5000';
 
 // Simple, dependency-free SEO component to avoid legacy UNSAFE lifecycles from react-helmet.
 // Manages only the tags we need and cleans them up on change/unmount.

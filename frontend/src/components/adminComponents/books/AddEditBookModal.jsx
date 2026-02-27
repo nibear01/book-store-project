@@ -10,7 +10,7 @@ import { BooksContext } from "@/context/BooksContext";
 import { isValidISBN } from "./utils";
 import { computeFinalConfiguredPrice, defaultPrintState } from "../../bookViewComponents/BookPrintPricing";
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://192.168.0.104:5000";
+const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 // Memoized cover preview (module scope to avoid conditional hooks inside component)
 const CoverPreview = React.memo(function CoverPreview({ src }) {

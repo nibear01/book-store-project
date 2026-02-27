@@ -93,7 +93,8 @@ export const getPublishers = async (req, res) => {
     
     // Search by name or description
     if (q && q.trim()) {
-      const regex = new RegExp(q.trim(), "i");
+      const escaped = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escaped, "i");
       filter.$or = [
         { name: regex },
         { description: regex },
@@ -102,7 +103,8 @@ export const getPublishers = async (req, res) => {
     
     // Filter by country
     if (country && country.trim()) {
-      filter.country = new RegExp(country.trim(), "i");
+      const escapedCountry = country.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter.country = new RegExp(escapedCountry, "i");
     }
 
     // Pagination

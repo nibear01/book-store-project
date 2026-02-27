@@ -70,6 +70,12 @@ export const sendVerificationEmail = async ({
 
 // Run only when executed directly: node email-verify.js
 if (process.argv[1] && process.argv[1].endsWith("email-verify.js")) {
+  const to = process.argv[2] || process.env.TEST_EMAIL;
+  const code = process.argv[3] || "123456";
+  if (!to) {
+    console.error("Usage: node email-verify.js <email> [code]");
+    process.exit(1);
+  }
   sendVerificationEmail({ to, code })
     .then((info) => console.log("Mail sent:", info?.messageId || info))
     .catch((err) => console.error("server error:", err?.message || err));

@@ -1,7 +1,7 @@
 import React from "react";
 import { computeFinalConfiguredPrice, defaultPrintState } from "../../bookViewComponents/BookPrintPricing";
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://192.168.0.104:5000";
+const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 // pricingMode: 'derived' | 'relative'
 // printSettings: global config fetched by parent

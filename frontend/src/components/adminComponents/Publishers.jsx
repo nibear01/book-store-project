@@ -8,7 +8,7 @@ import DeleteConfirmModal from "./books/DeleteConfirmModal";
 import Pagination from "./common/Pagination";
 
 const API_BASE =
-  import.meta.env.VITE_BACKEND_URL || "http://192.168.0.104:5000";
+  import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 // Loading Skeleton Component
 const PublisherCardSkeleton = () => (

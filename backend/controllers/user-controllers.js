@@ -10,7 +10,7 @@ import mongoose from "mongoose";
 import Review from "../models/review-model.js";
 import Book from "../models/book-model.js";
 import { getPasswordResetTemplate } from "../utils/email-templates.js";
-// import bcrypt from "bcrypt";
+import bcrypt from "bcrypt";
 
 // @desc    Get allowed roles (Admin only)
 // @route   GET /api/users/roles
@@ -48,15 +48,14 @@ export const registerUser = async (req, res) => {
             });
         }
 
-        // const bcryptPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         // Create new user
         const roles = new RolesBuilder().set("user").enforce().build();
         const user = await User.create({
             name,
             email,
-            // password: bcryptPassword,
-            password,
+            password: hashedPassword,
             phone,
             address,
             roles,
@@ -65,13 +64,25 @@ export const registerUser = async (req, res) => {
         // Generate JWT token
         const token = generateToken(user._id);
 
+        // Exclude password from response
+        const { password: _, ...userData } = user.toObject();
+
         res.status(201).json({
             success: true,
             message: "User registered successfully",
             token,
-            data: user
+            data: userData
         });
     } catch (error) {
+        // Return Mongoose validation errors as 400 instead of 500
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(e => e.message);
+            return res.status(400).json({
+                success: false,
+                message: messages.join('. '),
+                error: error.message
+            });
+        }
         res.status(500).json({
             success: false,
             message: "Error registering user",
@@ -88,7 +99,7 @@ export const loginUser = async (req, res) => {
         const { email, password } = req.body;
 
         // Find user by email
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }).select('+password');
         if (!user) {
             return res.status(401).json({
                 success: false,
@@ -96,12 +107,26 @@ export const loginUser = async (req, res) => {
             });
         }
 
-        // Check password (simple comparison since no bcrypt)
-        if (user.password !== password) {
+        // Check password — supports both bcrypt hashes and legacy plain text
+        const isBcrypt = user.password && user.password.startsWith('$2');
+        let isMatch = false;
+        if (isBcrypt) {
+            isMatch = await bcrypt.compare(password, user.password);
+        } else {
+            // Legacy plain-text password
+            isMatch = user.password === password;
+        }
+        if (!isMatch) {
             return res.status(401).json({
                 success: false,
                 message: "Incorrect password. Please check your password and try again."
             });
+        }
+
+        // Auto-migrate plain-text password to bcrypt hash (use updateOne to skip full validation)
+        if (!isBcrypt) {
+            const hashed = await bcrypt.hash(password, 10);
+            await User.updateOne({ _id: user._id }, { $set: { password: hashed } });
         }
 
         // Check if user is active
@@ -115,11 +140,14 @@ export const loginUser = async (req, res) => {
         // Generate JWT token
         const token = generateToken(user._id);
 
+        // Exclude password from response
+        const { password: _, ...userData } = user.toObject();
+
         res.status(200).json({
             success: true,
             message: "Login successful",
             token,
-            data: user
+            data: userData
         });
     } catch (error) {
         res.status(500).json({
@@ -142,7 +170,7 @@ export const loginUserByPhone = async (req, res) => {
         }
 
         // Find user by phone
-        const user = await User.findOne({ phone });
+        const user = await User.findOne({ phone }).select('+password');
         if (!user) {
             return res.status(401).json({
                 success: false,
@@ -150,12 +178,25 @@ export const loginUserByPhone = async (req, res) => {
             });
         }
 
-        // Check password (plain text in current implementation)
-        if (user.password !== password) {
+        // Check password — supports both bcrypt hashes and legacy plain text
+        const isBcrypt = user.password && user.password.startsWith('$2');
+        let isMatch = false;
+        if (isBcrypt) {
+            isMatch = await bcrypt.compare(password, user.password);
+        } else {
+            isMatch = user.password === password;
+        }
+        if (!isMatch) {
             return res.status(401).json({
                 success: false,
                 message: "Incorrect password. Please check your password and try again."
             });
+        }
+
+        // Auto-migrate plain-text password to bcrypt hash (use updateOne to skip full validation)
+        if (!isBcrypt) {
+            const hashed = await bcrypt.hash(password, 10);
+            await User.updateOne({ _id: user._id }, { $set: { password: hashed } });
         }
 
         // Check if user is active
@@ -169,11 +210,14 @@ export const loginUserByPhone = async (req, res) => {
         // Generate JWT token
         const token = generateToken(user._id);
 
+        // Exclude password from response
+        const { password: _, ...userData } = user.toObject();
+
         res.status(200).json({
             success: true,
             message: "Login successful",
             token,
-            data: user
+            data: userData
         });
     } catch (error) {
         res.status(500).json({
@@ -199,7 +243,8 @@ export const getAllUsers = async (req, res) => {
 
         // Text search on name/email (case-insensitive)
         if (q && typeof q === 'string' && q.trim()) {
-            const regex = new RegExp(q.trim(), 'i');
+            const escaped = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(escaped, 'i');
             filter.$or = [
                 { name: regex },
                 { email: regex },
@@ -218,8 +263,8 @@ export const getAllUsers = async (req, res) => {
         }
 
         const users = await User.find(filter)
-            // NOTE: Including password for testing purposes as requested
-            .limit(Number(limit) * 1)
+            .select('-password')
+            .limit(Number(limit))
             .skip((Number(page) - 1) * Number(limit))
             .sort(sortSpec);
 
@@ -338,8 +383,11 @@ export const updateUser = async (req, res) => {
         if (name !== undefined) update.name = name;
         if (email !== undefined) update.email = email;
         if (address !== undefined) update.address = address;
-        if (status !== undefined) update.status = status;
-        if (req.body.password !== undefined) update.password = req.body.password;
+        // Only admins can change status
+        if (status !== undefined && req.user?.roles?.includes('admin')) update.status = status;
+        if (req.body.password !== undefined) {
+            update.password = await bcrypt.hash(req.body.password, 10);
+        }
 
         // Handle uploaded profile image
         if (req.file) {
@@ -550,7 +598,7 @@ export const changeUserPasswordAdmin = async (req, res) => {
             });
         }
 
-        const user = await User.findById(userId);
+        const user = await User.findById(userId).select('+password');
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -558,8 +606,8 @@ export const changeUserPasswordAdmin = async (req, res) => {
             });
         }
 
-        // Note: passwords are plain text in current implementation
-        user.password = password;
+        // Hash password with bcrypt
+        user.password = await bcrypt.hash(password, 10);
         await user.save();
 
         return res.status(200).json({
@@ -637,7 +685,7 @@ export const resetPassword = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid or expired reset token" });
         }
 
-        user.password = password; // Note: plain text in current app
+        user.password = await bcrypt.hash(password, 10);
         user.resetPasswordToken = null;
         user.resetPasswordExpires = null;
         await user.save();

@@ -3,19 +3,21 @@ import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+// Only Homepage is eagerly loaded — all other pages are lazy
 import Homepage from "./pages/homepage";
-import AboutPage from "./pages/AboutPage";
-import CategoriesPage from "./pages/CategoriesPage";
-import ShopPage from "./pages/ShopPage";
-import TermsPage from "./pages/TermsPage";
-import ContactPage from "./pages/ContactPage";
-import LoginPage from "./pages/LoginPage";
-import SignupPage from "./pages/SignupPage";
-import CartPage from "./pages/CartPage";
-import CheckoutPage from "./pages/CheckoutPage";
-import AdminPage from "./pages/AdminPage";
-import Footer from "./pages/Footer";
-import BookViewPage from "./pages/BookViewPage";
+
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+const CategoriesPage = lazy(() => import("./pages/CategoriesPage"));
+const ShopPage = lazy(() => import("./pages/ShopPage"));
+const TermsPage = lazy(() => import("./pages/TermsPage"));
+const ContactPage = lazy(() => import("./pages/ContactPage"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const SignupPage = lazy(() => import("./pages/SignupPage"));
+const CartPage = lazy(() => import("./pages/CartPage"));
+const CheckoutPage = lazy(() => import("./pages/CheckoutPage"));
+const AdminPage = lazy(() => import("./pages/AdminPage"));
+const BookViewPage = lazy(() => import("./pages/BookViewPage"));
+const Footer = lazy(() => import("./pages/Footer"));
 
 const Dashboard = lazy(() => import("./components/adminComponents/Dashboard"));
 const Users = lazy(() => import("./components/adminComponents/Users"));
@@ -36,35 +38,35 @@ const DeliveryCostSettings = lazy(() => import("./components/adminComponents/set
 const PriceRangeSettings = lazy(() => import("./components/adminComponents/settings/PriceRangeSettings"));
 
 import UserDashboard from "./pages/UserDashboard";
-import OrderSummaryPage from "./pages/OrderSummaryPage";
-import UserOrdersPage from "./pages/UserOrdersPage";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
+const OrderSummaryPage = lazy(() => import("./pages/OrderSummaryPage"));
+const UserOrdersPage = lazy(() => import("./pages/UserOrdersPage"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 import TopNavbar from "./components/NavbarComponents/Subnav/TopNavbar";
-import AuthorPage from "./pages/AuthorPage";
-import WishlistPage from "./pages/WishlistPage";
-import SingleAuthor from "./components/authorComponents/SingleAuthor"; // added
-import PublishersPage from "./pages/PublishersPage";
-import SinglePublisherPage from "./pages/SinglePublisherPage";
+const AuthorPage = lazy(() => import("./pages/AuthorPage"));
+const WishlistPage = lazy(() => import("./pages/WishlistPage"));
+const SingleAuthor = lazy(() => import("./components/authorComponents/SingleAuthor"));
+const PublishersPage = lazy(() => import("./pages/PublishersPage"));
+const SinglePublisherPage = lazy(() => import("./pages/SinglePublisherPage"));
 
 import { useAuth } from "./context/AuthContext";
 import { PrintSettingsProvider } from "./context/PrintSettingsContext";
 import Navbar from "./components/NavbarComponents/Navbar";
-import AuthorDetails from "./components/authorComponents/AuthorDetails";
-import AuthorRequestForm from "./Form/AuthorRequestForm";
-import BookRequestForm from "./Form/BookRequestForm";
-import Subscriber from "./components/adminComponents/Subscriber";
+const AuthorDetails = lazy(() => import("./components/authorComponents/AuthorDetails"));
+const AuthorRequestForm = lazy(() => import("./Form/AuthorRequestForm"));
+const BookRequestForm = lazy(() => import("./Form/BookRequestForm"));
+const Subscriber = lazy(() => import("./components/adminComponents/Subscriber"));
 const AuthorAdmin = lazy(() => import("./components/adminComponents/AuthorAdmin"));
 const AuthorRequest = lazy(() => import("./components/adminComponents/AuthorRequest"));
 const BookRequest = lazy(() => import("./components/adminComponents/BookRequest"));
 const AdminAuthorPage = lazy(() => import("./components/adminComponents/AdminAuthorPage"));
 
 // Affiliate Pages
-import AffiliateLandingPage from "./pages/AffiliateLandingPage";
-import AffiliateLoginPage from "./pages/AffiliateLoginPage";
-import AffiliateRegisterPage from "./pages/AffiliateRegisterPage";
-import AffiliateDashboard from "./pages/AffiliateDashboard";
+const AffiliateLandingPage = lazy(() => import("./pages/AffiliateLandingPage"));
+const AffiliateLoginPage = lazy(() => import("./pages/AffiliateLoginPage"));
+const AffiliateRegisterPage = lazy(() => import("./pages/AffiliateRegisterPage"));
+const AffiliateDashboard = lazy(() => import("./pages/AffiliateDashboard"));
 
 // 404 Page
 function NotFound() {

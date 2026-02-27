@@ -4,7 +4,7 @@ import { X, Upload, Building2 } from "lucide-react";
 import { toast } from "react-toastify";
 import * as publisherApi from "../../../api/publisher-api";
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://192.168.0.104:5000";
+const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 const emptyForm = {
   name: "",

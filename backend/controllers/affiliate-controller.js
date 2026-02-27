@@ -2,6 +2,7 @@ import Affiliate from "../models/affiliate-model.js";
 import AffiliateCommission from "../models/affiliate-commission-model.js";
 import AffiliateWithdrawal from "../models/affiliate-withdrawal-model.js";
 import { generateToken } from "../middlewares/auth-middleware.js";
+import bcrypt from "bcrypt";
 
 // Helper function to generate unique promo code
 const generatePromoCode = async (name) => {
@@ -53,11 +54,14 @@ export const registerAffiliate = async (req, res) => {
     // Generate unique promo code
     const promoCode = await generatePromoCode(name);
 
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Create new affiliate
     const affiliate = await Affiliate.create({
       name,
       email,
-      password,
+      password: hashedPassword,
       phone,
       address,
       bio,
@@ -103,7 +107,7 @@ export const loginAffiliate = async (req, res) => {
     }
 
     // Find affiliate by email
-    const affiliate = await Affiliate.findOne({ email });
+    const affiliate = await Affiliate.findOne({ email }).select('+password');
     if (!affiliate) {
       return res.status(401).json({
         success: false,
@@ -111,8 +115,20 @@ export const loginAffiliate = async (req, res) => {
       });
     }
 
-    // Check password (plain text comparison - consider using bcrypt in production)
-    if (affiliate.password !== password) {
+    // Check password — supports both bcrypt hashes and legacy plain text
+    const isBcrypt = affiliate.password && affiliate.password.startsWith('$2');
+    let isMatch = false;
+    if (isBcrypt) {
+        isMatch = await bcrypt.compare(password, affiliate.password);
+    } else {
+        isMatch = affiliate.password === password;
+    }
+    // Auto-migrate plain-text password to bcrypt hash (use updateOne to skip full validation)
+    if (isMatch && !isBcrypt) {
+        const hashed = await bcrypt.hash(password, 10);
+        await Affiliate.updateOne({ _id: affiliate._id }, { $set: { password: hashed } });
+    }
+    if (!isMatch) {
       return res.status(401).json({
         success: false,
         message: "Invalid email or password",
@@ -144,11 +160,14 @@ export const loginAffiliate = async (req, res) => {
     // Generate JWT token
     const token = generateToken(affiliate._id);
 
+    // Exclude password from response
+    const { password: _, ...affiliateData } = affiliate.toObject();
+
     res.status(200).json({
       success: true,
       message: "Login successful",
       token,
-      data: affiliate,
+      data: affiliateData,
     });
   } catch (error) {
     console.error("Error logging in affiliate:", error);

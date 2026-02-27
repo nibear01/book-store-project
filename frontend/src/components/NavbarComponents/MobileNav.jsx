@@ -127,7 +127,7 @@ const MobileNav = ({
                       {user?.profile_image ? (
                         (() => {
                           const src = String(user.profile_image || "");
-                          const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://192.168.0.104:5000";
+                          const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
                           const absolute = /^https?:\/\//i.test(src)
                             ? src
                             : `${BASE_URL}${

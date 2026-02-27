@@ -89,7 +89,7 @@ export default function AuthorPanel({
   const resolveAuthorPhotoUrl = useCallback((p) => {
     if (!p) return null;
     const FILE_HOST =
-      import.meta.env.VITE_BACKEND_URL || "http://192.168.0.104:5000";
+      import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
     const strRaw = String(p).trim();
     if (!strRaw) return null;
     if (/^https?:\/\//i.test(strRaw) || /^data:image\//i.test(strRaw))

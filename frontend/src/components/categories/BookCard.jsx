@@ -398,7 +398,7 @@ function BookCardInner({ book, baseUrl, viewMode = "grid" }) {
       {id && <WishlistToggle bookId={id} />}
 
       {/* Book cover image with overlay */}
-      <Link to={`/bookview/${book.slug}`} className={imageContainerClass}>
+      <Link to={`/bookview/${book.slug || book._id || book.id}`} className={imageContainerClass}>
         <div className={imageAspectClass}>
           {/* Shimmer effect on hover */}
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-500 z-10"></div>

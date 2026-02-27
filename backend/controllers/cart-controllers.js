@@ -293,7 +293,7 @@ export const updateCartItem = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error updating cart item",
-      error: error
+      error: error.message
     });
   }
 };

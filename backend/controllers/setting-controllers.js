@@ -1,5 +1,6 @@
 import Setting from "../models/setting-model.js";
 import User from "../models/user-model.js";
+import bcrypt from "bcrypt";
 
 // Helpers
 const clampNumber = (v, min, max) => {
@@ -340,8 +341,15 @@ export const updateProfileSettings = async (req, res) => {
         });
       }
 
-      // Verify current password (plain text comparison)
-      if (user.password !== currentPassword) {
+      // Verify current password — supports both bcrypt hashes and legacy plain text
+      const isBcrypt = user.password && user.password.startsWith('$2');
+      let isMatch = false;
+      if (isBcrypt) {
+          isMatch = await bcrypt.compare(currentPassword, user.password);
+      } else {
+          isMatch = user.password === currentPassword;
+      }
+      if (!isMatch) {
         return res.status(400).json({
           success: false,
           message: "Current password is incorrect"
@@ -356,7 +364,7 @@ export const updateProfileSettings = async (req, res) => {
         });
       }
 
-      user.password = password;
+      user.password = await bcrypt.hash(password, 10);
     }
 
     // Update other fields

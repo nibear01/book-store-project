@@ -45,9 +45,16 @@ export default function Order() {
   const [internalView, setInternalView] = useState(canAccessOrders);
   const [workflowFilterStage, setWorkflowFilterStage] = useState("");
 
-  // books context
+  // books context — fetch if not already loaded
   const booksContext = useContext(BooksContext);
   const books = booksContext?.books || [];
+  const fetchBooks = booksContext?.fetchBooks;
+
+  useEffect(() => {
+    if (books.length === 0 && fetchBooks) {
+      fetchBooks({ status: "all" });
+    }
+  }, [books.length, fetchBooks]);
 
   // orders fetching & book names
   const { orders, setOrders, loading, bookNames, refetch } = useOrdersFetcher({

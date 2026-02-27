@@ -5,7 +5,7 @@ import * as publisherApi from "@/api/publisher-api";
 import BookCard from "@/components/categories/BookCard";
 import { useTranslation } from "react-i18next";
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://192.168.0.104:5000";
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 const SinglePublisher = () => {
   const { t } = useTranslation('common');

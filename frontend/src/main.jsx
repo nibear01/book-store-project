@@ -39,8 +39,7 @@ const AppTree = (
   </BrowserRouter>
 );
 
-// In development, avoid StrictMode double-invocations that can make components
-// render/effect-run multiple times. Keep StrictMode for production safety.
+// Wrap in StrictMode for development safety (double-renders help catch bugs)
 ReactDOM.createRoot(document.getElementById("root")).render(
-  import.meta.env.DEV ? AppTree : <React.StrictMode>{AppTree}</React.StrictMode>
+  <React.StrictMode>{AppTree}</React.StrictMode>
 );

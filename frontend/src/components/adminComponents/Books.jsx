@@ -15,7 +15,7 @@ import { toGenreArray, normalizeBook } from "./books/utils";
 import CategoryManager from "./categories/CategoryManager";
 import { useDebounce } from "./common/useDebounce";
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://192.168.0.104:5000";
+const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 const Books = () => {
   const { fetchBooks, deleteBook, addBook } = useContext(BooksContext);

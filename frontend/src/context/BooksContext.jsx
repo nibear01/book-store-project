@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import axios from "axios";
-import { createContext, useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { createContext, useState, useCallback, useMemo } from "react";
 // Simple slug normalizer (mirrors backend rules loosely)
 const slugify = (s = "") =>
   String(s)
@@ -10,7 +10,6 @@ const slugify = (s = "") =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .replace(/-{2,}/g, "-");
-import { useAuth } from "./AuthContext";
 
 export const BooksContext = createContext();
 
@@ -28,10 +27,6 @@ const BooksContextProvider = ({ children }) => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { setIsLoading } = useAuth();
-  // Track whether we've performed the initial load; only during the very first
-  // fetch do we toggle the global loader. Subsequent fetches use local loading.
-  const isInitialLoadRef = useRef(true);
 
   // Optional: keep the latest bulk import report for UI
   const [importReport, setImportReport] = useState(null);
@@ -39,7 +34,6 @@ const BooksContextProvider = ({ children }) => {
   // Generic fetch helper
   const fetchData = useCallback(
     async (endpoint = "/", params = {}, setter) => {
-    if (setIsLoading && isInitialLoadRef.current) setIsLoading(true);
       setLoading(true);
       setError(null);
       try {
@@ -51,12 +45,9 @@ const BooksContextProvider = ({ children }) => {
         throw err;
       } finally {
         setLoading(false);
-        if (setIsLoading && isInitialLoadRef.current) setIsLoading(false);
-        // mark that initial load has completed after first fetch attempt
-        isInitialLoadRef.current = false;
       }
     },
-    [url, setIsLoading]
+    [url]
   );
 
   // Fetch all books
@@ -162,31 +153,6 @@ const BooksContextProvider = ({ children }) => {
     [url]
   );
 
-  // Add to cart functionality
-  const addToCart = useCallback((item) => {
-    // Get existing cart from localStorage or initialize empty array
-    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-    
-    // Check if item already exists in cart
-    const existingItemIndex = existingCart.findIndex(cartItem => 
-      cartItem.item.id === item.item.id
-    );
-
-    if (existingItemIndex >= 0) {
-      // Update quantity if item exists
-      existingCart[existingItemIndex].quantity += item.quantity;
-    } else {
-      // Add new item to cart
-      existingCart.push(item);
-    }
-
-    // Save updated cart to localStorage
-    localStorage.setItem('cart', JSON.stringify(existingCart));
-    
-    // You can also add state management for cart here if needed
-    console.log('Item added to cart:', item);
-  }, []);
-
   // Admin: Add book
   const addBook = useCallback(async (formData) => {
     const token = localStorage.getItem('token');
@@ -233,7 +199,7 @@ const BooksContextProvider = ({ children }) => {
       form.append('dryRun', String(dryRun));
       form.append('updateIfExists', String(updateIfExists));
       try {
-        setIsLoading?.(true);
+        setLoading(true);
         const { data } = await axios.post(`${url}/api/books/bulk-import`, form, {
           headers: {
             'Content-Type': 'multipart/form-data',
@@ -246,10 +212,10 @@ const BooksContextProvider = ({ children }) => {
         if (!dryRun) fetchBooks();
         return data;
       } finally {
-        setIsLoading?.(false);
+        setLoading(false);
       }
     },
-    [url, fetchBooks, setIsLoading]
+    [url, fetchBooks]
   );
 
   // New: Assets-only bulk upload; attaches by filename key
@@ -261,7 +227,7 @@ const BooksContextProvider = ({ children }) => {
       form.append('keyField', keyField);
       form.append('dryRun', String(dryRun));
       try {
-        setIsLoading?.(true);
+        setLoading(true);
         const { data } = await axios.post(`${url}/api/books/assets/bulk`, form, {
           headers: {
             'Content-Type': 'multipart/form-data',
@@ -272,16 +238,15 @@ const BooksContextProvider = ({ children }) => {
         // No need to refetch books unless assets change computed lists
         return data;
       } finally {
-        setIsLoading?.(false);
+        setLoading(false);
       }
     },
-    [url, setIsLoading]
+    [url]
   );
 
-  // Initial load
-  useEffect(() => {
-    fetchBooks();
-  }, [fetchBooks]);
+  // No eager fetch on mount — pages call fetchBooks / fetchFeaturedBooks etc.
+  // when they actually need data. This prevents the global loading gate from
+  // blocking the initial render while waiting for a potentially large book list.
 
   const value = useMemo(() => ({
     url,
@@ -304,7 +269,6 @@ const BooksContextProvider = ({ children }) => {
     getBooksByGenre, // Added this function
     getBooksByAuthor, // Added this function
     getBookBySlug,
-    addToCart, // Added this function
     addBook,
     updateBook,
     deleteBook,
@@ -334,7 +298,6 @@ const BooksContextProvider = ({ children }) => {
     getBooksByGenre,
     getBooksByAuthor,
     getBookBySlug,
-    addToCart,
     addBook,
     updateBook,
     deleteBook,

@@ -15,7 +15,7 @@ import { toast } from "react-toastify";
 import * as publisherApi from "../../../api/publisher-api";
 import * as bookApi from "../../../api/book-api";
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://192.168.0.104:5000";
+const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 // Loading Skeleton for Books Grid
 const BookCardSkeleton = () => (

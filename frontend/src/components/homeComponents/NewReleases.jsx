@@ -26,6 +26,11 @@ const NewReleases = () => {
     [books]
   );
 
+  // Fetch books on mount if not already loaded
+  useEffect(() => {
+    if (list.length === 0 && !loading) fetchBooks();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Debounce switching categories to avoid repeated fetches
   const debounceRef = useRef(null);
   useEffect(

@@ -44,7 +44,7 @@ export default function ContactUs() {
       setLoading(true);
       const res = await axios.post(
         `${
-          import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"
+          import.meta.env.VITE_BACKEND_URL || "http://localhost:5000"
         }/api/contact`,
         formData
       );

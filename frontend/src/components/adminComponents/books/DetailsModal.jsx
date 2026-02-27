@@ -1,6 +1,6 @@
 import React from "react";
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://192.168.0.104:5000";
+const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 const DetailsModal = ({ book, toGenreArray, onClose }) => {
   if (!book) return null;

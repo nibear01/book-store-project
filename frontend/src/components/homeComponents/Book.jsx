@@ -10,7 +10,14 @@ const Book = () => {
   const { books, loading, error, fetchBooks } = useContext(BooksContext);
 
   const [ book, setBook] = useState([]);
-  // Optionally ensure an initial fetch (provider also fetches on mount)
+  // Fetch books on mount if not already loaded
+  useEffect(() => {
+    if (!books || (Array.isArray(books) ? books.length === 0 : !books?.data?.length)) {
+      if (!loading) fetchBooks();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Normalize books shape
   useEffect(() => {
     // books can be either an array or an object with { data }
     setBook(Array.isArray(books) ? books : (books?.data || []));

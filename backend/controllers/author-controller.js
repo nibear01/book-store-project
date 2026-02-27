@@ -57,7 +57,8 @@ export const getAuthors = async (req, res) => {
     const filter = {};
     if (status) filter.status = status;
     if (q) {
-      const regex = new RegExp(q, "i");
+      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escaped, "i");
       filter.$or = [{ name: regex }, { title: regex }];
     }
     const authors = await Author.find(filter).populate("books");

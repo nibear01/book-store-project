@@ -22,6 +22,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
       minlength: [8, "Password must be at least 8 characters"],
+      select: false,
     },
     roles: {
       type: [String],
@@ -50,7 +51,7 @@ const userSchema = new mongoose.Schema(
       required: [true, "Phone number is required"],
       unique: true,
       trim: true,
-      match: [/^[\+]?[1-9][\d]{0,15}$/, "Please enter a valid phone number"],
+      match: [/^[\+]?[0-9][\d]{0,15}$/, "Please enter a valid phone number"],
     },
     address: {
       type: String,

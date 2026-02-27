@@ -45,6 +45,10 @@ const BookViewPage = () => {
   const [isWishlisted, setIsWishlisted] = useState(false);
 
   useEffect(() => {
+    if (!slug || slug === "undefined") {
+      setError("Invalid book link — no slug provided.");
+      return;
+    }
     const fetchBook = async () => {
       try {
         setLoading(true);

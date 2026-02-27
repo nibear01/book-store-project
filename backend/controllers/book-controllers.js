@@ -111,7 +111,7 @@ const assignPublisher = async (bookData) => {
     
     // Priority 4: Try to find by publisher name
     const pub = await Publisher.findOne({ 
-      name: { $regex: new RegExp(`^${publisherStr}$`, "i") },
+      name: { $regex: new RegExp(`^${publisherStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") },
       is_active: true 
     });
     
@@ -460,9 +460,15 @@ export const getBookById = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid book slug" });
     }
 
+    // Build query: if the param looks like a Mongo ObjectId, search by _id too
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(slug);
+    const query = isObjectId
+      ? { $or: [{ slug }, { _id: slug }], is_active: true }
+      : { slug, is_active: true };
+
     // NEW: increment views on detail fetch
     const book = await Book.findOneAndUpdate(
-      { slug, is_active: true },
+      query,
       { $inc: { views: 1 } },
       { new: true }
     )

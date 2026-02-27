@@ -24,6 +24,7 @@ import authorRoutes from "./routes/author-routes.js";
 import publisherRoutes from "./routes/publisher-routes.js";
 import affiliateRoutes from "./routes/affiliate-routes.js";
 import affiliateAdminRoutes from "./routes/affiliate-admin-routes.js";
+import rateLimit from "express-rate-limit";
 
 // Fix __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -42,10 +43,25 @@ const corsOptions = {
 app.use(express.json());
 app.use(cors(corsOptions));
 
+// Rate limiting for auth/OTP endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // limit each IP to 20 requests per windowMs
+  message: { success: false, message: "Too many attempts, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Serve static files from uploads directory
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // API Routes
+app.use("/api/users/login", authLimiter);
+app.use("/api/users/register", authLimiter);
+app.use("/api/users/forgot-password", authLimiter);
+app.use("/api/otp", authLimiter);
+app.use("/api/affiliates/login", authLimiter);
+app.use("/api/affiliates/register", authLimiter);
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/cart", cartRoutes);
@@ -64,10 +80,24 @@ app.use("/api/settings", settingRoutes);
 app.use("/api/affiliates", affiliateRoutes);
 app.use("/api/admin/affiliates", affiliateAdminRoutes);
 
-// // Routes
-app.use("/", (req, res) => {
+// Health check
+app.get("/", (req, res) => {
   return res.send("Server is running...");
-})
+});
+
+// 404 handler for unmatched routes
+app.use((req, res) => {
+  return res.status(404).json({ success: false, message: "Route not found" });
+});
+
+// Global error-handling middleware
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err.message);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal server error",
+  });
+});
 
 const startServer = async () => {
   await connectDb();
@@ -79,8 +109,7 @@ const startServer = async () => {
       console.warn("Category seeding failed:", e.message);
     }
   }
-  const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
-  app.listen(PORT, HOST, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
   });

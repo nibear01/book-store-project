@@ -150,7 +150,7 @@ export const sendOtp = async (req, res) => {
       await user.save();
       return res
         .status(200)
-        .json({ success: true, message: "OTP sent to phone (mock)", code });
+        .json({ success: true, message: "OTP sent to phone (mock)" });
     }
 
     return res

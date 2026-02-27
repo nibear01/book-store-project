@@ -11,7 +11,7 @@ const LOAD_MORE_COUNT = 5;
 const DEBOUNCE_MS = 250;
 
 // Base URL for images served by backend
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://192.168.0.105:5000";
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 // Loading skeleton component
 const BookCardSkeleton = () => {

@@ -166,8 +166,7 @@ function mapBackendCartToLocalItems(backendCart) {
 
 export function CartProvider({ children }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [] });
-  const { isAuthenticated, setIsLoading } = useAuth();
-  const isInitialLoadRef = React.useRef(true);
+  const { isAuthenticated } = useAuth();
 
   // Hydrate cart on load based on auth state
   useEffect(() => {
@@ -176,7 +175,6 @@ export function CartProvider({ children }) {
       if (isAuthenticated) {
         // Load from backend
         try {
-          if (setIsLoading && isInitialLoadRef.current) setIsLoading(true);
           const res = await cartAPI.getCart();
           if (!mounted) return;
           let items = mapBackendCartToLocalItems(res.data);
@@ -184,10 +182,7 @@ export function CartProvider({ children }) {
           items = applyOverrides(items);
           dispatch({ type: "SET_CART", items });
         } catch {
-          // keep current state on error
-        } finally {
-          if (setIsLoading && isInitialLoadRef.current) setIsLoading(false);
-          isInitialLoadRef.current = false;
+          // keep current state on error — cart loads in background
         }
       } else {
         // Load from localStorage for guests
@@ -206,7 +201,7 @@ export function CartProvider({ children }) {
     return () => {
       mounted = false;
     };
-  }, [isAuthenticated, setIsLoading]);
+  }, [isAuthenticated]);
 
   // Persist guest cart to localStorage on changes
   useEffect(() => {
