@@ -39,5 +39,43 @@ const bookSchema = new mongoose.Schema(
   }
 );
 
+// ── Performance indexes ──────────────────────────────────────────────
+
+// Primary listing: active books sorted by newest
+bookSchema.index({ is_active: 1, created_at: -1 });
+
+// Featured books
+bookSchema.index({ is_active: 1, is_featured: 1, updated_at: -1 });
+
+// On-sale books
+bookSchema.index({ is_active: 1, is_on_sale: 1, updated_at: -1 });
+
+// Deals of the week
+bookSchema.index({ is_active: 1, is_deal_of_the_week: 1, updated_at: -1 });
+
+// Most viewed
+bookSchema.index({ is_active: 1, views: -1 });
+
+// Trending (rating + reviews)
+bookSchema.index({ is_active: 1, updated_at: -1, rating: -1, num_reviews: -1 });
+
+// Price range filtering + sort
+bookSchema.index({ is_active: 1, price: 1 });
+
+// Genre filtering
+bookSchema.index({ is_active: 1, genre: 1 });
+
+// Text search on title, author, description (much faster than $regex)
+bookSchema.index(
+  { title: "text", author: "text", description: "text", isbn: "text" },
+  { weights: { title: 10, author: 5, isbn: 3, description: 1 }, name: "book_text_search" }
+);
+
+// Slug lookup (already unique/sparse but compound with is_active for detail page)
+bookSchema.index({ slug: 1, is_active: 1 });
+
+// Publisher reference
+bookSchema.index({ publisher_id: 1 });
+
 const Book = mongoose.model("Book", bookSchema);
 export default Book;

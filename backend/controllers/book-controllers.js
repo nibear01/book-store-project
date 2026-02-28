@@ -339,7 +339,7 @@ export const getBooks = async (req, res) => {
     } = req.query;
 
     const p = Math.max(1, toNumber(page, 1));
-    const l = Math.min(10000000, Math.max(1, toNumber(limit, 10)));
+    const l = Math.min(5000, Math.max(1, toNumber(limit, 20)));
 
     // CHANGED: status-aware active filter
     const filter = {};
@@ -351,11 +351,11 @@ export const getBooks = async (req, res) => {
 
     if (search && String(search).trim()) {
       const term = String(search).trim();
+      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.$or = [
-        { title: { $regex: term, $options: "i" } },
-        { author: { $regex: term, $options: "i" } },
-        { description: { $regex: term, $options: "i" } },
-        { isbn: { $regex: term, $options: "i" } }, // added: search by ISBN
+        { title: { $regex: escaped, $options: "i" } },
+        { author: { $regex: escaped, $options: "i" } },
+        { isbn: { $regex: escaped, $options: "i" } },
       ];
     }
     // Works with array-field as well (matches any element)
@@ -429,13 +429,25 @@ export const getBooks = async (req, res) => {
       }
     }
 
-    const total = await Book.countDocuments(filter);
-    const books = await Book.find(filter)
-      .sort(sortSpec)
-      .skip((p - 1) * l)
-      .limit(l)
-      .populate("publisher_id", "name slug logo country website")
-      .lean();
+    // Light projection for list view — exclude heavy fields
+    const listProjection = {
+      description: 0,
+      meta_description: 0,
+      meta_keywords: 0,
+      file_url: 0,
+    };
+
+    // Run count and find in parallel
+    const [total, books] = await Promise.all([
+      Book.countDocuments(filter),
+      Book.find(filter)
+        .select(listProjection)
+        .sort(sortSpec)
+        .skip((p - 1) * l)
+        .limit(l)
+        .populate("publisher_id", "name slug logo country website")
+        .lean(),
+    ]);
 
     return res.json({
       success: true,
@@ -466,18 +478,17 @@ export const getBookById = async (req, res) => {
       ? { $or: [{ slug }, { _id: slug }], is_active: true }
       : { slug, is_active: true };
 
-    // NEW: increment views on detail fetch
-    const book = await Book.findOneAndUpdate(
-      query,
-      { $inc: { views: 1 } },
-      { new: true }
-    )
+    // Fetch book first, then fire-and-forget the views increment (don't block response)
+    const book = await Book.findOne(query)
       .populate("publisher_id", "name slug logo country website")
       .lean();
 
     if (!book) {
       return res.status(404).json({ success: false, message: "Book not found" });
     }
+
+    // Increment views in the background — non-blocking
+    Book.updateOne({ _id: book._id }, { $inc: { views: 1 } }).catch(() => {});
 
     return res.json({ success: true, data: book });
   } catch (error) {
@@ -767,6 +778,7 @@ export const getFeaturedBooks = async (req, res) => {
   try {
     const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
     const books = await Book.find({ is_active: true, is_featured: true })
+      .select({ description: 0, meta_description: 0, meta_keywords: 0, file_url: 0 })
       .sort({ updated_at: -1 })
       .limit(limit)
       .populate("publisher_id", "name slug logo country website")
@@ -794,6 +806,7 @@ export const getTrendingBooks = async (req, res) => {
     }
 
     const books = await Book.find(filter)
+      .select({ description: 0, meta_description: 0, meta_keywords: 0, file_url: 0 })
       .sort({ rating: -1, num_reviews: -1, updated_at: -1 })
       .limit(limit)
       .populate("publisher_id", "name slug logo country website")
@@ -820,6 +833,7 @@ export const getOnSaleBooks = async (req, res) => {
   try {
     const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
     const books = await Book.find({ is_active: true, is_on_sale: true })
+      .select({ description: 0, meta_description: 0, meta_keywords: 0, file_url: 0 })
       .sort({ updated_at: -1 })
       .limit(limit)
       .populate("publisher_id", "name slug logo country website")
@@ -835,6 +849,7 @@ export const getMostViewedBooks = async (req, res) => {
   try {
     const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
     const books = await Book.find({ is_active: true })
+      .select({ description: 0, meta_description: 0, meta_keywords: 0, file_url: 0 })
       .sort({ views: -1, updated_at: -1 })
       .limit(limit)
       .populate("publisher_id", "name slug logo country website")
@@ -850,6 +865,7 @@ export const getDealsOfTheWeek = async (req, res) => {
   try {
     const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
     const books = await Book.find({ is_active: true, is_deal_of_the_week: true })
+      .select({ description: 0, meta_description: 0, meta_keywords: 0, file_url: 0 })
       .sort({ updated_at: -1 })
       .limit(limit)
       .populate("publisher_id", "name slug logo country website")

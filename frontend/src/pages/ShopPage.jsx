@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { booksAPI } from "../api/book-api.js";
 import { Link } from "react-router-dom";
 import ButtonFill from "@/Button/ButtonFill";
@@ -6,8 +6,6 @@ import BookCard from "@/components/categories/BookCard";
 import { useWishlist } from "@/context/WishlistContext.jsx";
 import { useTranslation } from "react-i18next";
 
-const INITIAL_LIMIT = 10;
-const LOAD_MORE_COUNT = 5;
 const DEBOUNCE_MS = 250;
 
 // Base URL for images served by backend
@@ -57,9 +55,9 @@ const ShopPage = () => {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  const [visibleCount, setVisibleCount] = useState(INITIAL_LIMIT);
-  // Cart add state is handled inside BookCard
+  const [totalBooks, setTotalBooks] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   // 🔎 Search state
   const [searchInput, setSearchInput] = useState("");
@@ -69,14 +67,21 @@ const ShopPage = () => {
 
   const viewMode = "grid";
 
-  // Load books
+  // Load books from server (with search and pagination)
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await booksAPI.list({ limit: 100000, sort: "-created_at" });
+        const params = {
+          limit: PAGE_SIZE,
+          page: currentPage,
+          sort: "-created_at",
+        };
+        if (query) params.search = query;
+        const res = await booksAPI.list(params);
         const data = res?.data || [];
         setBooks(data);
+        setTotalBooks(res?.pagination?.total || data.length);
       } catch (e) {
         setError(e?.message || "Failed to load books");
       } finally {
@@ -84,49 +89,18 @@ const ShopPage = () => {
       }
     };
     load();
-  }, []);
-
-  // No wishlist preload required here; BookCard uses WishlistContext
+  }, [query, currentPage]);
 
   // ⏱️ Debounce the search input
   useEffect(() => {
-    const t = setTimeout(() => setQuery(searchInput.trim()), DEBOUNCE_MS);
+    const t = setTimeout(() => {
+      setQuery(searchInput.trim());
+      setCurrentPage(1); // reset to page 1 on new search
+    }, DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // 📚 Filtered books (title, author, isbn, tags)
-  const filteredBooks = useMemo(() => {
-    if (!query) return books;
-    const q = query.toLowerCase();
-    return (books || []).filter((b) => {
-      const title = (b?.title || "").toLowerCase();
-      const author = (b?.author || "").toLowerCase();
-      const isbn = (b?.isbn || "").toLowerCase();
-      const tags = Array.isArray(b?.tags) ? b.tags.join(" ").toLowerCase() : "";
-      return (
-        title.includes(q) ||
-        author.includes(q) ||
-        isbn.includes(q) ||
-        tags.includes(q)
-      );
-    });
-  }, [books, query]);
-
-  // Keep pagination sensible when searching
-  useEffect(() => {
-    setVisibleCount(INITIAL_LIMIT);
-  }, [query]);
-
-  const handleShowMore = () => {
-    setVisibleCount((prev) =>
-      Math.min(prev + LOAD_MORE_COUNT, filteredBooks.length)
-    );
-  };
-  const handleShowLess = () => setVisibleCount(INITIAL_LIMIT);
-
-  // Add-to-cart is encapsulated in BookCard
-
-  // No local wishlist toggle handler; BookCard uses WishlistContext
+  const totalPages = Math.ceil(totalBooks / PAGE_SIZE) || 1;
 
   if (loading)
     return (
@@ -160,8 +134,6 @@ const ShopPage = () => {
       </div>
     );
 
-  const visibleBooks = filteredBooks.slice(0, visibleCount);
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
       {/* header */}
@@ -173,13 +145,13 @@ const ShopPage = () => {
             {t('common:shop.discoverCollection')}
             {query ? (
               <span className="ml-2 text-gray-500">
-                • {filteredBooks.length} {filteredBooks.length === 1 ? t('common:shop.results') : t('common:shop.resultsPlural')} {t('common:shop.for')}
+                • {totalBooks} {totalBooks === 1 ? t('common:shop.results') : t('common:shop.resultsPlural')} {t('common:shop.for')}
                 <span className="ml-1 font-medium text-gray-700">
                   "{query}"
                 </span>
               </span>
             ) : (
-              <span className="ml-2 text-gray-500">• {books.length} {t('common:shop.total')}</span>
+              <span className="ml-2 text-gray-500">• {totalBooks} {t('common:shop.total')}</span>
             )}
           </p>
         </div>
@@ -226,13 +198,13 @@ const ShopPage = () => {
         </div>
       </div>
 
-      {visibleBooks.length === 0 ? (
+      {books.length === 0 ? (
         <p className="mt-8 min-h-70 text-red-500">
           {query ? t('common:shop.noSearchResults') : t('common:shop.noBooksFound')}
         </p>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mt-8">
-          {visibleBooks.map((book) => {
+          {books.map((book) => {
             const id = book?._id || book?.id;
             // Normalize numeric fields to ensure BookCard formatting works
             const normalized = {
@@ -256,23 +228,51 @@ const ShopPage = () => {
         </div>
       )}
 
-      {filteredBooks.length > INITIAL_LIMIT && (
-        <div className="flex flex-col sm:flex-row items-center gap-2 mt-6 justify-center">
-          {visibleCount < filteredBooks.length ? (
-            <button
-              onClick={handleShowMore}
-              className="w-full sm:w-auto px-4 py-2 rounded-md bg-black text-white hover:bg-black/90"
-            >
-              {t('common:shop.showMore')}
-            </button>
-          ) : (
-            <button
-              onClick={handleShowLess}
-              className="w-full sm:w-auto px-4 py-2 rounded-md bg-gray-200 text-gray-900 hover:bg-gray-300"
-            >
-              {t('common:shop.showLess')}
-            </button>
-          )}
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-8">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage <= 1}
+            className="px-3 py-2 rounded-md border border-gray-300 text-sm disabled:opacity-40 hover:bg-gray-100"
+          >
+            ← Prev
+          </button>
+
+          {/* Page numbers */}
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            let pageNum;
+            if (totalPages <= 5) {
+              pageNum = i + 1;
+            } else if (currentPage <= 3) {
+              pageNum = i + 1;
+            } else if (currentPage >= totalPages - 2) {
+              pageNum = totalPages - 4 + i;
+            } else {
+              pageNum = currentPage - 2 + i;
+            }
+            return (
+              <button
+                key={pageNum}
+                onClick={() => setCurrentPage(pageNum)}
+                className={`px-3 py-2 rounded-md text-sm border ${
+                  pageNum === currentPage
+                    ? "bg-black text-white border-black"
+                    : "border-gray-300 hover:bg-gray-100"
+                }`}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage >= totalPages}
+            className="px-3 py-2 rounded-md border border-gray-300 text-sm disabled:opacity-40 hover:bg-gray-100"
+          >
+            Next →
+          </button>
         </div>
       )}
     </div>
