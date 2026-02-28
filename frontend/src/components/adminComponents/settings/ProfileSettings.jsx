@@ -69,7 +69,7 @@ const ProfileSettings = () => {
         payload.password = pwd.next;
       }
 
-      const userRes = await fetch("/api/settings/profile", {
+      const userRes = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/settings/profile`, {
         method: "PUT",
         credentials: "include",
         headers: {

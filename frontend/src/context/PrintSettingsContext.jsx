@@ -21,7 +21,7 @@ export const PrintSettingsProvider = ({ children }) => {
 
     const fetchSettings = async () => {
       try {
-        const res = await fetch("/api/settings/print-config", {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/settings/print-config`, {
           signal: abortController.signal,
         });
         

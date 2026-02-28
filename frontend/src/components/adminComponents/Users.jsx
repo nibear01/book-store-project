@@ -239,7 +239,8 @@ const Users = () => {
       setCreating(true);
 
       // 1) Create the user via public register endpoint
-      const res = await fetch("/api/users/register", {
+      const API_BASE_URL = `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api`;
+      const res = await fetch(`${API_BASE_URL}/users/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

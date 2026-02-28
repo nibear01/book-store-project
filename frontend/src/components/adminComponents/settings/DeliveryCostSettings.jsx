@@ -13,7 +13,7 @@ const DeliveryCostSettings = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/settings/delivery-cost");
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/settings/delivery-cost`);
         const data = await res.json();
         if (data.success && data.data) {
           setDeliveryCost({
@@ -33,7 +33,7 @@ const DeliveryCostSettings = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("/api/settings/delivery-cost", {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/settings/delivery-cost`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

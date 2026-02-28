@@ -13,7 +13,7 @@ const PriceRangeSettings = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/settings/price-range");
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/settings/price-range`);
         const data = await res.json();
         if (data.success && data.data) {
           setPriceRangeSetting({
@@ -33,7 +33,7 @@ const PriceRangeSettings = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("/api/settings/price-range", {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/settings/price-range`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

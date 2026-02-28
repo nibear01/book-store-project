@@ -86,7 +86,7 @@ const AddEditBookModal = ({
     let alive = true;
     (async () => {
       try {
-        const res = await fetch("/api/settings/print-config");
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/settings/print-config`);
         const data = await res.json();
         if (alive && res.ok && data.success && data.data) setPrintSettings(data.data);
       } catch {

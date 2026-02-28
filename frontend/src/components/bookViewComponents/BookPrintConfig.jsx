@@ -61,7 +61,7 @@ const BookPrintConfig = ({ basePrice = 0, pages = 0, value, onChange }) => {
     let alive = true;
     (async () => {
       try {
-        const res = await fetch("/api/settings/print-config");
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/settings/print-config`);
         const data = await res.json();
         if (!alive) return;
         if (res.ok && data.success && data.data) {

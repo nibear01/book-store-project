@@ -21,7 +21,7 @@ const PrintOnDemandSettings = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/settings/print-config");
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/settings/print-config`);
         const data = await res.json();
         if (data.success && data.data) {
           setPrintCfg(data.data);
@@ -38,7 +38,7 @@ const PrintOnDemandSettings = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("/api/settings/print-config", {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/settings/print-config`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

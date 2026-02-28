@@ -130,7 +130,7 @@ const AuthorRequestForm = () => {
     if (!emailLooksValid || sending || cooldown > 0 || emailVerified) return;
     setSending(true);
     try {
-      const res = await fetch("/api/author-requests/otp/send", {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/author-requests/otp/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: form.email }),
@@ -155,7 +155,7 @@ const AuthorRequestForm = () => {
     if (!otpCode.trim() || verifying) return;
     setVerifying(true);
     try {
-      const res = await fetch("/api/author-requests/otp/verify", {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/author-requests/otp/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: form.email, code: otpCode.trim() }),
@@ -181,7 +181,7 @@ const AuthorRequestForm = () => {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/author-requests/submit", {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/author-requests/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

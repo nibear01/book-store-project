@@ -133,7 +133,7 @@ const Settings = () => {
         fd.append("password", pwd.next);
       }
 
-      const res = await fetch(`/api/users/${user?._id}`, {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/users/${user?._id}`, {
         method: "PUT",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: fd,
@@ -172,7 +172,7 @@ const Settings = () => {
         try {
           const fd2 = new FormData();
           fd2.append("favicon", faviconFile);
-          const res2 = await fetch(`/api/admin/favicon`, {
+          const res2 = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/admin/favicon`, {
             method: "POST",
             headers: token ? { Authorization: `Bearer ${token}` } : {},
             body: fd2,
@@ -220,7 +220,7 @@ const Settings = () => {
       if (platform.logoFile) {
         const fd = new FormData();
         fd.append("logo", platform.logoFile);
-        const r = await fetch("/api/admin/logo", {
+        const r = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/admin/logo`, {
           method: "POST",
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: fd,
@@ -234,7 +234,7 @@ const Settings = () => {
       if (faviconFile) {
         const fd2 = new FormData();
         fd2.append("favicon", faviconFile);
-        const r2 = await fetch("/api/admin/favicon", {
+        const r2 = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/admin/favicon`, {
           method: "POST",
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: fd2,
@@ -255,7 +255,7 @@ const Settings = () => {
 
       // 3) Save site settings (siteName + socials) - optional backend endpoint
       try {
-        const res = await fetch("/api/admin/platform", {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/admin/platform`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -291,7 +291,7 @@ const Settings = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/settings/price-range");
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/settings/price-range`);
         const data = await res.json();
         if (res.ok && data.success && data.data) {
           setPriceRangeSetting({
@@ -321,7 +321,7 @@ const Settings = () => {
         min: priceRangeSetting.min,
         max: priceRangeSetting.max,
       });
-      const res = await fetch("/api/settings/price-range", {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/settings/price-range`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
