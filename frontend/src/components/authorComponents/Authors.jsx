@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import ButtonFill from "@/Button/ButtonFill";
 import { authorAPI } from "@/api/author-api";
@@ -166,7 +166,7 @@ const Authors = () => {
           ))}
         </div>
       ) : visibleAuthors.length === 0 ? (
-        <p className="mt-6 text-gray-600">
+        <p className="mt-6 h-100 text-gray-600">
           {query ? t('authors.noAuthorsMatched') : t('authors.noAuthorsFound')}
         </p>
       ) : (

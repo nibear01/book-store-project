@@ -12,6 +12,167 @@ const toNumber = (val, def) => {
   return Number.isFinite(n) ? n : def;
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CURSOR-BASED PAGINATION HELPERS (Efficient for 10k+ books)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Encodes cursor object to base64 string for safe transmission
+ * @param {Object} cursorObj - Object with cursor field values
+ * @returns {string} Base64 encoded cursor
+ */
+const encodeCursor = (cursorObj) => {
+  if (!cursorObj) return null;
+  return Buffer.from(JSON.stringify(cursorObj)).toString("base64");
+};
+
+/**
+ * Decodes base64 cursor string back to object
+ * @param {string} cursorStr - Base64 encoded cursor
+ * @returns {Object} Decoded cursor object
+ */
+const decodeCursor = (cursorStr) => {
+  if (!cursorStr) return null;
+  try {
+    return JSON.parse(Buffer.from(cursorStr, "base64").toString());
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Builds MongoDB query condition for cursor-based pagination
+ * Uses compound cursor to handle ties and prevent duplicates
+ * @param {Object} cursor - Decoded cursor object with field values
+ * @param {Array<string>} sortFields - Sort field names in order (e.g., ['created_at', '_id'])
+ * @param {Object} sortSpec - Sort specification (e.g., {created_at: -1, _id: -1})
+ * @returns {Object} MongoDB $and condition
+ */
+const buildCursorQuery = (cursor, sortFields, sortSpec) => {
+  if (!cursor || !sortFields.length) return {};
+
+  const conditions = [];
+
+  for (let i = 0; i < sortFields.length; i++) {
+    const field = sortFields[i];
+    const direction = sortSpec[field];
+    const value = cursor[field];
+
+    // Build condition for this level of the compound cursor
+    const cond = {};
+
+    if (i === 0) {
+      // First field: use comparison
+      cond[field] = direction === -1 ? { $lt: value } : { $gt: value };
+    } else {
+      // Tie-breaker fields: all previous fields must be equal
+      const $and = [];
+      for (let j = 0; j < i; j++) {
+        const prevField = sortFields[j];
+        $and.push({ [prevField]: cursor[prevField] });
+      }
+      // And this field must be less/greater
+      cond[field] = direction === -1 ? { $lt: value } : { $gt: value };
+      $and.push(cond);
+      conditions.push({ $and });
+      continue;
+    }
+
+    conditions.push(cond);
+  }
+
+  return conditions.length ? { $or: conditions } : {};
+};
+
+/**
+ * Execute paginated query using cursor-based pagination
+ * @param {Object} query - MongoDB filter
+ * @param {Object} options - Pagination options
+ * @param {number} options.limit - Results per page
+ * @param {string} options.cursor - Base64 encoded cursor (optional)
+ * @param {Array<string>} options.sortFields - Field names for sorting
+ * @param {Object} options.sortSpec - Sort specification
+ * @param {Object} options.projection - Field projection
+ * @param {string} options.populatePath - Path to populate (optional)
+ * @param {string} options.populateSelect - Fields to select from populated doc (optional)
+ * @returns {Promise<{data, hasNextPage, nextCursor, previousCursor}>}
+ */
+const paginateCursor = async (
+  query,
+  {
+    limit = 20,
+    cursor = null,
+    sortFields = ["created_at", "_id"],
+    sortSpec = { created_at: -1, _id: -1 },
+    projection = {},
+    populatePath = null,
+    populateSelect = null,
+  },
+) => {
+  const l = Math.min(5000, Math.max(1, limit));
+
+  // Build cursor condition
+  const decodedCursor = decodeCursor(cursor);
+  const cursorCondition = buildCursorQuery(decodedCursor, sortFields, sortSpec);
+
+  // Merge cursor condition with base query
+  const finalQuery = cursorCondition ? { ...query, ...cursorCondition } : query;
+
+  // Fetch l+1 to detect if there's a next page
+  let queryBuilder = Book.find(finalQuery);
+
+  if (Object.keys(projection).length) {
+    queryBuilder = queryBuilder.select(projection);
+  }
+
+  queryBuilder = queryBuilder
+    .sort(sortSpec)
+    .limit(l + 1)
+    .lean();
+
+  if (populatePath) {
+    queryBuilder = queryBuilder.populate(
+      populatePath,
+      populateSelect || "name slug",
+    );
+  }
+
+  const results = await queryBuilder;
+
+  // Check if there's a next page
+  const hasNextPage = results.length > l;
+  const data = hasNextPage ? results.slice(0, l) : results;
+
+  // Build next cursor from last document
+  let nextCursor = null;
+  if (hasNextPage && data.length > 0) {
+    const lastDoc = data[data.length - 1];
+    const cursorObj = {};
+    for (const field of sortFields) {
+      cursorObj[field] = lastDoc[field];
+    }
+    nextCursor = encodeCursor(cursorObj);
+  }
+
+  // Build previous cursor from first document
+  let previousCursor = null;
+  if (decodedCursor && data.length > 0) {
+    const firstDoc = data[0];
+    const cursorObj = {};
+    for (const field of sortFields) {
+      cursorObj[field] = firstDoc[field];
+    }
+    previousCursor = encodeCursor(cursorObj);
+  }
+
+  return {
+    data,
+    hasNextPage,
+    nextCursor,
+    previousCursor,
+  };
+};
+
 // Slug helpers
 const slugify = (s = "") =>
   String(s)
@@ -68,7 +229,10 @@ const deleteLocalFilesSafe = async (paths = []) => {
 // Helper: auto-assign publisher based on name, ID, or publisher_id (6-digit)
 const assignPublisher = async (bookData) => {
   // Priority 1: If publisher_id is an ObjectId, use it directly
-  if (bookData.publisher_id && mongoose.isValidObjectId(bookData.publisher_id)) {
+  if (
+    bookData.publisher_id &&
+    mongoose.isValidObjectId(bookData.publisher_id)
+  ) {
     const pub = await Publisher.findById(bookData.publisher_id);
     if (pub) {
       bookData.publisher = pub.name;
@@ -78,12 +242,15 @@ const assignPublisher = async (bookData) => {
   }
 
   // Priority 2: If publisher_id is a 6-digit string, search by publisher_id field
-  if (bookData.publisher_id && /^\d{6}$/.test(String(bookData.publisher_id).trim())) {
-    const pub = await Publisher.findOne({ 
+  if (
+    bookData.publisher_id &&
+    /^\d{6}$/.test(String(bookData.publisher_id).trim())
+  ) {
+    const pub = await Publisher.findOne({
       publisher_id: String(bookData.publisher_id).trim(),
-      is_active: true 
+      is_active: true,
     });
-    
+
     if (pub) {
       bookData.publisher = pub.name;
       bookData.publisher_id = pub._id;
@@ -94,27 +261,32 @@ const assignPublisher = async (bookData) => {
   // Priority 3: If publisher string looks like a 6-digit ID, search by publisher_id field
   if (bookData.publisher && typeof bookData.publisher === "string") {
     const publisherStr = bookData.publisher.trim();
-    
+
     // Check if it's a 6-digit publisher_id
     if (/^\d{6}$/.test(publisherStr)) {
-      const pub = await Publisher.findOne({ 
+      const pub = await Publisher.findOne({
         publisher_id: publisherStr,
-        is_active: true 
+        is_active: true,
       });
-      
+
       if (pub) {
         bookData.publisher = pub.name;
         bookData.publisher_id = pub._id;
         return;
       }
     }
-    
+
     // Priority 4: Try to find by publisher name
-    const pub = await Publisher.findOne({ 
-      name: { $regex: new RegExp(`^${publisherStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") },
-      is_active: true 
+    const pub = await Publisher.findOne({
+      name: {
+        $regex: new RegExp(
+          `^${publisherStr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+          "i",
+        ),
+      },
+      is_active: true,
     });
-    
+
     if (pub) {
       bookData.publisher = pub.name;
       bookData.publisher_id = pub._id;
@@ -148,9 +320,9 @@ const pickUpdatableFields = (payload = {}) => {
     "meta_title",
     "meta_description",
     "meta_keywords",
-    "publisher",   // added (legacy string field)
+    "publisher", // added (legacy string field)
     "publisher_id", // added (reference to Publisher model)
-    "pages",       // added
+    "pages", // added
     "isPrintOnDemand", // added
     "is_on_sale",
     "sale_price",
@@ -172,7 +344,9 @@ const pickUpdatableFields = (payload = {}) => {
         .filter(Boolean);
     } else if (typeof out.genre === "string") {
       // support comma-separated or single
-      const parts = out.genre.includes(",") ? out.genre.split(",") : [out.genre];
+      const parts = out.genre.includes(",")
+        ? out.genre.split(",")
+        : [out.genre];
       out.genre = parts.map((v) => v.trim()).filter(Boolean);
     } else {
       out.genre = [];
@@ -199,7 +373,9 @@ const pickUpdatableFields = (payload = {}) => {
   const toBool = (v) => {
     if (typeof v === "boolean") return v;
     if (typeof v === "number") return v !== 0;
-    const s = String(v ?? "").trim().toLowerCase();
+    const s = String(v ?? "")
+      .trim()
+      .toLowerCase();
     if (!s) return false;
     if (s === "true" || s === "1" || s === "yes" || s === "y") return true;
     if (s === "false" || s === "0" || s === "no" || s === "n") return false;
@@ -246,9 +422,11 @@ const pickUpdatableFields = (payload = {}) => {
   if (out.publisher_id !== undefined && out.publisher_id) {
     const isObjectId = mongoose.isValidObjectId(out.publisher_id);
     const is6DigitId = /^\d{6}$/.test(String(out.publisher_id).trim());
-    
+
     if (!isObjectId && !is6DigitId) {
-      throw new Error("Invalid publisher_id: must be a valid ObjectId or 6-digit publisher ID");
+      throw new Error(
+        "Invalid publisher_id: must be a valid ObjectId or 6-digit publisher ID",
+      );
     }
   }
 
@@ -265,7 +443,8 @@ const pickUpdatableFields = (payload = {}) => {
   }
   if (out.rating !== undefined) {
     const r = Number(out.rating);
-    if (!Number.isFinite(r) || r < 0 || r > 5) throw new Error("Invalid rating (0-5)");
+    if (!Number.isFinite(r) || r < 0 || r > 5)
+      throw new Error("Invalid rating (0-5)");
     out.rating = r;
   }
   if (out.num_reviews !== undefined) {
@@ -315,12 +494,19 @@ const pickUpdatableFields = (payload = {}) => {
   return out;
 };
 
-// GET /api/books
+// GET /api/books (CURSOR-BASED PAGINATION)
+// Query params:
+//   - limit: Results per page (default 20, max 5000)
+//   - cursor: Base64 encoded cursor for pagination (from nextCursor of previous response)
+//   - sort: Sort field & direction (e.g., "-created_at", "price", "-rating") - changes cursor key!
+//   - search, genre, author, language, minPrice, maxPrice, minRating, inStock, onSale, deals, minViews
+//   - status: "active" | "inactive" | "all" (default: "active")
+//   - (DEPRECATED) page, limit: Use cursor instead for better performance
 export const getBooks = async (req, res) => {
   try {
     const {
-      page = 1,
-      limit = 10000000,
+      limit,
+      cursor,
       search,
       genre,
       author,
@@ -328,20 +514,20 @@ export const getBooks = async (req, res) => {
       minPrice,
       maxPrice,
       sort, // e.g. "-created_at", "price", "-rating"
-      minRating,         // NEW: filter by minimum rating
-      inStock,           // NEW: filter by stock availability ("true" | "false")
-      onSale,            // NEW: filter on sale books
-      deals,             // NEW: filter deals of the week
-      minViews,          // NEW: filter by minimum views
-      // NEW: control is_active filtering
-      status, // "all" | "active" | "inactive"
-      isbn: isbnQuery, // added: direct isbn query param
+      minRating,
+      inStock,
+      onSale,
+      deals,
+      minViews,
+      status,
+      isbn: isbnQuery,
+      // DEPRECATED: offset-based params (fallback to cursor pagination)
+      page,
     } = req.query;
 
-    const p = Math.max(1, toNumber(page, 1));
     const l = Math.min(5000, Math.max(1, toNumber(limit, 20)));
 
-    // CHANGED: status-aware active filter
+    // Build filter
     const filter = {};
     const statusVal = String(status || "active").toLowerCase();
     if (statusVal === "inactive") filter.is_active = false;
@@ -351,47 +537,46 @@ export const getBooks = async (req, res) => {
 
     if (search && String(search).trim()) {
       const term = String(search).trim();
-      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       filter.$or = [
         { title: { $regex: escaped, $options: "i" } },
         { author: { $regex: escaped, $options: "i" } },
         { isbn: { $regex: escaped, $options: "i" } },
       ];
     }
-    // Works with array-field as well (matches any element)
     if (genre) filter.genre = { $regex: String(genre), $options: "i" };
     if (author) filter.author = { $regex: String(author), $options: "i" };
     if (language) filter.language = { $regex: String(language), $options: "i" };
 
-    // NEW: direct isbn filter
     if (isbnQuery && String(isbnQuery).trim()) {
       filter.isbn = { $regex: String(isbnQuery).trim(), $options: "i" };
     }
 
-    // NEW: rating filter
     const minR = Number(minRating);
     if (Number.isFinite(minR) && minR >= 0) {
       filter.rating = { $gte: minR };
     }
 
-    // NEW: stock availability
     if (typeof inStock !== "undefined") {
       const v = String(inStock).toLowerCase();
       if (v === "true") filter.stock = { $gt: 0 };
       else if (v === "false") filter.stock = 0;
     }
 
-    // NEW: on sale filter
-    if (typeof onSale !== "undefined" && String(onSale).toLowerCase() === "true") {
+    if (
+      typeof onSale !== "undefined" &&
+      String(onSale).toLowerCase() === "true"
+    ) {
       filter.is_on_sale = true;
     }
 
-    // NEW: deals filter
-    if (typeof deals !== "undefined" && String(deals).toLowerCase() === "true") {
+    if (
+      typeof deals !== "undefined" &&
+      String(deals).toLowerCase() === "true"
+    ) {
       filter.is_deal_of_the_week = true;
     }
 
-    // NEW: min views filter
     const mv = Number(minViews);
     if (Number.isFinite(mv) && mv >= 0) {
       filter.views = { $gte: mv };
@@ -404,6 +589,7 @@ export const getBooks = async (req, res) => {
     if (Number.isFinite(maxP)) priceFilter.$lte = maxP;
     if (Object.keys(priceFilter).length) filter.price = priceFilter;
 
+    // Determine sort & cursor fields
     const sortable = new Set([
       "created_at",
       "updated_at",
@@ -413,23 +599,25 @@ export const getBooks = async (req, res) => {
       "stock",
       "published_date",
       "title",
-      "is_featured", // NEW
-      // NEW
+      "is_featured",
       "views",
-      "sale_price",
       "is_on_sale",
     ]);
-    let sortSpec = { created_at: -1 };
+
+    let sortSpec = { created_at: -1, _id: -1 }; // Default with _id tiebreaker
+    let sortFields = ["created_at", "_id"];
+
     if (sort && typeof sort === "string") {
       const s = String(sort);
       const desc = s.startsWith("-");
       const field = desc ? s.slice(1) : s;
       if (sortable.has(field)) {
-        sortSpec = { [field]: desc ? -1 : 1 };
+        sortSpec = { [field]: desc ? -1 : 1, _id: -1 };
+        sortFields = [field, "_id"];
       }
     }
 
-    // Light projection for list view — exclude heavy fields
+    // Light projection
     const listProjection = {
       description: 0,
       meta_description: 0,
@@ -437,30 +625,70 @@ export const getBooks = async (req, res) => {
       file_url: 0,
     };
 
-    // Run count and find in parallel
-    const [total, books] = await Promise.all([
-      Book.countDocuments(filter),
-      Book.find(filter)
-        .select(listProjection)
-        .sort(sortSpec)
-        .skip((p - 1) * l)
-        .limit(l)
-        .populate("publisher_id", "name slug logo country website")
-        .lean(),
-    ]);
+    // Use cursor pagination (or fallback to skip/limit if page param exists)
+    if (page && !cursor) {
+      // DEPRECATED PATH: Fallback for old clients using page param
+      const p = Math.max(1, toNumber(page, 1));
+      const [total, books] = await Promise.all([
+        Book.countDocuments(filter),
+        Book.find(filter)
+          .select(listProjection)
+          .sort(sortSpec)
+          .skip((p - 1) * l)
+          .limit(l)
+          .populate("publisher_id", "name slug logo country website")
+          .lean(),
+      ]);
+
+      return res.json({
+        success: true,
+        data: books,
+        pagination: {
+          total,
+          page: p,
+          pages: Math.ceil(total / l) || 1,
+          limit: l,
+          _note:
+            "Using deprecated offset pagination. Use 'cursor' param instead for better performance.",
+        },
+      });
+    }
+
+    // CURSOR-BASED PATH (preferred)
+    const {
+      data: books,
+      hasNextPage,
+      nextCursor,
+      previousCursor,
+    } = await paginateCursor(filter, {
+      limit: l,
+      cursor,
+      sortFields,
+      sortSpec,
+      projection: listProjection,
+      populatePath: "publisher_id",
+      populateSelect: "name slug logo country website",
+    });
 
     return res.json({
       success: true,
       data: books,
       pagination: {
-        total,
-        page: p,
-        pages: Math.ceil(total / l) || 1,
         limit: l,
+        hasNextPage,
+        hasPreviousPage: !!previousCursor,
+        nextCursor: nextCursor || null,
+        previousCursor: previousCursor || null,
       },
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to fetch books", error: error.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to fetch books",
+        error: error.message,
+      });
   }
 };
 
@@ -469,7 +697,9 @@ export const getBookById = async (req, res) => {
   try {
     const { slug } = req.params;
     if (!slug || typeof slug !== "string") {
-      return res.status(400).json({ success: false, message: "Invalid book slug" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid book slug" });
     }
 
     // Build query: if the param looks like a Mongo ObjectId, search by _id too
@@ -484,7 +714,9 @@ export const getBookById = async (req, res) => {
       .lean();
 
     if (!book) {
-      return res.status(404).json({ success: false, message: "Book not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Book not found" });
     }
 
     // Increment views in the background — non-blocking
@@ -492,7 +724,13 @@ export const getBookById = async (req, res) => {
 
     return res.json({ success: true, data: book });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to fetch book", error: error.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to fetch book",
+        error: error.message,
+      });
   }
 };
 
@@ -501,13 +739,19 @@ export const createBook = async (req, res) => {
   try {
     const { title, author, price, meta_title } = req.body || {};
     if (!title || !author) {
-      return res.status(400).json({ success: false, message: "Title and author are required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Title and author are required" });
     }
     if (price === undefined) {
-      return res.status(400).json({ success: false, message: "Price is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Price is required" });
     }
     if (!meta_title) {
-      return res.status(400).json({ success: false, message: "Meta title is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Meta title is required" });
     }
 
     const payload = pickUpdatableFields(req.body);
@@ -516,9 +760,9 @@ export const createBook = async (req, res) => {
     if (payload.isbn && payload.isbn.trim()) {
       const existingBook = await Book.findOne({ isbn: payload.isbn.trim() });
       if (existingBook) {
-        return res.status(400).json({ 
-          success: false, 
-          message: `A book with ISBN "${payload.isbn.trim()}" already exists` 
+        return res.status(400).json({
+          success: false,
+          message: `A book with ISBN "${payload.isbn.trim()}" already exists`,
         });
       }
     }
@@ -532,34 +776,56 @@ export const createBook = async (req, res) => {
     // NEW: enforce sale logic on create
     if (payload.is_on_sale) {
       if (payload.sale_price === undefined) {
-        return res.status(400).json({ success: false, message: "sale_price is required when is_on_sale is true" });
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "sale_price is required when is_on_sale is true",
+          });
       }
       if (!(payload.sale_price < payload.price)) {
-        return res.status(400).json({ success: false, message: "sale_price must be less than price" });
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "sale_price must be less than price",
+          });
       }
     }
 
     // Merge URL-based cover images from body (CSV import support)
     const body = req.body || {};
     const coverUrlSet = new Set(
-      Array.isArray(payload.cover_image) ? payload.cover_image.filter(Boolean) : []
+      Array.isArray(payload.cover_image)
+        ? payload.cover_image.filter(Boolean)
+        : [],
     );
 
     if (typeof body.cover_image === "string" && body.cover_image.trim()) {
       // If a single URL was provided in 'cover_image' as text (CSV), use it as-is
-      if (isAbsoluteUrl(body.cover_image.trim())) coverUrlSet.add(body.cover_image.trim());
+      if (isAbsoluteUrl(body.cover_image.trim()))
+        coverUrlSet.add(body.cover_image.trim());
     }
-    if (typeof body.cover_image_url === "string" && body.cover_image_url.trim()) {
+    if (
+      typeof body.cover_image_url === "string" &&
+      body.cover_image_url.trim()
+    ) {
       coverUrlSet.add(body.cover_image_url.trim());
     }
-    if (typeof body.cover_image_urls === "string" && body.cover_image_urls.trim()) {
+    if (
+      typeof body.cover_image_urls === "string" &&
+      body.cover_image_urls.trim()
+    ) {
       // Try JSON parse first, otherwise split by common separators
       let list = [];
       try {
         const parsed = JSON.parse(body.cover_image_urls);
         if (Array.isArray(parsed)) list = parsed;
       } catch {
-        list = body.cover_image_urls.split(/[|,\n]/).map((s) => s.trim()).filter(Boolean);
+        list = body.cover_image_urls
+          .split(/[|,\n]/)
+          .map((s) => s.trim())
+          .filter(Boolean);
       }
       for (const u of list) if (isAbsoluteUrl(u)) coverUrlSet.add(u);
     }
@@ -569,8 +835,12 @@ export const createBook = async (req, res) => {
     }
 
     // Merge uploaded files
-    const uploadedImages = Array.isArray(req.files?.cover_image) ? req.files.cover_image : [];
-    const uploadedBookFile = Array.isArray(req.files?.file_url) ? req.files.file_url[0] : undefined;
+    const uploadedImages = Array.isArray(req.files?.cover_image)
+      ? req.files.cover_image
+      : [];
+    const uploadedBookFile = Array.isArray(req.files?.file_url)
+      ? req.files.file_url[0]
+      : undefined;
 
     if (uploadedImages.length) {
       const files = uploadedImages.map((f) => toPublicPath(f)).filter(Boolean);
@@ -589,10 +859,9 @@ export const createBook = async (req, res) => {
 
     // Add book to publisher's books array if publisher_id exists
     if (book.publisher_id) {
-      await Publisher.findByIdAndUpdate(
-        book.publisher_id,
-        { $addToSet: { books: book._id } }
-      );
+      await Publisher.findByIdAndUpdate(book.publisher_id, {
+        $addToSet: { books: book._id },
+      });
     }
 
     const populated = await Book.findById(book._id)
@@ -601,8 +870,15 @@ export const createBook = async (req, res) => {
 
     return res.status(201).json({ success: true, data: populated });
   } catch (error) {
-    const code = error.message && error.message.startsWith("Invalid") ? 400 : 500;
-    return res.status(code).json({ success: false, message: "Failed to create book", error: error.message });
+    const code =
+      error.message && error.message.startsWith("Invalid") ? 400 : 500;
+    return res
+      .status(code)
+      .json({
+        success: false,
+        message: "Failed to create book",
+        error: error.message,
+      });
   }
 };
 
@@ -611,21 +887,23 @@ export const updateBook = async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ success: false, message: "Invalid book id" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid book id" });
     }
 
     const payload = pickUpdatableFields(req.body);
 
     // Check for duplicate ISBN if provided (excluding current book)
     if (payload.isbn && payload.isbn.trim()) {
-      const existingBook = await Book.findOne({ 
+      const existingBook = await Book.findOne({
         isbn: payload.isbn.trim(),
-        _id: { $ne: id }
+        _id: { $ne: id },
       });
       if (existingBook) {
-        return res.status(400).json({ 
-          success: false, 
-          message: `A book with ISBN "${payload.isbn.trim()}" already exists` 
+        return res.status(400).json({
+          success: false,
+          message: `A book with ISBN "${payload.isbn.trim()}" already exists`,
         });
       }
     }
@@ -636,31 +914,52 @@ export const updateBook = async (req, res) => {
     }
 
     // NEW: enforce sale logic when both are provided
-    if (payload.is_on_sale && payload.sale_price !== undefined && payload.price !== undefined) {
+    if (
+      payload.is_on_sale &&
+      payload.sale_price !== undefined &&
+      payload.price !== undefined
+    ) {
       if (!(payload.sale_price < payload.price)) {
-        return res.status(400).json({ success: false, message: "sale_price must be less than price" });
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "sale_price must be less than price",
+          });
       }
     }
 
     // Merge URL-based cover images from body (CSV/automation support)
     const body = req.body || {};
     const coverUrlSet = new Set(
-      Array.isArray(payload.cover_image) ? payload.cover_image.filter(Boolean) : []
+      Array.isArray(payload.cover_image)
+        ? payload.cover_image.filter(Boolean)
+        : [],
     );
 
     if (typeof body.cover_image === "string" && body.cover_image.trim()) {
-      if (isAbsoluteUrl(body.cover_image.trim())) coverUrlSet.add(body.cover_image.trim());
+      if (isAbsoluteUrl(body.cover_image.trim()))
+        coverUrlSet.add(body.cover_image.trim());
     }
-    if (typeof body.cover_image_url === "string" && body.cover_image_url.trim()) {
+    if (
+      typeof body.cover_image_url === "string" &&
+      body.cover_image_url.trim()
+    ) {
       coverUrlSet.add(body.cover_image_url.trim());
     }
-    if (typeof body.cover_image_urls === "string" && body.cover_image_urls.trim()) {
+    if (
+      typeof body.cover_image_urls === "string" &&
+      body.cover_image_urls.trim()
+    ) {
       let list = [];
       try {
         const parsed = JSON.parse(body.cover_image_urls);
         if (Array.isArray(parsed)) list = parsed;
       } catch {
-        list = body.cover_image_urls.split(/[|,\n]/).map((s) => s.trim()).filter(Boolean);
+        list = body.cover_image_urls
+          .split(/[|,\n]/)
+          .map((s) => s.trim())
+          .filter(Boolean);
       }
       for (const u of list) if (isAbsoluteUrl(u)) coverUrlSet.add(u);
     }
@@ -670,8 +969,12 @@ export const updateBook = async (req, res) => {
     }
 
     // Merge uploaded files
-    const uploadedImages = Array.isArray(req.files?.cover_image) ? req.files.cover_image : [];
-    const uploadedBookFile = Array.isArray(req.files?.file_url) ? req.files.file_url[0] : undefined;
+    const uploadedImages = Array.isArray(req.files?.cover_image)
+      ? req.files.cover_image
+      : [];
+    const uploadedBookFile = Array.isArray(req.files?.file_url)
+      ? req.files.file_url[0]
+      : undefined;
 
     if (uploadedImages.length) {
       const files = uploadedImages.map((f) => toPublicPath(f)).filter(Boolean);
@@ -688,29 +991,33 @@ export const updateBook = async (req, res) => {
     // Auto-assign publisher based on name or ID
     await assignPublisher(payload);
 
-    const updated = await Book.findByIdAndUpdate(id, { $set: payload }, { new: true });
+    const updated = await Book.findByIdAndUpdate(
+      id,
+      { $set: payload },
+      { new: true },
+    );
     if (!updated) {
-      return res.status(404).json({ success: false, message: "Book not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Book not found" });
     }
 
     // Update publisher's books array if publisher changed
     const newPublisherId = updated.publisher_id?.toString();
-    
+
     if (oldPublisherId !== newPublisherId) {
       // Remove from old publisher
       if (oldPublisherId) {
-        await Publisher.findByIdAndUpdate(
-          oldPublisherId,
-          { $pull: { books: id } }
-        );
+        await Publisher.findByIdAndUpdate(oldPublisherId, {
+          $pull: { books: id },
+        });
       }
-      
+
       // Add to new publisher
       if (newPublisherId) {
-        await Publisher.findByIdAndUpdate(
-          newPublisherId,
-          { $addToSet: { books: id } }
-        );
+        await Publisher.findByIdAndUpdate(newPublisherId, {
+          $addToSet: { books: id },
+        });
       }
     }
 
@@ -720,8 +1027,15 @@ export const updateBook = async (req, res) => {
 
     return res.json({ success: true, data: populated });
   } catch (error) {
-    const code = error.message && error.message.startsWith("Invalid") ? 400 : 500;
-    return res.status(code).json({ success: false, message: "Failed to update book", error: error.message });
+    const code =
+      error.message && error.message.startsWith("Invalid") ? 400 : 500;
+    return res
+      .status(code)
+      .json({
+        success: false,
+        message: "Failed to update book",
+        error: error.message,
+      });
   }
 };
 
@@ -733,7 +1047,9 @@ export const deleteBook = async (req, res) => {
     const { hard } = req.query;
 
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ success: false, message: "Invalid book id" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid book id" });
     }
 
     const doHardDelete = String(hard ?? "true").toLowerCase() !== "false";
@@ -741,60 +1057,119 @@ export const deleteBook = async (req, res) => {
     if (doHardDelete) {
       // Fetch doc first so we can delete assets
       const doc = await Book.findById(id).lean();
-      if (!doc) return res.status(404).json({ success: false, message: "Book not found" });
+      if (!doc)
+        return res
+          .status(404)
+          .json({ success: false, message: "Book not found" });
 
       // Collect asset paths (only local ones will be deleted)
       const assets = [];
       if (Array.isArray(doc.cover_image)) assets.push(...doc.cover_image);
-      else if (typeof doc.cover_image === "string") assets.push(doc.cover_image);
+      else if (typeof doc.cover_image === "string")
+        assets.push(doc.cover_image);
       if (doc.file_url) assets.push(doc.file_url);
 
       await deleteLocalFilesSafe(assets);
-      
+
       // Remove book from publisher's books array
       if (doc.publisher_id) {
-        await Publisher.findByIdAndUpdate(
-          doc.publisher_id,
-          { $pull: { books: id } }
-        );
+        await Publisher.findByIdAndUpdate(doc.publisher_id, {
+          $pull: { books: id },
+        });
       }
-      
+
       await Book.findByIdAndDelete(id);
 
       return res.json({ success: true, message: "Book permanently deleted" });
     }
 
     // Fallback: soft delete when explicitly requested with hard=false
-    const updated = await Book.findByIdAndUpdate(id, { $set: { is_active: false } }, { new: true });
-    if (!updated) return res.status(404).json({ success: false, message: "Book not found" });
-    return res.json({ success: true, message: "Book deactivated", data: updated });
+    const updated = await Book.findByIdAndUpdate(
+      id,
+      { $set: { is_active: false } },
+      { new: true },
+    );
+    if (!updated)
+      return res
+        .status(404)
+        .json({ success: false, message: "Book not found" });
+    return res.json({
+      success: true,
+      message: "Book deactivated",
+      data: updated,
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to delete book", error: error.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to delete book",
+        error: error.message,
+      });
   }
 };
 
-// GET /api/books/featured
+// GET /api/books/featured (CURSOR-BASED)
+// Query params: limit (max 5000), cursor
 export const getFeaturedBooks = async (req, res) => {
   try {
-    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
-    const books = await Book.find({ is_active: true, is_featured: true })
-      .select({ description: 0, meta_description: 0, meta_keywords: 0, file_url: 0 })
-      .sort({ updated_at: -1 })
-      .limit(limit)
-      .populate("publisher_id", "name slug logo country website")
-      .lean();
+    const limit = toNumber(req.query.limit, 10);
+    const cursor = req.query.cursor || null;
 
-    return res.json({ success: true, data: books, meta: { limit } });
+    const filter = { is_active: true, is_featured: true };
+    const sortSpec = { updated_at: -1, _id: -1 };
+    const sortFields = ["updated_at", "_id"];
+
+    const {
+      data: books,
+      hasNextPage,
+      nextCursor,
+      previousCursor,
+    } = await paginateCursor(filter, {
+      limit,
+      cursor,
+      sortFields,
+      sortSpec,
+      projection: {
+        description: 0,
+        meta_description: 0,
+        meta_keywords: 0,
+        file_url: 0,
+      },
+      populatePath: "publisher_id",
+      populateSelect: "name slug logo country website",
+    });
+
+    return res.json({
+      success: true,
+      data: books,
+      pagination: {
+        limit,
+        hasNextPage,
+        hasPreviousPage: !!previousCursor,
+        nextCursor: nextCursor || null,
+        previousCursor: previousCursor || null,
+      },
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to fetch featured books", error: error.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to fetch featured books",
+        error: error.message,
+      });
   }
 };
 
-// GET /api/books/trending
+// GET /api/books/trending (CURSOR-BASED)
+// Query params: limit (max 5000), cursor, days (default 30)
 export const getTrendingBooks = async (req, res) => {
   try {
-    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
+    const limit = toNumber(req.query.limit, 10);
+    const cursor = req.query.cursor || null;
     const days = Number(req.query.days);
+
     const filter = { is_active: true };
 
     if (Number.isFinite(days) && days > 0) {
@@ -805,74 +1180,261 @@ export const getTrendingBooks = async (req, res) => {
       filter.updated_at = { $gte: since };
     }
 
-    const books = await Book.find(filter)
-      .select({ description: 0, meta_description: 0, meta_keywords: 0, file_url: 0 })
-      .sort({ rating: -1, num_reviews: -1, updated_at: -1 })
-      .limit(limit)
-      .populate("publisher_id", "name slug logo country website")
-      .lean();
+    const sortSpec = { rating: -1, num_reviews: -1, updated_at: -1, _id: -1 };
+    const sortFields = ["rating", "num_reviews", "updated_at", "_id"];
 
-    return res.json({ success: true, data: books, meta: { limit, days: Number.isFinite(days) && days >= 0 ? days : 30 } });
+    const {
+      data: books,
+      hasNextPage,
+      nextCursor,
+      previousCursor,
+    } = await paginateCursor(filter, {
+      limit,
+      cursor,
+      sortFields,
+      sortSpec,
+      projection: {
+        description: 0,
+        meta_description: 0,
+        meta_keywords: 0,
+        file_url: 0,
+      },
+      populatePath: "publisher_id",
+      populateSelect: "name slug logo country website",
+    });
+
+    return res.json({
+      success: true,
+      data: books,
+      pagination: {
+        limit,
+        hasNextPage,
+        hasPreviousPage: !!previousCursor,
+        nextCursor: nextCursor || null,
+        previousCursor: previousCursor || null,
+      },
+      meta: { days: Number.isFinite(days) && days > 0 ? days : 30 },
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to fetch trending books", error: error.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to fetch trending books",
+        error: error.message,
+      });
   }
 };
 
-// Force listing by upload date (newest first)
+// GET /api/books/latest (CURSOR-BASED)
+// Query params: limit (max 5000), cursor
 export const getLatestBooks = async (req, res) => {
   try {
-    req.query.sort = "-created_at";
-    return getBooks(req, res);
+    const limit = toNumber(req.query.limit, 10);
+    const cursor = req.query.cursor || null;
+
+    const filter = { is_active: true };
+    const sortSpec = { created_at: -1, _id: -1 };
+    const sortFields = ["created_at", "_id"];
+
+    const {
+      data: books,
+      hasNextPage,
+      nextCursor,
+      previousCursor,
+    } = await paginateCursor(filter, {
+      limit,
+      cursor,
+      sortFields,
+      sortSpec,
+      projection: {
+        description: 0,
+        meta_description: 0,
+        meta_keywords: 0,
+        file_url: 0,
+      },
+      populatePath: "publisher_id",
+      populateSelect: "name slug logo country website",
+    });
+
+    return res.json({
+      success: true,
+      data: books,
+      pagination: {
+        limit,
+        hasNextPage,
+        hasPreviousPage: !!previousCursor,
+        nextCursor: nextCursor || null,
+        previousCursor: previousCursor || null,
+      },
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to fetch latest books", error: error.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to fetch latest books",
+        error: error.message,
+      });
   }
 };
 
-// NEW: GET /api/books/on-sale
+// GET /api/books/on-sale (CURSOR-BASED)
+// Query params: limit (max 5000), cursor
 export const getOnSaleBooks = async (req, res) => {
   try {
-    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
-    const books = await Book.find({ is_active: true, is_on_sale: true })
-      .select({ description: 0, meta_description: 0, meta_keywords: 0, file_url: 0 })
-      .sort({ updated_at: -1 })
-      .limit(limit)
-      .populate("publisher_id", "name slug logo country website")
-      .lean();
-    return res.json({ success: true, data: books, meta: { limit } });
+    const limit = toNumber(req.query.limit, 10);
+    const cursor = req.query.cursor || null;
+
+    const filter = { is_active: true, is_on_sale: true };
+    const sortSpec = { updated_at: -1, _id: -1 };
+    const sortFields = ["updated_at", "_id"];
+
+    const {
+      data: books,
+      hasNextPage,
+      nextCursor,
+      previousCursor,
+    } = await paginateCursor(filter, {
+      limit,
+      cursor,
+      sortFields,
+      sortSpec,
+      projection: {
+        description: 0,
+        meta_description: 0,
+        meta_keywords: 0,
+        file_url: 0,
+      },
+      populatePath: "publisher_id",
+      populateSelect: "name slug logo country website",
+    });
+
+    return res.json({
+      success: true,
+      data: books,
+      pagination: {
+        limit,
+        hasNextPage,
+        hasPreviousPage: !!previousCursor,
+        nextCursor: nextCursor || null,
+        previousCursor: previousCursor || null,
+      },
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to fetch on sale books", error: error.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to fetch on sale books",
+        error: error.message,
+      });
   }
 };
 
-// NEW: GET /api/books/most-viewed
+// GET /api/books/most-viewed (CURSOR-BASED)
+// Query params: limit (max 5000), cursor
 export const getMostViewedBooks = async (req, res) => {
   try {
-    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
-    const books = await Book.find({ is_active: true })
-      .select({ description: 0, meta_description: 0, meta_keywords: 0, file_url: 0 })
-      .sort({ views: -1, updated_at: -1 })
-      .limit(limit)
-      .populate("publisher_id", "name slug logo country website")
-      .lean();
-    return res.json({ success: true, data: books, meta: { limit } });
+    const limit = toNumber(req.query.limit, 10);
+    const cursor = req.query.cursor || null;
+
+    const filter = { is_active: true };
+    const sortSpec = { views: -1, updated_at: -1, _id: -1 };
+    const sortFields = ["views", "updated_at", "_id"];
+
+    const {
+      data: books,
+      hasNextPage,
+      nextCursor,
+      previousCursor,
+    } = await paginateCursor(filter, {
+      limit,
+      cursor,
+      sortFields,
+      sortSpec,
+      projection: {
+        description: 0,
+        meta_description: 0,
+        meta_keywords: 0,
+        file_url: 0,
+      },
+      populatePath: "publisher_id",
+      populateSelect: "name slug logo country website",
+    });
+
+    return res.json({
+      success: true,
+      data: books,
+      pagination: {
+        limit,
+        hasNextPage,
+        hasPreviousPage: !!previousCursor,
+        nextCursor: nextCursor || null,
+        previousCursor: previousCursor || null,
+      },
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to fetch most viewed books", error: error.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to fetch most viewed books",
+        error: error.message,
+      });
   }
 };
 
-// NEW: GET /api/books/deals
+// GET /api/books/deals (CURSOR-BASED)
+// Query params: limit (max 5000), cursor
 export const getDealsOfTheWeek = async (req, res) => {
   try {
-    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
-    const books = await Book.find({ is_active: true, is_deal_of_the_week: true })
-      .select({ description: 0, meta_description: 0, meta_keywords: 0, file_url: 0 })
-      .sort({ updated_at: -1 })
-      .limit(limit)
-      .populate("publisher_id", "name slug logo country website")
-      .lean();
-    return res.json({ success: true, data: books, meta: { limit } });
+    const limit = toNumber(req.query.limit, 10);
+    const cursor = req.query.cursor || null;
+
+    const filter = { is_active: true, is_deal_of_the_week: true };
+    const sortSpec = { updated_at: -1, _id: -1 };
+    const sortFields = ["updated_at", "_id"];
+
+    const {
+      data: books,
+      hasNextPage,
+      nextCursor,
+      previousCursor,
+    } = await paginateCursor(filter, {
+      limit,
+      cursor,
+      sortFields,
+      sortSpec,
+      projection: {
+        description: 0,
+        meta_description: 0,
+        meta_keywords: 0,
+        file_url: 0,
+      },
+      populatePath: "publisher_id",
+      populateSelect: "name slug logo country website",
+    });
+
+    return res.json({
+      success: true,
+      data: books,
+      pagination: {
+        limit,
+        hasNextPage,
+        hasPreviousPage: !!previousCursor,
+        nextCursor: nextCursor || null,
+        previousCursor: previousCursor || null,
+      },
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to fetch deals of the week", error: error.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to fetch deals of the week",
+        error: error.message,
+      });
   }
 };
 
@@ -886,7 +1448,13 @@ export const getBooksCount = async (req, res) => {
     ]);
     return res.json({ success: true, data: { total, active } });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to fetch books count", error: error.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to fetch books count",
+        error: error.message,
+      });
   }
 };
 
@@ -954,7 +1522,8 @@ export const bulkUploadAssets = async (req, res) => {
       for (let i = 0; i < arr.length; i += 1) {
         const f = arr[i];
         const dir = path.dirname(f.path);
-        const origExt = path.extname(f.originalname) || path.extname(f.filename) || "";
+        const origExt =
+          path.extname(f.originalname) || path.extname(f.filename) || "";
         const provided = renameMap[f.originalname] ?? namesByIndex[i];
 
         let desiredBase = provided ? sanitizeBaseName(String(provided)) : null;

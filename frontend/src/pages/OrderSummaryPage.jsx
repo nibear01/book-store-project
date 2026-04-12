@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getOrderById } from "../api/order-api";
+import { buildImageUrl } from "@/utils/imageUrlHelper";
 import { toast } from "react-toastify";
 import OrderSummarySkeleton from "../components/skeletons/OrderSummarySkeleton";
 import { useTranslation } from "react-i18next";
 
 const OrderSummaryPage = () => {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation("common");
   const navigate = useNavigate();
   const location = useLocation();
   const [order, setOrder] = useState(null);
@@ -53,16 +54,16 @@ const OrderSummaryPage = () => {
       <div className="max-w-4xl mx-auto px-4 py-10">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">
-            {t('orderSummary.orderNotFound')}
+            {t("orderSummary.orderNotFound")}
           </h1>
           <p className="text-gray-600 mb-6">
-            {error || t('orderSummary.orderNotFoundDesc')}
+            {error || t("orderSummary.orderNotFoundDesc")}
           </p>
           <button
             onClick={() => navigate("/")}
             className="bg-black text-white px-6 py-3 rounded-md hover:bg-gray-800 transition-colors"
           >
-            {t('shop.continueShopping')}
+            {t("shop.continueShopping")}
           </button>
         </div>
       </div>
@@ -159,16 +160,16 @@ const OrderSummaryPage = () => {
             </svg>
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            {t('orderSummary.orderPlaced')}
+            {t("orderSummary.orderPlaced")}
           </h1>
-          <p className="text-gray-600">
-            {t('orderSummary.thankYou')}
-          </p>
+          <p className="text-gray-600">{t("orderSummary.thankYou")}</p>
         </div>
 
         {/* Print Header - Only visible when printing */}
         <div className="print-header hidden print:block">
-          <h1 className="text-2xl font-bold mb-2">{t('orderSummary.orderConfirmation')}</h1>
+          <h1 className="text-2xl font-bold mb-2">
+            {t("orderSummary.orderConfirmation")}
+          </h1>
           <p className="text-lg">Order #{order.order_number}</p>
           <p className="text-gray-600">
             Placed on {formatDate(order.createdAt)}
@@ -191,7 +192,7 @@ const OrderSummaryPage = () => {
               <div className="mt-2 sm:mt-0 flex items-center gap-3">
                 <span
                   className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-                    order.order_status
+                    order.order_status,
                   )}`}
                 >
                   {order.order_status.charAt(0).toUpperCase() +
@@ -205,7 +206,7 @@ const OrderSummaryPage = () => {
             {/* Order Items */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                {t('orderSummary.orderItems')}
+                {t("orderSummary.orderItems")}
               </h3>
               <div className="space-y-4">
                 {order.items.map((item, index) => (
@@ -216,9 +217,11 @@ const OrderSummaryPage = () => {
                     <div className="flex-shrink-0">
                       {item.book_cover ? (
                         <img
-                          src={`${import.meta.env.VITE_BACKEND_URL || ""}${
-                            item.book_cover
-                          }`}
+                          src={buildImageUrl(
+                            item.book_cover,
+                            import.meta.env.VITE_BACKEND_URL ||
+                              "http://localhost:5000",
+                          )}
                           alt={item.book_title}
                           className="h-16 w-12 object-cover rounded"
                           onError={(e) => {
@@ -251,7 +254,7 @@ const OrderSummaryPage = () => {
                         {item.book_title || "Book Title"}
                       </h4>
                       <p className="text-sm text-gray-600">
-                        {t('orders.quantity')}: {item.quantity}
+                        {t("orders.quantity")}: {item.quantity}
                       </p>
                       {(() => {
                         const v = item?.variant || {
@@ -274,7 +277,7 @@ const OrderSummaryPage = () => {
                         ৳{(item.price * item.quantity).toFixed(2)}
                       </p>
                       <p className="text-sm text-gray-600">
-                        ৳{item.price.toFixed(2)} {t('orderSummary.each')}
+                        ৳{item.price.toFixed(2)} {t("orderSummary.each")}
                       </p>
                     </div>
                   </div>
@@ -285,7 +288,7 @@ const OrderSummaryPage = () => {
             {/* Shipping Address */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                {t('orderSummary.shippingAddress')}
+                {t("orderSummary.shippingAddress")}
               </h3>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="font-medium text-gray-800">
@@ -311,15 +314,17 @@ const OrderSummaryPage = () => {
             {/* Payment Information */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                {t('orderSummary.paymentInformation')}
+                {t("orderSummary.paymentInformation")}
               </h3>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-gray-600">
-                  <span className="font-medium">{t('orderSummary.method')}:</span>{" "}
+                  <span className="font-medium">
+                    {t("orderSummary.method")}:
+                  </span>{" "}
                   {order.payment_info.method}
                 </p>
                 <p className="text-gray-600">
-                  <span className="font-medium">{t('orders.status')}:</span>{" "}
+                  <span className="font-medium">{t("orders.status")}:</span>{" "}
                   {order.payment_info.status}
                 </p>
               </div>
@@ -328,7 +333,7 @@ const OrderSummaryPage = () => {
             {/* Order Summary */}
             <div className="border-t border-gray-200 pt-6 print-summary">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                {t('orderSummary.orderSummary')}
+                {t("orderSummary.orderSummary")}
               </h3>
               <div className="space-y-2">
                 <div className="flex justify-between text-gray-600">
@@ -367,13 +372,13 @@ const OrderSummaryPage = () => {
             onClick={() => navigate("/")}
             className="bg-black text-white px-8 py-3 rounded-md hover:bg-gray-800 transition-colors"
           >
-            {t('shop.continueShopping')}
+            {t("shop.continueShopping")}
           </button>
           <button
             onClick={() => navigate("/orders")}
             className="border border-gray-300 text-gray-700 px-8 py-3 rounded-md hover:bg-gray-50 transition-colors"
           >
-            {t('orderSummary.viewAllOrders')}
+            {t("orderSummary.viewAllOrders")}
           </button>
           <button
             onClick={handlePrint}
@@ -392,7 +397,7 @@ const OrderSummaryPage = () => {
                 d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
               />
             </svg>
-            {t('orderSummary.printOrder')}
+            {t("orderSummary.printOrder")}
           </button>
         </div>
       </div>

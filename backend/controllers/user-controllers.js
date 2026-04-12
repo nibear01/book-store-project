@@ -6,7 +6,7 @@ import { generateToken } from "../middlewares/auth-middleware.js";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import path from "path";
-import mongoose from "mongoose";
+import mongoose from "mongoose"; 
 import Review from "../models/review-model.js";
 import Book from "../models/book-model.js";
 import { getPasswordResetTemplate } from "../utils/email-templates.js";

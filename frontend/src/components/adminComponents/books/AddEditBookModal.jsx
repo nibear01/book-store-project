@@ -7,15 +7,22 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import { BooksContext } from "@/context/BooksContext";
+import { buildImageUrl, normalizeGenre } from "@/utils/imageUrlHelper";
 import { isValidISBN } from "./utils";
-import { computeFinalConfiguredPrice, defaultPrintState } from "../../bookViewComponents/BookPrintPricing";
+import {
+  computeFinalConfiguredPrice,
+  defaultPrintState,
+} from "../../bookViewComponents/BookPrintPricing";
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 // Memoized cover preview (module scope to avoid conditional hooks inside component)
 const CoverPreview = React.memo(function CoverPreview({ src }) {
   return (
-    <div className="aspect-[3/4] w-32 sm:w-36 mx-auto rounded-md border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center overflow-hidden" name="books-cover-preview">
+    <div
+      className="aspect-[3/4] w-32 sm:w-36 mx-auto rounded-md border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center overflow-hidden"
+      name="books-cover-preview"
+    >
       {src ? (
         <img
           src={src}
@@ -71,7 +78,7 @@ const AddEditBookModal = ({
   const { addBook, updateBook } = useContext(BooksContext);
   const editingId = useMemo(
     () => (initialBook ? String(initialBook._id || initialBook.id) : null),
-    [initialBook]
+    [initialBook],
   );
 
   const [form, setForm] = useState(emptyForm);
@@ -86,14 +93,19 @@ const AddEditBookModal = ({
     let alive = true;
     (async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/settings/print-config`);
+        const res = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL || "http://localhost:5000"}/api/settings/print-config`,
+        );
         const data = await res.json();
-        if (alive && res.ok && data.success && data.data) setPrintSettings(data.data);
+        if (alive && res.ok && data.success && data.data)
+          setPrintSettings(data.data);
       } catch {
         // ignore
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [open]);
 
   // Revoke blob URL on unmount/change to avoid memory leaks
@@ -118,9 +130,7 @@ const AddEditBookModal = ({
     setForm({
       title: initialBook.title || "",
       author: initialBook.author || "",
-      genre: Array.isArray(initialBook.genre)
-        ? initialBook.genre.join(", ")
-        : initialBook.genre || "",
+      genre: normalizeGenre(initialBook.genre).join(", "),
       language: initialBook.language || "",
       meta_keywords: Array.isArray(initialBook.meta_keywords)
         ? initialBook.meta_keywords.join(", ")
@@ -218,9 +228,11 @@ const AddEditBookModal = ({
       formData.append("meta_keywords", form.meta_keywords);
       formData.append("isbn", form.isbn);
       if (form.cover_image) formData.append("cover_image", form.cover_image);
-  if (form.file_url) formData.append("file_url", form.file_url);
-  if (form.cover_image_url) formData.append("cover_image_url", form.cover_image_url);
-  if (form.cover_image_urls) formData.append("cover_image_urls", form.cover_image_urls);
+      if (form.file_url) formData.append("file_url", form.file_url);
+      if (form.cover_image_url)
+        formData.append("cover_image_url", form.cover_image_url);
+      if (form.cover_image_urls)
+        formData.append("cover_image_urls", form.cover_image_urls);
       // Determine final price based on pricing mode
       let finalPrice = form.priceManual;
       if (pricingMode === "derived" && printSettings) {
@@ -235,9 +247,9 @@ const AddEditBookModal = ({
       }
       formData.append("price", finalPrice);
       formData.append("stock", form.stock);
-  // Send booleans as '1'/'0' to avoid backend treating 'false' as truthy
-  formData.append("is_active", form.is_active ? "1" : "0");
-  formData.append("is_featured", form.is_featured ? "1" : "0");
+      // Send booleans as '1'/'0' to avoid backend treating 'false' as truthy
+      formData.append("is_active", form.is_active ? "1" : "0");
+      formData.append("is_featured", form.is_featured ? "1" : "0");
       formData.append("meta_description", form.meta_description);
       formData.append("meta_title", form.meta_title);
       formData.append("description", form.description);
@@ -250,7 +262,7 @@ const AddEditBookModal = ({
       }
       formData.append(
         "is_deal_of_the_week",
-        form.is_deal_of_the_week ? "1" : "0"
+        form.is_deal_of_the_week ? "1" : "0",
       );
       if (form.deal_start) formData.append("deal_start", form.deal_start);
       if (form.deal_end) formData.append("deal_end", form.deal_end);
@@ -272,7 +284,16 @@ const AddEditBookModal = ({
         }
       }
     },
-    [form, editingId, addBook, updateBook, onError, onSuccess, pricingMode, printSettings]
+    [
+      form,
+      editingId,
+      addBook,
+      updateBook,
+      onError,
+      onSuccess,
+      pricingMode,
+      printSettings,
+    ],
   );
 
   // Auto-submit when instructed (used for CSV->modal import)
@@ -287,9 +308,12 @@ const AddEditBookModal = ({
 
   const previewSrc = useMemo(() => {
     if (!coverPreview) return null;
-    return String(coverPreview).startsWith("blob:")
-      ? coverPreview
-      : `${API_BASE}${coverPreview}`;
+
+    // If blob URL from file input, use as-is
+    if (String(coverPreview).startsWith("blob:")) return coverPreview;
+
+    // Use centralized image URL builder for server paths
+    return buildImageUrl(String(coverPreview), API_BASE);
   }, [coverPreview]);
 
   if (!open) return null;
@@ -452,36 +476,51 @@ const AddEditBookModal = ({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  {pricingMode === 'derived' ? 'Derived Price' : 'Price'} <span className="text-red-500">*</span>
+                  {pricingMode === "derived" ? "Derived Price" : "Price"}{" "}
+                  <span className="text-red-500">*</span>
                 </label>
-                {pricingMode === 'derived' && printSettings ? (
-                  <div className="mt-1 w-full border border-gray-200 rounded-md px-3 py-2 text-sm bg-gray-50 flex items-center justify-between" name="books-derived-price-display">
+                {pricingMode === "derived" && printSettings ? (
+                  <div
+                    className="mt-1 w-full border border-gray-200 rounded-md px-3 py-2 text-sm bg-gray-50 flex items-center justify-between"
+                    name="books-derived-price-display"
+                  >
                     <span>
-                      ৳{
-                        computeFinalConfiguredPrice({
-                          baseContentPrice: 0,
-                          pages: Number(form.pages) || 0,
-                          cfg: defaultPrintState,
-                          settings: printSettings,
-                        }).price.toFixed(2)
-                      }
+                      ৳
+                      {computeFinalConfiguredPrice({
+                        baseContentPrice: 0,
+                        pages: Number(form.pages) || 0,
+                        cfg: defaultPrintState,
+                        settings: printSettings,
+                      }).price.toFixed(2)}
                     </span>
-                    <span className="text-[10px] uppercase tracking-wide text-gray-500">Auto</span>
+                    <span className="text-[10px] uppercase tracking-wide text-gray-500">
+                      Auto
+                    </span>
                   </div>
                 ) : (
                   <input
                     type="number"
                     step="0.01"
                     value={form.priceManual}
-                    onChange={(e) => setForm({ ...form, priceManual: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, priceManual: e.target.value })
+                    }
                     className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                     name="books-input-price"
                   />
                 )}
-                {pricingMode === 'derived' && printSettings && (
+                {pricingMode === "derived" && printSettings && (
                   <p className="text-xs text-gray-600 mt-1">
-                    Formula: Content Fee (৳{Number(printSettings.contentFee||0).toFixed(2)}) + Pages × Base/Page (৳{Number(printSettings.basePerPage||0).toFixed(2)}) × multipliers + Margin ({printSettings.margin?.type === 'flat' ? `৳${Number(printSettings.margin?.value||0).toFixed(2)}` : `${Number(printSettings.margin?.value||0)}%`}).
+                    Formula: Content Fee (৳
+                    {Number(printSettings.contentFee || 0).toFixed(2)}) + Pages
+                    × Base/Page (৳
+                    {Number(printSettings.basePerPage || 0).toFixed(2)}) ×
+                    multipliers + Margin (
+                    {printSettings.margin?.type === "flat"
+                      ? `৳${Number(printSettings.margin?.value || 0).toFixed(2)}`
+                      : `${Number(printSettings.margin?.value || 0)}%`}
+                    ).
                   </p>
                 )}
               </div>
@@ -512,21 +551,72 @@ const AddEditBookModal = ({
               </div>
             </div>
 
-            {pricingMode === 'derived' && printSettings && (
+            {pricingMode === "derived" && printSettings && (
               <div className="border rounded-md p-3 bg-gray-50 text-xs space-y-1">
-                <strong className="block text-sm mb-1">Derived Pricing Breakdown</strong>
+                <strong className="block text-sm mb-1">
+                  Derived Pricing Breakdown
+                </strong>
                 {(() => {
                   const pagesNum = Number(form.pages) || 0;
-                  const result = computeFinalConfiguredPrice({ baseContentPrice: 0, pages: pagesNum, cfg: defaultPrintState, settings: printSettings });
+                  const result = computeFinalConfiguredPrice({
+                    baseContentPrice: 0,
+                    pages: pagesNum,
+                    cfg: defaultPrintState,
+                    settings: printSettings,
+                  });
                   return (
                     <ul className="space-y-1">
-                      <li>Content Fee: ৳{Number(printSettings.contentFee||0).toFixed(2)}</li>
+                      <li>
+                        Content Fee: ৳
+                        {Number(printSettings.contentFee || 0).toFixed(2)}
+                      </li>
                       <li>Pages: {pagesNum}</li>
-                      <li>Base/Page: ৳{Number(printSettings.basePerPage||0).toFixed(2)}</li>
-                      <li>Multipliers (quality/side/size/color): {printSettings.multipliers?.quality?.[defaultPrintState.paperQuality]} × {printSettings.multipliers?.side?.[defaultPrintState.printSide]} × {printSettings.multipliers?.size?.[defaultPrintState.paperSize]} × {printSettings.multipliers?.color?.[defaultPrintState.colorMode]}</li>
-                      <li>Print Cost: ৳{result.breakdown.printCost.toFixed(2)}</li>
-                      <li>Margin {printSettings.margin?.type === 'flat' ? '(flat)' : '(percent)'}: {printSettings.margin?.type === 'flat' ? `৳${result.breakdown.margin.toFixed(2)}` : `${printSettings.margin?.value}% (৳${result.breakdown.margin.toFixed(2)})`}</li>
-                      <li className="font-medium">Final Price: ৳{result.price.toFixed(2)}</li>
+                      <li>
+                        Base/Page: ৳
+                        {Number(printSettings.basePerPage || 0).toFixed(2)}
+                      </li>
+                      <li>
+                        Multipliers (quality/side/size/color):{" "}
+                        {
+                          printSettings.multipliers?.quality?.[
+                            defaultPrintState.paperQuality
+                          ]
+                        }{" "}
+                        ×{" "}
+                        {
+                          printSettings.multipliers?.side?.[
+                            defaultPrintState.printSide
+                          ]
+                        }{" "}
+                        ×{" "}
+                        {
+                          printSettings.multipliers?.size?.[
+                            defaultPrintState.paperSize
+                          ]
+                        }{" "}
+                        ×{" "}
+                        {
+                          printSettings.multipliers?.color?.[
+                            defaultPrintState.colorMode
+                          ]
+                        }
+                      </li>
+                      <li>
+                        Print Cost: ৳{result.breakdown.printCost.toFixed(2)}
+                      </li>
+                      <li>
+                        Margin{" "}
+                        {printSettings.margin?.type === "flat"
+                          ? "(flat)"
+                          : "(percent)"}
+                        :{" "}
+                        {printSettings.margin?.type === "flat"
+                          ? `৳${result.breakdown.margin.toFixed(2)}`
+                          : `${printSettings.margin?.value}% (৳${result.breakdown.margin.toFixed(2)})`}
+                      </li>
+                      <li className="font-medium">
+                        Final Price: ৳{result.price.toFixed(2)}
+                      </li>
                     </ul>
                   );
                 })()}
@@ -762,7 +852,7 @@ const AddEditBookModal = ({
         </form>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 

@@ -8,7 +8,7 @@ import ButtonFill from "@/Button/ButtonFill";
 import { useTranslation } from "react-i18next";
 
 const CategoriesPage = () => {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation("common");
   const { url, books, loading, error, fetchBooks } = useContext(BooksContext);
   const location = useLocation();
   const navigate = useNavigate();
@@ -31,12 +31,17 @@ const CategoriesPage = () => {
     activeGroupIndex,
     isMobile,
     filteredBooks,
-    page,
+    cursor,
     limit,
+    nextCursor,
+    previousCursor,
+    hasNextPage,
+    hasPreviousPage,
     filterSections,
     categories,
     groupCount,
 
+    setCursor,
     setPriceRange,
     setRatingFilter,
     setLanguageFilter,
@@ -45,7 +50,6 @@ const CategoriesPage = () => {
     setViewMode,
     setMobileViewStrategy,
     setActiveGroupIndex,
-    setPage,
     handleCategorySelect,
     resetFilters,
     toggleFilterSection,
@@ -69,14 +73,14 @@ const CategoriesPage = () => {
         navigate({ pathname: "/categories" }, { replace: false });
       }
     },
-    [handleCategorySelect, navigate]
+    [handleCategorySelect, navigate],
   );
 
-  // Server-side filtering with useEffect
+  // Server-side filtering with useEffect using cursor-based pagination
   useEffect(() => {
     const params = {
-      page,
       limit,
+      ...(cursor && { cursor }),
       // map filters supported by backend
       ...(searchQuery.trim() && { search: searchQuery.trim() }),
       ...(selectedCategory !== "All" && { genre: selectedCategory }),
@@ -91,20 +95,20 @@ const CategoriesPage = () => {
         sortOption === "priceLowHigh"
           ? "price"
           : sortOption === "priceHighLow"
-          ? "-price"
-          : sortOption === "rating"
-          ? "-rating"
-          : sortOption === "newest"
-          ? "-published_date"
-          : sortOption === "bestselling"
-          ? "-num_reviews"
-          : "-is_featured",
+            ? "-price"
+            : sortOption === "rating"
+              ? "-rating"
+              : sortOption === "newest"
+                ? "-published_date"
+                : sortOption === "bestselling"
+                  ? "-num_reviews"
+                  : "-is_featured",
     };
-    // reset to first page when filters (except page/limit) change
+    // reset to first group when filters (except cursor) change
     setActiveGroupIndex(0);
     fetchBooks(params);
   }, [
-    page,
+    cursor,
     limit,
     selectedCategory,
     sortOption,
@@ -117,8 +121,6 @@ const CategoriesPage = () => {
     fetchBooks,
   ]);
 
-  const totalPages = books?.pagination?.pages || 1;
-  const currentPage = books?.pagination?.page || page;
   const priceLimitsError = priceRange[0] < 0 || priceRange[1] < 0; // basic check; could be expanded
 
   return (
@@ -126,7 +128,7 @@ const CategoriesPage = () => {
       {/* Button */}
       <div className="flex justify-center md:justify-end">
         <Link to="/bookrequest">
-          <ButtonFill>{t('shop.requestBook')}</ButtonFill>
+          <ButtonFill>{t("shop.requestBook")}</ButtonFill>
         </Link>
       </div>
 
@@ -177,13 +179,15 @@ const CategoriesPage = () => {
                 priceLowHigh: "priceLowHigh",
                 priceHighLow: "priceHighLow",
                 rating: "rating",
-                bestselling: "bestselling"
+                bestselling: "bestselling",
               };
               const mappedSort = sortMap[newSort] || newSort;
               // Update local state in useCategories hook
-              if (typeof window !== 'undefined') {
+              if (typeof window !== "undefined") {
                 // Trigger the setSortOption from useCategories
-                const event = new CustomEvent('sortOptionChange', { detail: mappedSort });
+                const event = new CustomEvent("sortOptionChange", {
+                  detail: mappedSort,
+                });
                 window.dispatchEvent(event);
               }
             }}
@@ -196,49 +200,40 @@ const CategoriesPage = () => {
           />
         </div>
 
-        {/* Pagination controls */}
-        {totalPages > 1 && (
+        {/* Pagination controls - Cursor Based */}
+        {(hasNextPage || hasPreviousPage) && (
           <div className="mt-8 flex items-center justify-center gap-2">
             <button
               className="px-3 py-2 border border-gray-300 rounded-md text-sm disabled:opacity-50 hover:border-gray-400"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage <= 1}
+              onClick={() => setCursor(previousCursor)}
+              disabled={!hasPreviousPage}
+              title={
+                hasPreviousPage ? "Load previous page" : "No previous page"
+              }
             >
-              {t('pagination.prev')}
+              {t("pagination.prev")}
             </button>
-            {Array.from({ length: totalPages })
-              .slice(0, 10)
-              .map((_, i) => {
-                const pageNum = i + 1;
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setPage(pageNum)}
-                    className={`px-3 py-2 border rounded-md text-sm ${
-                      currentPage === pageNum
-                        ? "bg-black text-white border-gray-black"
-                        : "border-gray-300 hover:border-gray-400"
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
+            <span className="px-3 py-2 text-sm text-gray-600">
+              {books?.data?.length > 0
+                ? `${books.data.length} results`
+                : "No results"}
+            </span>
             <button
               className="px-3 py-2 border border-gray-300 rounded-md text-sm disabled:opacity-50 hover:border-gray-400"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage >= totalPages}
+              onClick={() => setCursor(nextCursor)}
+              disabled={!hasNextPage}
+              title={hasNextPage ? "Load next page" : "No more results"}
             >
-              {t('pagination.next')}
+              {t("pagination.next")}
             </button>
           </div>
         )}
-          {/* Settings/Error notice */}
-          {priceLimitsError && (
-            <div className="mt-6 text-center text-sm text-red-600" role="alert">
-              {t('shop.priceRangeError')}
-            </div>
-          )}
+        {/* Settings/Error notice */}
+        {priceLimitsError && (
+          <div className="mt-6 text-center text-sm text-red-600" role="alert">
+            {t("shop.priceRangeError")}
+          </div>
+        )}
       </div>
     </div>
   );

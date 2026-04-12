@@ -6,7 +6,10 @@ export const useCategories = (books, initialCategorySlug = null) => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortOption, setSortOption] = useState("featured");
   const [priceLimits, setPriceLimits] = useState({ min: 0, max: 1500 });
-  const [priceRange, setPriceRange] = useState([priceLimits.min, priceLimits.max]);
+  const [priceRange, setPriceRange] = useState([
+    priceLimits.min,
+    priceLimits.max,
+  ]);
   const [ratingFilter, setRatingFilter] = useState(0);
   const [languageFilter, setLanguageFilter] = useState("All");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
@@ -18,9 +21,14 @@ export const useCategories = (books, initialCategorySlug = null) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [filteredBooks, setFilteredBooks] = useState([]);
 
-  // Pagination
-  const [page, setPage] = useState(1);
-  
+  // Cursor-based pagination (replaces page/limit)
+  const [cursor, setCursor] = useState(null);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [previousCursor, setPreviousCursor] = useState(null);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasPreviousPage, setHasPreviousPage] = useState(false);
+  const limit = 12; // Fixed limit per page
+
   // Listen for sort option changes from BooksContent
   useEffect(() => {
     const handler = (e) => {
@@ -28,10 +36,9 @@ export const useCategories = (books, initialCategorySlug = null) => {
         setSortOption(e.detail);
       }
     };
-    window.addEventListener('sortOptionChange', handler);
-    return () => window.removeEventListener('sortOptionChange', handler);
+    window.addEventListener("sortOptionChange", handler);
+    return () => window.removeEventListener("sortOptionChange", handler);
   }, []);
-  const [limit, setLimit] = useState(12);
 
   // References for mobile viewport handling
   const touchStartX = useRef(0);
@@ -72,7 +79,7 @@ export const useCategories = (books, initialCategorySlug = null) => {
           // If a slug is provided in URL, auto-select that category
           if (initialCategorySlug) {
             const match = mapped.find(
-              (c) => String(c.slug) === String(initialCategorySlug)
+              (c) => String(c.slug) === String(initialCategorySlug),
             );
             if (match) setSelectedCategory(match.title);
           }
@@ -124,7 +131,7 @@ export const useCategories = (books, initialCategorySlug = null) => {
           } catch (err) {
             console.warn(
               "Failed to refresh price range after admin update",
-              err.message
+              err.message,
             );
           }
         })();
@@ -133,7 +140,6 @@ export const useCategories = (books, initialCategorySlug = null) => {
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
   }, []);
-
 
   // Calculate number of groups needed for current viewport
   const calculateGroupCount = () => {
@@ -246,9 +252,11 @@ export const useCategories = (books, initialCategorySlug = null) => {
     setFilteredBooks(next);
   }, [books, selectedCategory]);
 
-  // Reset to page 1 when changing any non-page filter
+  // Reset to first cursor when changing any non-pagination filter
   useEffect(() => {
-    setPage(1);
+    setCursor(null);
+    setNextCursor(null);
+    setPreviousCursor(null);
   }, [
     selectedCategory,
     sortOption,
@@ -275,8 +283,12 @@ export const useCategories = (books, initialCategorySlug = null) => {
     windowWidth,
     isMobile,
     filteredBooks,
-    page,
+    cursor,
     limit,
+    nextCursor,
+    previousCursor,
+    hasNextPage,
+    hasPreviousPage,
     filterSections,
     categories,
     categoriesLoading,
@@ -296,8 +308,7 @@ export const useCategories = (books, initialCategorySlug = null) => {
     setViewMode,
     setMobileViewStrategy,
     setActiveGroupIndex,
-    setPage,
-    setLimit,
+    setCursor,
     handleCategorySelect,
     resetFilters,
     toggleFilterSection,

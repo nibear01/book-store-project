@@ -23,32 +23,35 @@ const router = express.Router();
 
 // Public
 
-// GET /api/books
-// Query: ?page=1&limit=10&search=term&genre=GenreName&author=AuthorName&language=Language&minPrice=0&maxPrice=100&sort=-created_at
+// GET /api/books (CURSOR-BASED PAGINATION)
+// Query: ?limit=20&cursor=<base64>&search=term&genre=GenreName&sort=-created_at&...
+// Cursor params: limit (max 5000, default 20), cursor (base64 encoded, from nextCursor)
+// Filter params: search, genre, author, language, minPrice, maxPrice, sort, minRating, inStock, onSale, deals, minViews, status
+// DEPRECATED: page param (fallback supported for legacy clients)
 router.get("/", getBooks);
 
-// GET /api/books/featured
-// Query: ?limit=10
+// GET /api/books/featured (CURSOR-BASED PAGINATION)
+// Query: ?limit=10&cursor=<base64>
 router.get("/featured", getFeaturedBooks);
 
-// GET /api/books/trending
-// Query: ?limit=10&days=30
+// GET /api/books/trending (CURSOR-BASED PAGINATION)
+// Query: ?limit=10&cursor=<base64>&days=30
 router.get("/trending", getTrendingBooks);
 
-// GET /api/books/latest
-// Query: ?limit=10
+// GET /api/books/latest (CURSOR-BASED PAGINATION)
+// Query: ?limit=10&cursor=<base64>
 router.get("/latest", getLatestBooks);
 
-// GET /api/books/on-sale
-// Query: ?limit=10
+// GET /api/books/on-sale (CURSOR-BASED PAGINATION)
+// Query: ?limit=10&cursor=<base64>
 router.get("/on-sale", getOnSaleBooks);
 
-// GET /api/books/most-viewed
-// Query: ?limit=10
+// GET /api/books/most-viewed (CURSOR-BASED PAGINATION)
+// Query: ?limit=10&cursor=<base64>
 router.get("/most-viewed", getMostViewedBooks);
 
-// GET /api/books/deals
-// Query: ?limit=10
+// GET /api/books/deals (CURSOR-BASED PAGINATION)
+// Query: ?limit=10&cursor=<base64>
 router.get("/deals", getDealsOfTheWeek);
 
 // GET /api/books/count
@@ -71,7 +74,7 @@ router.post(
   protect,
   isAdmin,
   uploadBulkAssets,
-  bulkUploadAssets
+  bulkUploadAssets,
 );
 
 // PUT /api/books/:id

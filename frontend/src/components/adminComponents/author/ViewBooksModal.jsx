@@ -1,5 +1,6 @@
 import React from "react";
 import { X, Eye } from "lucide-react";
+import { normalizeGenre } from "@/utils/imageUrlHelper";
 
 export default function ViewBooksModal({ open, author, onClose, makeImgUrl }) {
   if (!open || !author) return null;
@@ -40,7 +41,9 @@ export default function ViewBooksModal({ open, author, onClose, makeImgUrl }) {
           {books.length === 0 ? (
             <div className="text-center py-12">
               <Eye className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">No books assigned to this author</p>
+              <p className="text-gray-500 text-lg">
+                No books assigned to this author
+              </p>
               <p className="text-gray-400 text-sm mt-2">
                 Use the "Manage" button to add books to this author.
               </p>
@@ -50,7 +53,9 @@ export default function ViewBooksModal({ open, author, onClose, makeImgUrl }) {
               {books.map((book) => {
                 const id = book._id || book;
                 const title = book.title || book.name || "Untitled";
-                const cover = Array.isArray(book.cover_image) ? book.cover_image[0] : book.cover_image;
+                const cover = Array.isArray(book.cover_image)
+                  ? book.cover_image[0]
+                  : book.cover_image;
                 const price = book.price ? `৳${book.price}` : "Price not set";
                 const isbn = book.isbn || "No ISBN";
 
@@ -75,11 +80,15 @@ export default function ViewBooksModal({ open, author, onClose, makeImgUrl }) {
                         <h3 className="font-medium text-gray-900 text-sm leading-tight mb-1 truncate">
                           {title}
                         </h3>
-                        <p className="text-xs text-gray-600 mb-1">ISBN: {isbn}</p>
-                        <p className="text-xs text-gray-600 mb-1">Price: {price}</p>
+                        <p className="text-xs text-gray-600 mb-1">
+                          ISBN: {isbn}
+                        </p>
+                        <p className="text-xs text-gray-600 mb-1">
+                          Price: {price}
+                        </p>
                         {book.genre && (
                           <p className="text-xs text-gray-500 truncate">
-                            Genre: {Array.isArray(book.genre) ? book.genre.join(", ") : book.genre}
+                            Genre: {normalizeGenre(book.genre).join(", ")}
                           </p>
                         )}
                       </div>

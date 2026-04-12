@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import { BooksContext } from "../../context/BooksContext";
+import { buildImageUrl } from "@/utils/imageUrlHelper";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
@@ -80,7 +81,7 @@ class ErrorBoundary extends React.Component {
 }
 
 function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
-  const { t } = useTranslation('home');
+  const { t } = useTranslation("home");
   const { url, fetchDealsOfWeek } = useContext(BooksContext);
   const [state, dispatch] = useReducer(dealsReducer, {
     deals: [],
@@ -114,7 +115,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
         currency: "BDT",
         maximumFractionDigits: 0,
       }),
-    []
+    [],
   );
 
   // Preload next image for smoother transitions
@@ -155,8 +156,8 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
       const arr = Array.isArray(resp?.data)
         ? resp.data
         : Array.isArray(resp)
-        ? resp
-        : [];
+          ? resp
+          : [];
       if (!mountedRef.current) return;
       dispatch({ type: "FETCH_SUCCESS", payload: arr });
     } catch (e) {
@@ -174,7 +175,9 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
     // fetch global print settings once
     (async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/settings/print-config`);
+        const res = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL || "http://localhost:5000"}/api/settings/print-config`,
+        );
         const data = await res.json();
         if (res.ok && data?.success && data?.data) setPrintSettings(data.data);
       } catch {
@@ -205,7 +208,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
         dispatch({ type: "SET_TRANSITIONING", payload: false });
       }, 300);
     },
-    [isTransitioning]
+    [isTransitioning],
   );
 
   const next = useCallback(() => {
@@ -236,7 +239,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
     (index) => {
       goToSlide(index);
     },
-    [goToSlide]
+    [goToSlide],
   );
 
   const setPaused = useCallback((value) => {
@@ -296,7 +299,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
   // Derived values
   const currentDeal = useMemo(
     () => deals[activeIndex] || {},
-    [deals, activeIndex]
+    [deals, activeIndex],
   );
 
   const cover = useMemo(() => {
@@ -315,9 +318,10 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
     if (isDOW && isOnSale) {
       const priceNow = salePrice;
       const baseRef = basePrice;
-      const discount = Number.isFinite(baseRef) && baseRef > 0
-        ? Math.max(0, Math.round(((baseRef - priceNow) / baseRef) * 100))
-        : 0;
+      const discount =
+        Number.isFinite(baseRef) && baseRef > 0
+          ? Math.max(0, Math.round(((baseRef - priceNow) / baseRef) * 100))
+          : 0;
       return {
         isOnSale,
         priceNow,
@@ -335,7 +339,10 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
         baseRef: basePrice,
         discount:
           isOnSale && Number.isFinite(basePrice) && basePrice > 0
-            ? Math.max(0, Math.round(((basePrice - priceNow) / basePrice) * 100))
+            ? Math.max(
+                0,
+                Math.round(((basePrice - priceNow) / basePrice) * 100),
+              )
             : 0,
         variant: null,
         breakdown: null,
@@ -356,11 +363,14 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
           settings: printSettings,
         })
       : null;
-    const priceNow = isOnSale ? Number(saleComputed?.price) : Number(baseComputed.price);
+    const priceNow = isOnSale
+      ? Number(saleComputed?.price)
+      : Number(baseComputed.price);
     const baseRef = Number(baseComputed.price);
-    const discount = isOnSale && Number.isFinite(baseRef) && baseRef > 0
-      ? Math.max(0, Math.round(((baseRef - priceNow) / baseRef) * 100))
-      : 0;
+    const discount =
+      isOnSale && Number.isFinite(baseRef) && baseRef > 0
+        ? Math.max(0, Math.round(((baseRef - priceNow) / baseRef) * 100))
+        : 0;
     return {
       isOnSale,
       priceNow,
@@ -369,7 +379,14 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
       variant: cfg,
       breakdown: baseComputed.breakdown,
     };
-  }, [currentDeal?.is_on_sale, currentDeal?.sale_price, currentDeal?.price, currentDeal?.pages, currentDeal?.is_deal_of_the_week, printSettings]);
+  }, [
+    currentDeal?.is_on_sale,
+    currentDeal?.sale_price,
+    currentDeal?.price,
+    currentDeal?.pages,
+    currentDeal?.is_deal_of_the_week,
+    printSettings,
+  ]);
 
   // Action handlers
   const onAddToCart = useCallback(async () => {
@@ -386,15 +403,17 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
 
     try {
       setIsAdding(true);
-      const isDOW = !!currentDeal?.is_deal_of_the_week && !!currentDeal?.is_on_sale;
-      const variant = priceInfo.variant && !isDOW
-        ? {
-            paperQuality: priceInfo.variant.paperQuality,
-            printSide: priceInfo.variant.printSide,
-            paperSize: priceInfo.variant.paperSize,
-            colorMode: priceInfo.variant.colorMode,
-          }
-        : undefined;
+      const isDOW =
+        !!currentDeal?.is_deal_of_the_week && !!currentDeal?.is_on_sale;
+      const variant =
+        priceInfo.variant && !isDOW
+          ? {
+              paperQuality: priceInfo.variant.paperQuality,
+              printSide: priceInfo.variant.printSide,
+              paperSize: priceInfo.variant.paperSize,
+              colorMode: priceInfo.variant.colorMode,
+            }
+          : undefined;
       const unitPrice = Number(priceInfo.priceNow || currentDeal.price || 0);
       await addToCart({
         item: {
@@ -443,7 +462,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
         `<svg xmlns='http://www.w3.org/2000/svg' width='480' height='640'>
            <rect width='100%' height='100%' fill='#f3f4f6'/>
            <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#9ca3af' font-size='16'>No image</text>
-         </svg>`
+         </svg>`,
       );
   }, []);
 
@@ -470,12 +489,12 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
   if (error) {
     return (
       <div className="bg-white rounded-2xl p-6 md:p-8 border border-red-200 text-red-600 mt-6">
-        {t('deals.error')} {error}{" "}
+        {t("deals.error")} {error}{" "}
         <button
           onClick={loadDeals}
           className="ml-3 inline-flex items-center px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 text-gray-700"
         >
-          {t('deals.retry')}
+          {t("deals.retry")}
         </button>
       </div>
     );
@@ -484,7 +503,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
   if (!deals.length) {
     return (
       <div className="mt-6 bg-white rounded-2xl p-6 md:p-8 border border-gray-200 text-gray-600 text-center">
-        {t('deals.noDeals')}
+        {t("deals.noDeals")}
       </div>
     );
   }
@@ -506,8 +525,11 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
       >
         {/* Header */}
         <div className="mb-4 flex justify-between items-center">
-          <h2 name="deals-heading" className="text-xl md:text-2xl font-semibold text-gray-900">
-            {t('deals.title')}
+          <h2
+            name="deals-heading"
+            className="text-xl md:text-2xl font-semibold text-gray-900"
+          >
+            {t("deals.title")}
           </h2>
         </div>
 
@@ -522,12 +544,12 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
             <div className="relative p-6 md:p-8 flex items-center justify-center">
               {currentDeal?.is_deal_of_the_week && (
                 <span className="absolute left-6 top-6 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-black text-white shadow z-10">
-                  🔥 {t('deals.dealBadge')}
+                  🔥 {t("deals.dealBadge")}
                 </span>
               )}
               <div className="max-h-[400px] overflow-hidden transition-transform duration-300 hover:scale-105">
                 <img
-                  src={cover ? `${url}${cover}` : undefined}
+                  src={cover ? buildImageUrl(cover, url) : undefined}
                   onError={onImgError}
                   alt={currentDeal?.title || "Deal cover"}
                   loading="lazy"
@@ -580,7 +602,10 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
 
             {/* Right: Details */}
             <div className="p-6 md:p-8 flex flex-col">
-              <h3 name="deals-title" className="text-xl md:text-2xl font-bold text-gray-900 line-clamp-2">
+              <h3
+                name="deals-title"
+                className="text-xl md:text-2xl font-bold text-gray-900 line-clamp-2"
+              >
                 {currentDeal?.title || "Untitled"}
               </h3>
               <p className="text-gray-600 mt-1">{currentDeal?.author || "—"}</p>
@@ -608,7 +633,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
                     >
                       <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
                     </svg>
-                    {currentDeal.pages} {t('deals.pages')}
+                    {currentDeal.pages} {t("deals.pages")}
                   </span>
                 )}
                 {currentDeal?.category && (
@@ -638,7 +663,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
                       {fmtBDT.format(priceInfo.baseRef)}
                     </span>
                     <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full">
-                      {t('deals.save')} {priceInfo.discount}%
+                      {t("deals.save")} {priceInfo.discount}%
                     </span>
                   </>
                 )}
@@ -654,25 +679,35 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
                     addSuccess
                       ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white border-transparent"
                       : isAdding
-                      ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-transparent"
-                      : "border-gray-300 bg-white hover:bg-gray-50 text-gray-800"
+                        ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-transparent"
+                        : "border-gray-300 bg-white hover:bg-gray-50 text-gray-800"
                   }`}
-                  aria-label={addSuccess ? "Added to cart" : isAdding ? "Adding to cart" : "Add to cart"}
+                  aria-label={
+                    addSuccess
+                      ? "Added to cart"
+                      : isAdding
+                        ? "Adding to cart"
+                        : "Add to cart"
+                  }
                 >
                   {addSuccess ? (
                     <>
                       <FaCheck className="text-base animate-bounce" />
-                      <span className="tracking-wide">{t('deals.addedToCart')}</span>
+                      <span className="tracking-wide">
+                        {t("deals.addedToCart")}
+                      </span>
                     </>
                   ) : isAdding ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                      <span className="tracking-wide">{t('deals.adding')}</span>
+                      <span className="tracking-wide">{t("deals.adding")}</span>
                     </>
                   ) : (
                     <>
                       <FaShoppingCart className="text-base" />
-                      <span className="tracking-wide">{t('deals.addToCart')}</span>
+                      <span className="tracking-wide">
+                        {t("deals.addToCart")}
+                      </span>
                     </>
                   )}
                 </button>
@@ -699,7 +734,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
                       d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                     />
                   </svg>
-                  {t('deals.viewDetails')}
+                  {t("deals.viewDetails")}
                 </Link>
               </div>
 
@@ -722,13 +757,13 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
                       d="M15.75 19.5L8.25 12l7.5-7.5"
                     />
                   </svg>
-                  {t('deals.previous')}
+                  {t("deals.previous")}
                 </button>
                 <button
                   onClick={throttledNext}
                   className="flex items-center justify-center py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50"
                 >
-                  {t('deals.next')}
+                  {t("deals.next")}
                   <svg
                     className="w-5 h-5 ml-2"
                     viewBox="0 0 24 24"

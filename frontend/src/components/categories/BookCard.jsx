@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { buildImageUrl } from "@/utils/imageUrlHelper";
 import {
   FaStar,
   FaStarHalfAlt,
@@ -72,7 +73,7 @@ const WishlistToggle = React.memo(function WishlistToggle({ bookId }) {
     } catch (err) {
       emitWishlistToast(
         "error",
-        err?.message || t("bookCard.wishlistActionFailed")
+        err?.message || t("bookCard.wishlistActionFailed"),
       );
     } finally {
       setIsToggling(false);
@@ -118,14 +119,14 @@ const StarRating = React.memo(function StarRating({ rating }) {
   const stars = [];
   for (let i = 0; i < Math.min(full, 5); i++)
     stars.push(
-      <FaStar key={`f-${i}`} className="text-yellow-400 text-xs md:text-sm" />
+      <FaStar key={`f-${i}`} className="text-yellow-400 text-xs md:text-sm" />,
     );
   if (half && stars.length < 5)
     stars.push(
       <FaStarHalfAlt
         key="half"
         className="text-yellow-400 text-xs md:text-sm"
-      />
+      />,
     );
   const empties = 5 - stars.length;
   for (let i = 0; i < empties; i++)
@@ -133,7 +134,7 @@ const StarRating = React.memo(function StarRating({ rating }) {
       <FaRegStar
         key={`e-${i}`}
         className="text-yellow-400 text-xs md:text-sm"
-      />
+      />,
     );
   return (
     <div className="flex gap-0.5" aria-label={`${safe} out of 5 stars`}>
@@ -289,10 +290,10 @@ function BookCardInner({ book, baseUrl, viewMode = "grid" }) {
             ? Number(displaySalePrice)
             : Number(displayPrice)
           : printSettings
-          ? isOnSale && displaySalePrice != null
-            ? Number(displaySalePrice)
-            : Number(displayPrice)
-          : Number(book.price);
+            ? isOnSale && displaySalePrice != null
+              ? Number(displaySalePrice)
+              : Number(displayPrice)
+            : Number(book.price);
         await addToCart({
           item: {
             id: bid,
@@ -337,7 +338,7 @@ function BookCardInner({ book, baseUrl, viewMode = "grid" }) {
       listingVariant,
       listingBreakdown,
       dealOverride,
-    ]
+    ],
   );
 
   // Responsive container classes
@@ -398,13 +399,16 @@ function BookCardInner({ book, baseUrl, viewMode = "grid" }) {
       {id && <WishlistToggle bookId={id} />}
 
       {/* Book cover image with overlay */}
-      <Link to={`/bookview/${book.slug || book._id || book.id}`} className={imageContainerClass}>
+      <Link
+        to={`/bookview/${book.slug || book._id || book.id}`}
+        className={imageContainerClass}
+      >
         <div className={imageAspectClass}>
           {/* Shimmer effect on hover */}
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-500 z-10"></div>
 
           <img
-            src={`${baseUrl}${coverImage}`}
+            src={buildImageUrl(coverImage, baseUrl)}
             alt={book.title}
             className={`absolute top-0 left-0 w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${
               imageLoaded ? "opacity-100" : "opacity-0"
@@ -562,19 +566,19 @@ function BookCardInner({ book, baseUrl, viewMode = "grid" }) {
                     addSuccess
                       ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white"
                       : book.stock <= 0
-                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                      : isAdding
-                      ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white"
-                      : "bg-gradient-to-r from-gray-900 to-gray-800 text-white hover:from-gray-800 hover:to-gray-700"
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : isAdding
+                          ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white"
+                          : "bg-gradient-to-r from-gray-900 to-gray-800 text-white hover:from-gray-800 hover:to-gray-700"
                   }`
                 : `w-full py-2 sm:py-3 rounded-lg text-sm sm:text-base ${
                     addSuccess
                       ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-green-200"
                       : book.stock <= 0
-                      ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none"
-                      : isAdding
-                      ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-blue-200"
-                      : "bg-black text-white hover:from-gray-700 hover:to-gray-600"
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none"
+                        : isAdding
+                          ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-blue-200"
+                          : "bg-black text-white hover:from-gray-700 hover:to-gray-600"
                   }`
             }`}
             aria-label={`Add ${book.title} to cart`}

@@ -4,7 +4,10 @@ import initialBooks from "../../data/dummyBooks.json";
 import { BooksContext } from "@/context/BooksContext";
 import FiltersBar from "./books/FiltersBar";
 import BooksTable from "./books/BooksTable";
-import { computeFinalConfiguredPrice, defaultPrintState } from "../bookViewComponents/BookPrintPricing";
+import {
+  computeFinalConfiguredPrice,
+  defaultPrintState,
+} from "../bookViewComponents/BookPrintPricing";
 import Pagination from "./common/Pagination";
 import WorkflowSkeleton from "./common/WorkflowSkeleton";
 import AddEditBookModal from "./books/AddEditBookModal";
@@ -23,6 +26,10 @@ const Books = () => {
   // Data
   const [books, setBooks] = useState(initialBooks);
   const [loading, setLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState({
+    current: 0,
+    total: 0,
+  }); // Track cursor fetch progress
 
   // UI State
   const [filters, setFilters] = useState({
@@ -70,14 +77,19 @@ const Books = () => {
     let alive = true;
     (async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/settings/print-config`);
+        const res = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL || "http://localhost:5000"}/api/settings/print-config`,
+        );
         const data = await res.json();
-        if (alive && res.ok && data.success && data.data) setPrintSettings(data.data);
+        if (alive && res.ok && data.success && data.data)
+          setPrintSettings(data.data);
       } catch {
         // ignore
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, []);
 
   // Simple CSV parser with quoted fields support
@@ -226,10 +238,14 @@ const Books = () => {
       if (rawDealWeek !== "")
         fd.append(
           "is_deal_of_the_week",
-          /^true|1|yes$/i.test(rawDealWeek) ? "1" : "0"
+          /^true|1|yes$/i.test(rawDealWeek) ? "1" : "0",
         );
-      if (rawPrintOnDemand !== "") // added
-        fd.append("isPrintOnDemand", /^true|1|yes$/i.test(rawPrintOnDemand) ? "1" : "0");
+      if (rawPrintOnDemand !== "")
+        // added
+        fd.append(
+          "isPrintOnDemand",
+          /^true|1|yes$/i.test(rawPrintOnDemand) ? "1" : "0",
+        );
       const salePrice = get("sale_price");
       if (isOnSale && salePrice !== "") fd.append("sale_price", salePrice);
       const dealStart = get("deal_start");
@@ -264,14 +280,51 @@ const Books = () => {
     toast.success(`Import finished. Added: ${added}, Errors: ${errors}.`);
   };
 
-  // Fetch books + expose a refetch like Orders
+  // Industry-standard: Cursor-based recursive fetch for unlimited books
+  // Fetches all books regardless of count (10K, 100K, 1M+) in 5K batches
   const refetch = async () => {
     try {
       setLoading(true);
-      const data = await fetchBooks({ status: "all" });
-      setBooks(data.data);
-    } catch {
-      toast.error("Failed to fetch books");
+      setLoadingProgress({ current: 0, total: 0 });
+
+      const allBooks = [];
+      let cursor = null;
+      let batchCount = 0;
+
+      // Recursively fetch all books using cursor pagination
+      while (true) {
+        batchCount++;
+        setLoadingProgress({ current: batchCount, total: 0 }); // Show batch progress
+
+        // Fetch with max limit (5000) using cursor
+        const response = await fetchBooks({
+          status: "all",
+          limit: 5000,
+          ...(cursor && { cursor }),
+        });
+
+        const batchData = response?.data || response || [];
+        const pagination = response?.pagination || {};
+
+        // Accumulate books
+        allBooks.push(...batchData);
+
+        // Check if there are more pages
+        if (!pagination?.hasNextPage || !pagination?.nextCursor) {
+          break; // No more pages
+        }
+
+        // Update cursor for next batch
+        cursor = pagination.nextCursor;
+      }
+
+      setBooks(allBooks);
+      setLoadingProgress({ current: batchCount, total: batchCount });
+    } catch (error) {
+      console.error("Failed to fetch books:", error);
+      toast.error(
+        "Failed to fetch books: " + (error?.message || "Unknown error"),
+      );
     } finally {
       setLoading(false);
     }
@@ -289,7 +342,7 @@ const Books = () => {
   const genreOptions = useMemo(() => {
     const set = new Set();
     (books || []).forEach((b) =>
-      toGenreArray(b?.genre).forEach((g) => set.add(g))
+      toGenreArray(b?.genre).forEach((g) => set.add(g)),
     );
     return Array.from(set);
   }, [books]);
@@ -327,18 +380,18 @@ const Books = () => {
       .filter((b) =>
         filters.genre === "all"
           ? true
-          : toGenreArray(b?.genre).includes(filters.genre)
+          : toGenreArray(b?.genre).includes(filters.genre),
       )
       .filter((b) =>
         filters.stock === "all"
           ? true
           : filters.stock === "in"
-          ? typeof b.stock === "number"
-            ? b.stock > 0
-            : true
-          : typeof b.stock === "number"
-          ? b.stock === 0
-          : false
+            ? typeof b.stock === "number"
+              ? b.stock > 0
+              : true
+            : typeof b.stock === "number"
+              ? b.stock === 0
+              : false,
       )
       .sort((a, b) => {
         // Date sort (primary)
@@ -376,7 +429,7 @@ const Books = () => {
   const startIdx = (safePage - 1) * pageSize;
   const currentPageBooks = filteredSortedBooks.slice(
     startIdx,
-    startIdx + pageSize
+    startIdx + pageSize,
   );
 
   // Actions
@@ -402,8 +455,8 @@ const Books = () => {
         prev.map((b) =>
           String(b._id || b.id) === editingId
             ? { ...b, ...normalized, _id: raw?._id ?? b._id }
-            : b
-        )
+            : b,
+        ),
       );
       toast.success("Book updated successfully!");
     } else {
@@ -428,7 +481,7 @@ const Books = () => {
     try {
       await deleteBook(confirm.id);
       setBooks((prev) =>
-        prev.filter((b) => String(b._id || b.id) !== String(confirm.id))
+        prev.filter((b) => String(b._id || b.id) !== String(confirm.id)),
       );
       toast.success("Book deleted permanently!");
     } catch {
@@ -509,7 +562,7 @@ const Books = () => {
           headers: {
             ...(token && { Authorization: `Bearer ${token}` }),
           },
-        }
+        },
       );
 
       const imgCount = Array.isArray(data?.data?.images)
@@ -519,7 +572,7 @@ const Books = () => {
         ? data.data.files.length
         : 0;
       toast.success(
-        `Bulk upload successful. Images: ${imgCount}, Files: ${fileCount}.`
+        `Bulk upload successful. Images: ${imgCount}, Files: ${fileCount}.`,
       );
       setShowBulkModal(false);
     } catch (err) {
@@ -546,12 +599,26 @@ const Books = () => {
             Manage your book inventory and categories here.
           </p>
           <div className="mt-2 flex items-center gap-2">
-            <span className="px-2 py-1 rounded bg-gray-100 border text-[11px] uppercase tracking-wide" title="Global pricing mode">
-              Mode: {pricingMode === 'derived' ? 'Derived (Auto)' : 'Relative (Manual)'}
+            <span
+              className="px-2 py-1 rounded bg-gray-100 border text-[11px] uppercase tracking-wide"
+              title="Global pricing mode"
+            >
+              Mode:{" "}
+              {pricingMode === "derived"
+                ? "Derived (Auto)"
+                : "Relative (Manual)"}
             </span>
-            {pricingMode === 'derived' && printSettings && (
-              <span className="px-2 py-1 rounded bg-gray-50 border text-[11px]" title="Derived pricing formula">
-                Content Fee: ৳{Number(printSettings.contentFee || 0).toFixed(2)} · Base/Page: ৳{Number(printSettings.basePerPage || 0).toFixed(2)} · Margin: {printSettings.margin?.type === 'flat' ? `৳${Number(printSettings.margin?.value||0).toFixed(2)}` : `${Number(printSettings.margin?.value||0)}%`}
+            {pricingMode === "derived" && printSettings && (
+              <span
+                className="px-2 py-1 rounded bg-gray-50 border text-[11px]"
+                title="Derived pricing formula"
+              >
+                Content Fee: ৳{Number(printSettings.contentFee || 0).toFixed(2)}{" "}
+                · Base/Page: ৳
+                {Number(printSettings.basePerPage || 0).toFixed(2)} · Margin:{" "}
+                {printSettings.margin?.type === "flat"
+                  ? `৳${Number(printSettings.margin?.value || 0).toFixed(2)}`
+                  : `${Number(printSettings.margin?.value || 0)}%`}
               </span>
             )}
           </div>
@@ -675,6 +742,14 @@ const Books = () => {
                 {importProgress.errors}
               </div>
             )}
+
+            {loading && (
+              <div className="text-sm text-blue-600 font-medium">
+                🔄 Loading books...
+                {loadingProgress.current > 0 &&
+                  ` (Batch ${loadingProgress.current})`}
+              </div>
+            )}
           </div>
 
           {/* Books Count */}
@@ -741,7 +816,10 @@ const Books = () => {
                     : null;
 
                 return (
-                  <div key={book._id || book.id} className="bg-white p-4 rounded-md border border-zinc-200">
+                  <div
+                    key={book._id || book.id}
+                    className="bg-white p-4 rounded-md border border-zinc-200"
+                  >
                     <div className="flex gap-3">
                       {/* Cover */}
                       <div className="flex-shrink-0">
@@ -762,7 +840,7 @@ const Books = () => {
                               stroke="currentColor"
                               strokeWidth="1.5"
                             >
-                              <path d="M4 5.5A2.5 2.5 0 016.5 3H18a1 1 0 011 1v16a1 1 0 01-1.447.894L14 19.118l-3.553 1.776A1 1 0 019 20V5H6.5A2.5 2.5 0 004 7.5v-2z"/>
+                              <path d="M4 5.5A2.5 2.5 0 016.5 3H18a1 1 0 011 1v16a1 1 0 01-1.447.894L14 19.118l-3.553 1.776A1 1 0 019 20V5H6.5A2.5 2.5 0 004 7.5v-2z" />
                             </svg>
                           </div>
                         )}
@@ -770,18 +848,32 @@ const Books = () => {
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900 truncate">{book.title}</h3>
+                        <h3 className="font-medium text-gray-900 truncate">
+                          {book.title}
+                        </h3>
                         {book.author && (
-                          <p className="text-sm text-gray-600 truncate">{book.author}</p>
+                          <p className="text-sm text-gray-600 truncate">
+                            {book.author}
+                          </p>
                         )}
                         {genreLabel && (
-                          <p className="text-sm text-gray-500 truncate">{genreLabel}</p>
+                          <p className="text-sm text-gray-500 truncate">
+                            {genreLabel}
+                          </p>
                         )}
                         <div className="mt-2 flex items-center justify-between">
                           <div className="text-sm">
                             <span className="font-medium">Stock: </span>
-                            <span className={typeof book.stock === "number" && book.stock > 0 ? "text-green-600" : "text-red-600"}>
-                              {typeof book.stock === "number" ? book.stock : "N/A"}
+                            <span
+                              className={
+                                typeof book.stock === "number" && book.stock > 0
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }
+                            >
+                              {typeof book.stock === "number"
+                                ? book.stock
+                                : "N/A"}
                             </span>
                           </div>
                           <div className="text-sm font-medium text-gray-900">

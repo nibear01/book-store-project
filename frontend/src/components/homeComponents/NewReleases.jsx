@@ -16,14 +16,14 @@ import { useTranslation } from "react-i18next";
 const categories = ["All", "History", "Science & Math", "Romance", "Travel"];
 
 const NewReleases = () => {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation("common");
   const url = import.meta.env.VITE_BACKEND_URL;
   const [activeCategory, setActiveCategory] = useState("All");
   const { books, loading, error, fetchBooks } = useContext(BooksContext);
   // Normalize books shape
   const list = useMemo(
     () => (Array.isArray(books) ? books : books?.data || []),
-    [books]
+    [books],
   );
 
   // Fetch books on mount if not already loaded
@@ -37,7 +37,7 @@ const NewReleases = () => {
     () => () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     },
-    []
+    [],
   );
 
   const filterBooks = useCallback(
@@ -49,7 +49,7 @@ const NewReleases = () => {
         else fetchBooks({ genre: category });
       }, 200);
     },
-    [fetchBooks]
+    [fetchBooks],
   );
 
   if (loading) {
@@ -65,8 +65,7 @@ const NewReleases = () => {
     );
   }
 
-// Loading skeleton is handled above with BookLoadingSkeleton count=10
-
+  // Loading skeleton is handled above with BookLoadingSkeleton count=10
 
   if (error) {
     const errorMsg =
@@ -84,7 +83,7 @@ const NewReleases = () => {
             onClick={() => fetchBooks()}
             className="px-6 py-2 bg-black text-white rounded-[2px] hover:bg-gray-800 transition-colors"
           >
-            {t('shop.tryAgain')}
+            {t("shop.tryAgain")}
           </button>
         </div>
       </div>
@@ -96,16 +95,22 @@ const NewReleases = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row justify-between items-center mb-8 gap-4">
-          <h1 name="new-releases-heading" className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 text-center lg:text-left">
-            {t('home.newReleases.title')}
+          <h1
+            name="new-releases-heading"
+            className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 text-center lg:text-left"
+          >
+            {t("home.newReleases.title")}
           </h1>
 
           {/* Category Filter - Horizontal Scroll for Mobile */}
           <div className="w-full lg:w-auto overflow-x-auto pb-2">
-            <div name="new-releases-filters" className="flex space-x-2 min-w-max">
+            <div
+              name="new-releases-filters"
+              className="flex space-x-2 min-w-max"
+            >
               {categories.map((category) => (
                 <button
-                  name={`new-releases-filter-${category.toLowerCase().replace(/\s+/g, '-')}`}
+                  name={`new-releases-filter-${category.toLowerCase().replace(/\s+/g, "-")}`}
                   key={category}
                   onClick={() => filterBooks(category)}
                   className={`px-4 py-2 rounded-md transition-all duration-200 text-sm md:text-base whitespace-nowrap min-w-[100px] text-center
@@ -123,7 +128,10 @@ const NewReleases = () => {
         </div>
 
         {/* Books Grid */}
-        <div name="new-releases-books-grid" className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
+        <div
+          name="new-releases-books-grid"
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6"
+        >
           {list
             .filter((b) => !!b?.slug)
             .slice(0, 10) // Limit to 10 books
@@ -136,12 +144,16 @@ const NewReleases = () => {
               />
             ))}
           {list.length > 10 ? (
-            <div className="col-span-2 md:col-span-3 lg:col-span-5">
+            <div className="col-span-2 md:col-span-3 lg:col-span-5 flex justify-center mt-4">
               <Link
-                to={`/shop`}
-                className="block text-center text-sm font-semibold text-gray-700 hover:text-gray-900"
+                to={
+                  activeCategory === "All"
+                    ? "/shop"
+                    : `/categories?category=${encodeURIComponent(activeCategory)}`
+                }
+                className="block text-center"
               >
-                <ButtonFill>{t('shop.seeAllBooks')}</ButtonFill>
+                <ButtonFill>{t("shop.seeAllBooks")}</ButtonFill>
               </Link>
             </div>
           ) : null}
@@ -152,9 +164,9 @@ const NewReleases = () => {
           <div className="text-center py-12">
             <div className="text-gray-400 text-4xl mb-4">📚</div>
             <h3 className="text-xl font-semibold text-gray-700 mb-2">
-              {t('shop.noBooksFound')}
+              {t("shop.noBooksFound")}
             </h3>
-            <p className="text-gray-500">{t('shop.tryDifferentCategory')}</p>
+            <p className="text-gray-500">{t("shop.tryDifferentCategory")}</p>
           </div>
         )}
       </div>

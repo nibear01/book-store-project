@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getUserOrders } from "../api/order-api";
+import { buildImageUrl } from "@/utils/imageUrlHelper";
 import { toast } from "react-toastify";
 import UserOrdersSkeleton from "../components/skeletons/UserOrdersSkeleton";
 import { useTranslation } from "react-i18next";
 
 const UserOrdersPage = () => {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation("common");
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +67,9 @@ const UserOrdersPage = () => {
       <div className=" bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">{t('common:navbar.orders')}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+              {t("common:navbar.orders")}
+            </h1>
             <div className="bg-red-50 border border-red-200 rounded-md p-4">
               <p className="text-red-800">{error}</p>
             </div>
@@ -74,7 +77,7 @@ const UserOrdersPage = () => {
               onClick={fetchUserOrders}
               className="mt-4 bg-gray-900 text-white px-6 py-2 rounded-md hover:bg-gray-800 transition-colors"
             >
-              {t('common:orders.tryAgainButton')}
+              {t("common:orders.tryAgainButton")}
             </button>
           </div>
         </div>
@@ -88,10 +91,10 @@ const UserOrdersPage = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-            {t('common:navbar.orders')}
+            {t("common:navbar.orders")}
           </h1>
           <p className="mt-2 text-gray-600">
-            {t('common:orders.viewOrderHistory')}
+            {t("common:orders.viewOrderHistory")}
           </p>
         </div>
 
@@ -109,16 +112,16 @@ const UserOrdersPage = () => {
               </svg>
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {t('common:orders.noOrders')}
+              {t("common:orders.noOrders")}
             </h3>
             <p className="text-gray-600 mb-6">
-              {t('common:orders.noOrdersDesc')}
+              {t("common:orders.noOrdersDesc")}
             </p>
             <button
               onClick={() => navigate("/shop")}
               className="bg-gray-900 text-white px-6 py-3 rounded-md hover:bg-gray-800 transition-colors"
             >
-              {t('common:orders.startShopping')}
+              {t("common:orders.startShopping")}
             </button>
           </div>
         ) : (
@@ -133,16 +136,19 @@ const UserOrdersPage = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">
-                        {t('common:orders.orderNumber', { number: order.order_number })}
+                        {t("common:orders.orderNumber", {
+                          number: order.order_number,
+                        })}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        {t('common:orders.placedOn')} {formatDate(order.createdAt)}
+                        {t("common:orders.placedOn")}{" "}
+                        {formatDate(order.createdAt)}
                       </p>
                     </div>
                     <div className="mt-2 sm:mt-0">
                       <span
                         className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-                          order.order_status
+                          order.order_status,
                         )}`}
                       >
                         {t(`common:status.${order.order_status}`)}
@@ -159,9 +165,11 @@ const UserOrdersPage = () => {
                         <div className="flex-shrink-0">
                           {item.book_cover ? (
                             <img
-                              src={`${import.meta.env.VITE_BACKEND_URL || ""}${
-                                item.book_cover
-                              }`}
+                              src={buildImageUrl(
+                                item.book_cover,
+                                import.meta.env.VITE_BACKEND_URL ||
+                                  "http://localhost:5000",
+                              )}
                               alt={item.book_title}
                               className="h-16 w-12 object-cover rounded"
                               onError={(e) => {
@@ -196,7 +204,7 @@ const UserOrdersPage = () => {
                             {item.book_title || "Unknown Book"}
                           </h4>
                           <p className="text-sm text-gray-600">
-                            {t('common:orders.quantity')}: {item.quantity}
+                            {t("common:orders.quantity")}: {item.quantity}
                           </p>
                           {(() => {
                             const v = item?.variant || {
@@ -215,7 +223,8 @@ const UserOrdersPage = () => {
                           })()}
                         </div>
                         <div className="text-sm font-medium text-gray-900">
-                          {t('common:currency')}{(item.price * item.quantity).toFixed(2)}
+                          {t("common:currency")}
+                          {(item.price * item.quantity).toFixed(2)}
                         </div>
                       </div>
                     ))}
@@ -227,14 +236,20 @@ const UserOrdersPage = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                     <div className="text-sm text-gray-600 space-y-1">
                       <p>
-                        <span className="font-medium">{t('common:orders.subtotal')}:</span> {t('common:currency')}
+                        <span className="font-medium">
+                          {t("common:orders.subtotal")}:
+                        </span>{" "}
+                        {t("common:currency")}
                         {(order.subtotal_amount ?? order.total_amount).toFixed(
-                          2
+                          2,
                         )}
                       </p>
                       {order.discount_amount > 0 && (
                         <p className="text-green-600">
-                          <span className="font-medium">{t('common:orders.discount')}:</span> -{t('common:currency')}
+                          <span className="font-medium">
+                            {t("common:orders.discount")}:
+                          </span>{" "}
+                          -{t("common:currency")}
                           {order.discount_amount.toFixed(2)}{" "}
                           {order.discount_label && (
                             <span className="italic">
@@ -244,16 +259,24 @@ const UserOrdersPage = () => {
                         </p>
                       )}
                       <p>
-                        <span className="font-medium">{t('common:orders.shipping')}:</span> {t('common:currency')}
+                        <span className="font-medium">
+                          {t("common:orders.shipping")}:
+                        </span>{" "}
+                        {t("common:currency")}
                         {(order.shipping_amount || 0).toFixed(2)}
                       </p>
                       <p className="font-semibold">
-                        <span className="font-medium">{t('common:orders.total')}:</span> {t('common:currency')}
+                        <span className="font-medium">
+                          {t("common:orders.total")}:
+                        </span>{" "}
+                        {t("common:currency")}
                         {(order.grand_total ?? order.total_amount).toFixed(2)}
                       </p>
                       {order.shipping_address && (
                         <p className="mt-1">
-                          <span className="font-medium">{t('common:orders.shippingTo')}:</span>{" "}
+                          <span className="font-medium">
+                            {t("common:orders.shippingTo")}:
+                          </span>{" "}
                           {order.shipping_address.city},{" "}
                           {order.shipping_address.state}
                         </p>
@@ -263,7 +286,7 @@ const UserOrdersPage = () => {
                       onClick={() => handleViewOrder(order._id)}
                       className="mt-3 sm:mt-0 bg-gray-900 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
                     >
-                      {t('common:buttons.viewDetails')}
+                      {t("common:buttons.viewDetails")}
                     </button>
                   </div>
                 </div>
@@ -278,7 +301,7 @@ const UserOrdersPage = () => {
             onClick={() => navigate("/account")}
             className="text-gray-600 hover:text-gray-900 transition-colors"
           >
-            ← {t('common:orders.backToAccount')}
+            ← {t("common:orders.backToAccount")}
           </button>
         </div>
       </div>
