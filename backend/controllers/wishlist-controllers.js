@@ -15,6 +15,8 @@ export const getWishlist = async (req, res) => {
     if (!wishlist) {
       wishlist = { user: userId, items: [] };
     }
+    // Skip entries whose book has since been deleted
+    wishlist.items = wishlist.items.filter((item) => item.book);
 
     return res.status(200).json({ success: true, data: wishlist });
   } catch (error) {

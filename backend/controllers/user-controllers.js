@@ -11,6 +11,7 @@ import Review from "../models/review-model.js";
 import Book from "../models/book-model.js";
 import { getPasswordResetTemplate } from "../utils/email-templates.js";
 import bcrypt from "bcrypt";
+import { BACKEND_ROOT } from "../utils/paths.js";
 
 // @desc    Get allowed roles (Admin only)
 // @route   GET /api/users/roles
@@ -97,6 +98,9 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
+        if (typeof email !== "string" || typeof password !== "string") {
+            return res.status(400).json({ success: false, message: "Email and password are required" });
+        }
 
         // Find user by email
         const user = await User.findOne({ email }).select('+password');
@@ -165,7 +169,7 @@ export const loginUserByPhone = async (req, res) => {
     try {
         const { phone, password } = req.body;
 
-        if (!phone || !password) {
+        if (typeof phone !== "string" || typeof password !== "string" || !phone || !password) {
             return res.status(400).json({ success: false, message: "Phone and password are required" });
         }
 
@@ -338,7 +342,7 @@ export const getUserById = async (req, res) => {
 // helper to map absolute file path -> public relative path
 const toPublicPath = (file) => {
     if (!file?.path) return undefined;
-    const rel = path.relative(process.cwd(), file.path).split(path.sep).join("/");
+    const rel = path.relative(BACKEND_ROOT, file.path).split(path.sep).join("/");
     return rel.startsWith("/") ? rel : `/${rel}`;
 };
 
@@ -529,7 +533,7 @@ export const changeUserRole = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: `User role changed to ${role}`,
+            message: `User roles changed to ${builtRoles.join(", ")}`,
             data: user
         });
     } catch (error) {
@@ -629,7 +633,7 @@ export const changeUserPasswordAdmin = async (req, res) => {
 export const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
-        if (!email) return res.status(400).json({ success: false, message: "Email is required" });
+        if (!email || typeof email !== "string") return res.status(400).json({ success: false, message: "Email is required" });
 
         const user = await User.findOne({ email });
         if (!user) {
@@ -672,7 +676,7 @@ export const forgotPassword = async (req, res) => {
 export const resetPassword = async (req, res) => {
     try {
         const { email, token, password } = req.body;
-        if (!email || !token || !password) {
+        if (typeof email !== "string" || typeof token !== "string" || !email || !token || !password) {
             return res.status(400).json({ success: false, message: "Email, token, and new password are required" });
         }
 

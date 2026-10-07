@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { BACKEND_URL } from "../api/apiBase";
 
 const AffiliateAdminContext = createContext();
 
@@ -14,7 +15,7 @@ export const useAffiliateAdmin = () => {
 
 export const AffiliateAdminProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
-  const API_URL = import.meta.env.VITE_BACKEND_URL + "/api/admin/affiliates";
+  const API_URL = BACKEND_URL + "/api/admin/affiliates";
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem("token");

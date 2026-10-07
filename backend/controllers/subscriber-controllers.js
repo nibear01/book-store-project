@@ -1,4 +1,5 @@
 import Subscriber from "../models/subscriber-model.js";
+import { escapeRegex } from "../utils/escape-regex.js";
 import { NewsletterSubject, EmailObserver } from "../utils/newsletter.js";
 import { getNewsletterTemplate } from "../utils/email-templates.js";
 
@@ -70,8 +71,8 @@ export const listSubscribers = async (req, res) => {
     const q = {};
     if (search) {
       q.$or = [
-        { email: { $regex: search, $options: "i" } },
-        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: escapeRegex(search), $options: "i" } },
+        { name: { $regex: escapeRegex(search), $options: "i" } },
       ];
     }
     const [items, total] = await Promise.all([

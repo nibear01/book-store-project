@@ -8,7 +8,8 @@
     "total": "মোট",
     "remove": "মুছুন",
     "clearCart": "কার্ট খালি করুন",
-    "checkout": "চেকআউট করুন"
+    "checkout": "চেকআউট করুন",
+    "shippingAtCheckout": "চেকআউটে হিসাব করা হবে"
   },
   "checkout": {
     "title": "চেকআউট",

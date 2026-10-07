@@ -21,29 +21,43 @@ const BookActions = ({
     if (quantity > 1) setQuantity(quantity - 1);
   };
 
-  const handleAddToCart = () => {
+  // Print options chosen on the book page (null when the book isn't print-on-demand)
+  const printVariant = book?._printConfig
+    ? {
+        paperQuality: book._printConfig.paperQuality,
+        printSide: book._printConfig.printSide,
+        paperSize: book._printConfig.paperSize,
+        colorMode: book._printConfig.colorMode,
+      }
+    : undefined;
+
+  const handleAddToCart = async () => {
     if (!isAuthenticated) {
       navigate("/login");
       return;
     }
 
     const id = book?._id || book?.id;
-    if (isInCart && id && isInCart(id)) {
+    if (isInCart && id && isInCart(id, printVariant)) {
       toast.info(t('bookCard.alreadyInCart'));
       return;
     }
 
-    addToCart({
-      item: {
-        id,
-        title: book.title,
-        price: Number(book.price || 0),
-      },
-      quantity,
-    });
+    try {
+      await addToCart({
+        item: {
+          id,
+          title: book.title,
+          price: Number(book.price || 0),
+        },
+        quantity,
+      });
+    } catch (error) {
+      toast.error(error?.message || t('bookView.checkoutError'));
+    }
   };
 
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     if (!isAuthenticated) {
       navigate("/login");
       return;
@@ -56,8 +70,8 @@ const BookActions = ({
 
     try {
       // Only add if not already in cart; otherwise just proceed to checkout
-      if (!isInCart || !isInCart(id)) {
-        addToCart({
+      if (!isInCart || !isInCart(id, printVariant)) {
+        await addToCart({
           item: {
             id,
             title: book.title,
@@ -67,8 +81,8 @@ const BookActions = ({
         });
       }
       navigate("/checkout");
-    } catch {
-      toast.error(t('bookView.checkoutError'));
+    } catch (error) {
+      toast.error(error?.message || t('bookView.checkoutError'));
     }
   };
 

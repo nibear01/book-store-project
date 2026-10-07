@@ -8,7 +8,8 @@
     "total": "Total",
     "remove": "Remove",
     "clearCart": "Clear Cart",
-    "checkout": "Proceed to Checkout"
+    "checkout": "Proceed to Checkout",
+    "shippingAtCheckout": "Calculated at checkout"
   },
   "checkout": {
     "title": "Checkout",

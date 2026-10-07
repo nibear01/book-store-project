@@ -2,56 +2,27 @@
 import mongoose from "mongoose";
 import Cart from "../models/cart-model.js";
 import Book from "../models/book-model.js";
-import { getPrintPricingConfig, computePrintPrice } from "../utils/print-pricing.js";
+import {
+  getPrintPricingConfig,
+  buildFinalUnitPrice,
+  sanitizeVariant,
+  sameVariant,
+  DEFAULT_VARIANT,
+} from "../utils/print-pricing.js";
 
-const DEFAULT_VARIANT = {
-  paperQuality: "economy",
-  printSide: "single",
-  paperSize: "A4",
-  colorMode: "bw",
-};
-
-function sanitizeVariant(variant) {
-  if (!variant || typeof variant !== "object") return null;
-  return {
-    paperQuality: variant.paperQuality || null,
-    printSide: variant.printSide || null,
-    paperSize: variant.paperSize || null,
-    colorMode: variant.colorMode || null,
-  };
+// "?variant=economy|single|A4|bw" identifies one line when a book is in the cart with several print options
+function variantFromQuery(raw) {
+  if (typeof raw !== "string" || !raw) return null;
+  const [paperQuality, printSide, paperSize, colorMode] = raw.split("|");
+  return { paperQuality, printSide, paperSize, colorMode };
 }
+
+const matchesLine = (item, bookId, variant) =>
+  item.book.toString() === bookId && (!variant || sameVariant(item.variant, variant));
 
 function toPlainBook(bookDoc) {
   // Support both Mongoose document and plain object
   return typeof bookDoc?.toObject === "function" ? bookDoc.toObject() : bookDoc;
-}
-
-function round2(n) {
-  return Number(Number(n).toFixed(2));
-}
-
-function buildFinalUnitPrice({ book, variant, cfg }) {
-  const bookPlain = toPlainBook(book);
-  const v = variant || DEFAULT_VARIANT;
-  const breakdown = computePrintPrice({ book: bookPlain, variant: v, cfg });
-  let final = breakdown.finalPrice;
-
-  // Derived mode: apply sale as baseline + variant differential
-  if (cfg?.mode === "derived" && bookPlain?.is_on_sale && Number.isFinite(Number(bookPlain?.sale_price))) {
-    const adminSale = Number(bookPlain.sale_price);
-    const baseDefault = computePrintPrice({ book: bookPlain, variant: DEFAULT_VARIANT, cfg });
-    const variantDiff = breakdown.finalPrice - baseDefault.finalPrice;
-    final = round2(adminSale + variantDiff);
-  }
-
-  // Relative mode: if sale, recompute with sale as content price
-  if (cfg?.mode === "relative" && bookPlain?.is_on_sale && Number.isFinite(Number(bookPlain?.sale_price))) {
-    const saleBook = { ...bookPlain, price: Number(bookPlain.sale_price) };
-    const saleBreakdown = computePrintPrice({ book: saleBook, variant: v, cfg });
-    final = round2(saleBreakdown.finalPrice);
-  }
-
-  return { unitPrice: round2(final), breakdown: { ...breakdown, finalPrice: round2(final) } };
 }
 
 // @desc    Get user's cart
@@ -72,11 +43,19 @@ export const getCart = async (req, res) => {
       cart = { user: userId, items: [], total_price: 0 };
     }
 
+    // Books deleted since they were added populate as null: drop them from the cart
+    const liveItems = cart.items.filter((item) => item.book);
+    if (cart._id && liveItems.length !== cart.items.length) {
+      await Cart.updateOne(
+        { _id: cart._id },
+        { $pull: { items: { book: { $nin: liveItems.map((i) => i.book._id) } } } }
+      );
+    }
+
     const cfg = await getPrintPricingConfig();
     const updatedItems = await Promise.all(
-      cart.items.map(async (item) => {
-        const bookDoc = await Book.findById(item.book._id);
-        const book = toPlainBook(bookDoc);
+      liveItems.map(async (item) => {
+        const book = item.book;
         const availableStock = book?.stock || 0;
         const actualQuantity = Math.min(item.quantity, availableStock);
 
@@ -161,26 +140,28 @@ export const addToCart = async (req, res) => {
     }
 
     // Check if item already exists in cart
+    const safeVariant = sanitizeVariant(variant);
     const existingItemIndex = cart.items.findIndex(
-      item => item.book.toString() === bookId
+      item => item.book.toString() === bookId && sameVariant(item.variant, safeVariant)
     );
+
+    // Stock is shared by every print variant of the same book
+    const alreadyInCart = cart.items
+      .filter((item) => item.book.toString() === bookId)
+      .reduce((sum, item) => sum + item.quantity, 0);
+    if (alreadyInCart + quantityNum > book.stock) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot add more than available stock (${book.stock})`
+      });
+    }
 
     if (existingItemIndex > -1) {
       // Update existing item
-      const newQuantity = cart.items[existingItemIndex].quantity + quantityNum;
-
-      if (newQuantity > book.stock) {
-        return res.status(400).json({
-          success: false,
-          message: `Cannot add more than available stock (${book.stock})`
-        });
-      }
-
-      cart.items[existingItemIndex].quantity = newQuantity;
+      cart.items[existingItemIndex].quantity += quantityNum;
     } else {
       // Compute price consistently with server-side pricing rules
       const cfg = await getPrintPricingConfig();
-      const safeVariant = sanitizeVariant(variant);
       const { unitPrice, breakdown } = buildFinalUnitPrice({ book, variant: safeVariant || DEFAULT_VARIANT, cfg });
 
       cart.items.push({
@@ -250,10 +231,9 @@ export const updateCartItem = async (req, res) => {
       });
     }
 
-    // Find item by book ID instead of item ID
-    const itemIndex = cart.items.findIndex(
-      item => item.book.toString() === itemId
-    );
+    // Find the line by book ID (and print variant, when the book has several lines)
+    const variant = variantFromQuery(req.query.variant);
+    const itemIndex = cart.items.findIndex((item) => matchesLine(item, itemId, variant));
 
     if (itemIndex === -1) {
       return res.status(404).json({
@@ -264,7 +244,10 @@ export const updateCartItem = async (req, res) => {
 
     // Check stock availability
     const book = await Book.findById(cart.items[itemIndex].book);
-    if (!book || book.stock < quantityNum) {
+    const otherLines = cart.items
+      .filter((item, i) => i !== itemIndex && item.book.toString() === itemId)
+      .reduce((sum, item) => sum + item.quantity, 0);
+    if (!book || book.stock < quantityNum + otherLines) {
       return res.status(400).json({
         success: false,
         message: `Only ${book?.stock || 0} items available in stock`
@@ -315,8 +298,9 @@ export const removeFromCart = async (req, res) => {
     }
 
     const initialLength = cart.items.length;
-    // Remove item by book ID instead of item ID
-    cart.items = cart.items.filter(item => item.book.toString() !== itemId);
+    // Remove by book ID: just one line when a variant is given, otherwise every line of that book
+    const variant = variantFromQuery(req.query.variant);
+    cart.items = cart.items.filter((item) => !matchesLine(item, itemId, variant));
 
     if (cart.items.length === initialLength) {
       return res.status(404).json({

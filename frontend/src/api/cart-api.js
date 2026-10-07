@@ -18,14 +18,18 @@ const request = async (endpoint, options = {}) => {
     return data;
 };
 
+const variantQuery = (variant) => (variant ? `?variant=${encodeURIComponent(variant)}` : '');
+
 export const cartAPI = {
     getCart: () => request('/cart', { method: 'GET' }),
     getCount: () => request('/cart/count', { method: 'GET' }),
     addItem: ({ bookId, quantity = 1, variant }) =>
         request('/cart/items', { method: 'POST', body: JSON.stringify({ bookId, quantity, variant }) }),
-    updateItem: ({ bookId, quantity }) =>
-        request(`/cart/items/${bookId}`, { method: 'PUT', body: JSON.stringify({ quantity }) }),
-    removeItem: ({ bookId }) => request(`/cart/items/${bookId}`, { method: 'DELETE' }),
+    // `variant` ("quality|side|size|color") picks one line when a book is in the cart with several print options
+    updateItem: ({ bookId, variant, quantity }) =>
+        request(`/cart/items/${bookId}${variantQuery(variant)}`, { method: 'PUT', body: JSON.stringify({ quantity }) }),
+    removeItem: ({ bookId, variant }) =>
+        request(`/cart/items/${bookId}${variantQuery(variant)}`, { method: 'DELETE' }),
     clear: () => request('/cart', { method: 'DELETE' }),
 };
 

@@ -115,20 +115,87 @@ const ROLE_HOME = {
   marketing_manager: "/admin/marketing",
 };
 
-function AppContent() {
+const roleHome = (role) => ROLE_HOME[role] || "/account";
+
+// Auth state shared by AppContent and the route guards
+function useGuardState() {
   const location = useLocation();
   const { isAuthenticated, user, isLoading, activeRole, setIsLoading } = useAuth();
   const roles = getAllRoles(user);
   const primaryRole = activeRole || roles[0];
-  const roleHome = (role) => ROLE_HOME[role] || "/account";
   const hasAdminScope = roles.some(r => r && r !== 'user');
-  const hideChrome = location.pathname.startsWith('/admin') || location.pathname.startsWith('/affiliate');
-
   // We consider roles "resolved" when either:
   //  - user is not authenticated (no roles needed), or
   //  - we have at least one derived role, or
   //  - auth loading finished & user object explicitly null (no roles expected).
   const rolesResolved = !isAuthenticated || roles.length > 0 || (!isLoading && user === null);
+  return { location, isAuthenticated, user, isLoading, setIsLoading, roles, primaryRole, hasAdminScope, rolesResolved };
+}
+
+// Route guards live at module level: declaring them inside AppContent made React see a
+// new component type on every render, which remounted (and reset) the guarded pages.
+
+// Skeleton for guard waiting states (lighter than global overlay)
+const GuardSkeleton = () => (
+  <div className="min-h-[100vh] p-4 sm:p-6">
+    <div className="animate-pulse space-y-4">
+      <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded w-1/3" />
+      <div className="h-25 bg-gray-200 dark:bg-gray-800 rounded w-full" />
+      <div className="h-25 bg-gray-200 dark:bg-gray-800 rounded w-5/6" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="h-30 bg-gray-200 dark:bg-gray-800 rounded" />
+        <div className="h-30 bg-gray-200 dark:bg-gray-800 rounded" />
+        <div className="h-30 bg-gray-200 dark:bg-gray-800 rounded" />
+      </div>
+    </div>
+  </div>
+);
+
+const RequireAuth = ({ children }) => {
+  const { isLoading, isAuthenticated, user, location } = useGuardState();
+  // Only show skeleton during initial load, not after login
+  if (isLoading && !isAuthenticated && !user) return <GuardSkeleton />;
+  return isAuthenticated ? children : <Navigate to="/login" state={{ from: location }} replace />;
+};
+
+const RequireGuest = ({ children }) => {
+  const { isLoading, isAuthenticated, primaryRole } = useGuardState();
+  // Don't show skeleton if user is already authenticated
+  if (isLoading && !isAuthenticated) return <GuardSkeleton />;
+  return isAuthenticated ? <Navigate to={roleHome(primaryRole)} replace /> : children;
+};
+
+const RequireRole = ({ roles: need, children }) => {
+  const { isLoading, isAuthenticated, user, location, roles, primaryRole, rolesResolved } = useGuardState();
+  // Only show skeleton if roles aren't resolved AND we're in initial load
+  if ((isLoading || !rolesResolved) && !user) return <GuardSkeleton />;
+  if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />;
+  // If authenticated but roles not resolved yet, wait briefly
+  if (!rolesResolved) return <GuardSkeleton />;
+  return need.some(r => roles.includes(r)) ? children : <Navigate to={roleHome(primaryRole)} replace />;
+};
+
+const RequireAnyAdminRole = ({ children }) => {
+  const { isLoading, isAuthenticated, user, location, primaryRole, hasAdminScope, rolesResolved } = useGuardState();
+  // Only show skeleton if roles aren't resolved AND we're in initial load
+  if ((isLoading || !rolesResolved) && !user) return <GuardSkeleton />;
+  if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />;
+  // If authenticated but roles not resolved yet, wait briefly
+  if (!rolesResolved) return <GuardSkeleton />;
+  return hasAdminScope ? children : <Navigate to={roleHome(primaryRole)} replace />;
+};
+
+const AdminIndex = () => {
+  const { isLoading, user, primaryRole, hasAdminScope, rolesResolved } = useGuardState();
+  // Only show skeleton if roles aren't resolved AND we're in initial load
+  if ((isLoading || !rolesResolved) && !user) return <GuardSkeleton />;
+  if (!rolesResolved) return <GuardSkeleton />;
+  return hasAdminScope ? <Dashboard /> : <Navigate to={roleHome(primaryRole)} replace />;
+};
+
+function AppContent() {
+  const { location, setIsLoading, rolesResolved } = useGuardState();
+  const hideChrome = location.pathname.startsWith('/admin') || location.pathname.startsWith('/affiliate');
 
   // When roles are resolved, hide the global loader (if shown by login/signup)
   React.useEffect(() => {
@@ -137,59 +204,6 @@ function AppContent() {
       setIsLoading(false);
     }
   }, [rolesResolved, setIsLoading]);
-
-  // Skeleton for guard waiting states (lighter than global overlay)
-  const GuardSkeleton = () => (
-    <div className="min-h-[100vh] p-4 sm:p-6">
-      <div className="animate-pulse space-y-4">
-        <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded w-1/3" />
-        <div className="h-25 bg-gray-200 dark:bg-gray-800 rounded w-full" />
-        <div className="h-25 bg-gray-200 dark:bg-gray-800 rounded w-5/6" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="h-30 bg-gray-200 dark:bg-gray-800 rounded" />
-          <div className="h-30 bg-gray-200 dark:bg-gray-800 rounded" />
-          <div className="h-30 bg-gray-200 dark:bg-gray-800 rounded" />
-        </div>
-      </div>
-    </div>
-  );
-
-  const RequireAuth = ({ children }) => {
-    // Only show skeleton during initial load, not after login
-    if (isLoading && !isAuthenticated && !user) return <GuardSkeleton />;
-    return isAuthenticated ? children : <Navigate to="/login" state={{ from: location }} replace />;
-  };
-
-  const RequireGuest = ({ children }) => {
-    // Don't show skeleton if user is already authenticated
-    if (isLoading && !isAuthenticated) return <GuardSkeleton />;
-    return isAuthenticated ? <Navigate to={roleHome(primaryRole)} replace /> : children;
-  };
-
-  const RequireRole = ({ roles: need, children }) => {
-    // Only show skeleton if roles aren't resolved AND we're in initial load
-    if ((isLoading || !rolesResolved) && !user) return <GuardSkeleton />;
-    if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />;
-    // If authenticated but roles not resolved yet, wait briefly
-    if (!rolesResolved) return <GuardSkeleton />;
-    return need.some(r => roles.includes(r)) ? children : <Navigate to={roleHome(primaryRole)} replace />;
-  };
-
-  const RequireAnyAdminRole = ({ children }) => {
-    // Only show skeleton if roles aren't resolved AND we're in initial load
-    if ((isLoading || !rolesResolved) && !user) return <GuardSkeleton />;
-    if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />;
-    // If authenticated but roles not resolved yet, wait briefly
-    if (!rolesResolved) return <GuardSkeleton />;
-    return hasAdminScope ? children : <Navigate to={roleHome(primaryRole)} replace />;
-  };
-
-  const AdminIndex = () => {
-    // Only show skeleton if roles aren't resolved AND we're in initial load
-    if ((isLoading || !rolesResolved) && !user) return <GuardSkeleton />;
-    if (!rolesResolved) return <GuardSkeleton />;
-    return hasAdminScope ? <Dashboard /> : <Navigate to={roleHome(primaryRole)} replace />;
-  };
 
   // GlobalLoadingGate shows overlay; avoid local overlay here
 

@@ -18,7 +18,7 @@ import {
 import { useWishlist } from "../context/WishlistContext";
 import { useMemo } from "react";
 import {
-  computeFinalConfiguredPrice,
+  getBookPrice,
   defaultPrintState,
 } from "../components/bookViewComponents/BookPrintPricing";
 
@@ -49,20 +49,30 @@ const BookViewPage = () => {
       setError("Invalid book link — no slug provided.");
       return;
     }
+    let alive = true; // ignore responses for a book the user already navigated away from
     const fetchBook = async () => {
       try {
+        setError(null); // clear a previous book's error
         setLoading(true);
         const data = await getBookBySlug(slug);
+        if (!alive) return;
         setBook(data);
+        // Opened through an old id link: show the readable slug URL instead of the database id
+        if (data?.slug && data.slug !== slug && /^[0-9a-fA-F]{24}$/.test(slug)) {
+          navigate(`/bookview/${encodeURIComponent(data.slug)}`, { replace: true });
+        }
       } catch (err) {
         const msg = err?.response?.data?.message || err?.message || String(err);
-        setError(`Failed to load book details: ${msg}`);
+        if (alive) setError(`Failed to load book details: ${msg}`);
       } finally {
-        setLoading(false);
+        if (alive) setLoading(false);
       }
     };
     fetchBook();
-  }, [slug, getBookBySlug]);
+    return () => {
+      alive = false;
+    };
+  }, [slug, getBookBySlug, navigate]);
 
   // Load global print settings to know pricing mode (derived vs relative)
   useEffect(() => {
@@ -88,53 +98,10 @@ const BookViewPage = () => {
     }
   }, [book?._id, isInWishlist]);
 
-  // Compute display price and discount for current selection and mode
+  // Price for the selected print options (same rule the cart charges)
   const { displayPrice, compareAtPrice } = useMemo(() => {
-    const settings = printSettings;
-    const mode = settings?.mode || "relative";
-    const pages = Number(book?.pages || 0);
-    const cfg = printConfig || defaultPrintState;
-    if (mode === "derived" && settings) {
-      // Derived base price for current variant selection
-      const { price: derivedVariantFinal } = computeFinalConfiguredPrice({ baseContentPrice: 0, pages, cfg, settings });
-      const adminSale = Number(book?.sale_price);
-      const hasSale = !!book?.is_on_sale && Number.isFinite(adminSale) && adminSale >= 0;
-      if (hasSale) {
-        // Compute derived price for default configuration to know baseline
-        const { price: derivedDefaultFinal } = computeFinalConfiguredPrice({ baseContentPrice: 0, pages, cfg: defaultPrintState, settings });
-        // Preserve discount amount while adding variant differential
-        const variantDiff = derivedVariantFinal - derivedDefaultFinal; // could be negative if somehow cheaper variant selected
-        const saleVariantFinal = Number((adminSale + variantDiff).toFixed(2));
-        return { displayPrice: saleVariantFinal, compareAtPrice: Number(derivedVariantFinal.toFixed(2)) };
-      }
-      return { displayPrice: Number(derivedVariantFinal.toFixed(2)), compareAtPrice: null };
-    }
-    // relative mode or no settings
-    const basePrice = Number(book?.price || 0);
-    const { price: configuredBase } = computeFinalConfiguredPrice({
-      baseContentPrice: basePrice,
-      pages,
-      cfg,
-      settings,
-    });
-    const onSale =
-      !!book?.is_on_sale &&
-      Number.isFinite(Number(book?.sale_price)) &&
-      Number(book?.sale_price) > 0;
-    if (onSale) {
-      const saleBase = Number(book?.sale_price);
-      const { price: configuredSale } = computeFinalConfiguredPrice({
-        baseContentPrice: saleBase,
-        pages,
-        cfg,
-        settings,
-      });
-      return {
-        displayPrice: Number(configuredSale),
-        compareAtPrice: Number(configuredBase),
-      };
-    }
-    return { displayPrice: Number(configuredBase), compareAtPrice: null };
+    const p = getBookPrice(book, printSettings, printConfig || defaultPrintState);
+    return { displayPrice: p.price, compareAtPrice: p.compareAt };
   }, [printSettings, printConfig, book]);
 
   // Handle loading state
@@ -224,7 +191,7 @@ const BookViewPage = () => {
                         colorMode: printConfig.colorMode,
                       }
                     : undefined;
-                  addToCart({
+                  return addToCart({
                     item: {
                       ...payload.item,
                       variant,

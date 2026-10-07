@@ -50,7 +50,8 @@ export const AuthProvider = ({ children }) => {
   // Fallback login using env base URL if userAPI.login fails to fetch (network/CORS/baseurl)
   const fallbackLogin = useCallback(async (credentials) => {
     const base = (import.meta.env.VITE_BACKEND_URL || "").replace(/\/+$/, "");
-    const endpoint = `${base || ""}/api/auth/login`;
+    // Same backend routes the primary login uses (phone or email)
+    const endpoint = `${base || ""}/api/users/${credentials?.phone ? "login-phone" : "login"}`;
     const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

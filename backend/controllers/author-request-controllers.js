@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import AuthorRequest from "../models/author-request-model.js";
 import Author from "../models/author-model.js";
 import EmailOtp from "../models/email-otp-model.js";
@@ -7,7 +8,8 @@ import { getOtpEmailTemplate, getAuthorWelcomeTemplate } from "../utils/email-te
 const OTP_EXPIRE_MS = 10 * 60 * 1000; // 10 minutes
 const RESEND_COOLDOWN_MS = 60 * 1000; // 60 seconds
 
-const generateCode = () => String(Math.floor(100000 + Math.random() * 900000));
+// Cryptographically random 6-digit code
+const generateCode = () => String(crypto.randomInt(100000, 1000000));
 
 // NEW: cached transporter with env-based SMTP (fallback to Ethereal)
 let cachedTransporter = null;
@@ -98,6 +100,9 @@ export const verifyAuthorOtp = async (req, res) => {
     if (!rec) return res.status(400).json({ success: false, message: "No code sent" });
     if (rec.expiresAt < new Date()) return res.status(400).json({ success: false, message: "Code expired" });
     if (rec.code !== String(code).trim()) return res.status(400).json({ success: false, message: "Invalid code" });
+    // Remember the verification so submit can check it server-side
+    rec.verifiedAt = new Date();
+    await rec.save();
     return res.status(200).json({ success: true, verified: true });
   } catch (e) {
     return res.status(500).json({ success: false, message: e.message });
@@ -111,6 +116,14 @@ export const submitAuthorRequest = async (req, res) => {
     // Basic server-side checks
     if (!payload.fullName || !payload.email || !payload.title || !payload.abstract) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+    // The email must have been verified with an OTP in the last hour
+    const verified = await EmailOtp.findOne({
+      email: String(payload.email),
+      verifiedAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) },
+    });
+    if (!verified) {
+      return res.status(400).json({ success: false, message: "Please verify your email before submitting" });
     }
     const doc = await AuthorRequest.create({
       fullName: payload.fullName,

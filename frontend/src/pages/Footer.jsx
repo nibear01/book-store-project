@@ -2,10 +2,30 @@ import { useAuth } from "@/context/AuthContext";
 import { FaFacebookF, FaLinkedinIn } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useEffect, useState } from "react";
+import { categoryAPI } from "../api/category-api";
 
 const Footer = () => {
   const { t } = useTranslation('common');
   const { user } = useAuth();
+  // Real categories (the five with the most books)
+  const [categories, setCategories] = useState([]);
+  useEffect(() => {
+    let alive = true;
+    categoryAPI
+      .list({ includeEmpty: false })
+      .then((res) => {
+        const list = (Array.isArray(res?.data) ? res.data : [])
+          .slice()
+          .sort((x, y) => (y.book_count || 0) - (x.book_count || 0))
+          .slice(0, 5);
+        if (alive) setCategories(list);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
   return (
     <div>
       <footer className="bg-black text-white pt-10">
@@ -87,31 +107,16 @@ const Footer = () => {
           <div>
             <h3 className="font-semibold mb-3">{t('common:navbar.categories')}</h3>
             <ul className="space-y-2 text-gray-300">
-              <li>
-                <Link to="/categories" className="hover:text-white">
-                  Action
-                </Link>
-              </li>
-              <li>
-                <Link to="/categories" className="hover:text-white">
-                  Comedy
-                </Link>
-              </li>
-              <li>
-                <Link to="/categories" className="hover:text-white">
-                  Drama
-                </Link>
-              </li>
-              <li>
-                <Link to="/categories" className="hover:text-white">
-                  Horror
-                </Link>
-              </li>
-              <li>
-                <Link to="/categories" className="hover:text-white">
-                  Comedy
-                </Link>
-              </li>
+              {categories.map((c) => (
+                <li key={c.slug || c.name}>
+                  <Link
+                    to={`/categories?category=${encodeURIComponent(c.slug || c.name)}`}
+                    className="hover:text-white"
+                  >
+                    {c.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 

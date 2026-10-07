@@ -13,6 +13,7 @@ import WorkflowSkeleton from "./common/WorkflowSkeleton";
 import Pagination from "./user/Pagination";
 import { Edit, BookOpen, Trash2, Eye } from "lucide-react";
 import { Button } from "../../Button/button.jsx";
+import { BACKEND_URL } from "../../api/apiBase";
 
 const AdminAuthorPageInner = () => {
   const {
@@ -29,7 +30,7 @@ const AdminAuthorPageInner = () => {
     update,
     findBookByISBN, // New: bring directly from context
   } = useAuthors();
-  const url = import.meta.env.VITE_BACKEND_URL;
+  const url = BACKEND_URL;
 
   // delete confirmation state
   const [deleteTarget, setDeleteTarget] = useState(null);

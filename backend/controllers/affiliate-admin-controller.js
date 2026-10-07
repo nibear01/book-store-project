@@ -1,4 +1,5 @@
 import Affiliate from "../models/affiliate-model.js";
+import { escapeRegex } from "../utils/escape-regex.js";
 import AffiliateCommission from "../models/affiliate-commission-model.js";
 import AffiliateWithdrawal from "../models/affiliate-withdrawal-model.js";
 
@@ -15,7 +16,7 @@ export const getAllAffiliates = async (req, res) => {
     
     // Search by name, email, or promo code
     if (q && q.trim()) {
-      const regex = new RegExp(q.trim(), "i");
+      const regex = new RegExp(escapeRegex(q.trim()), "i");
       filter.$or = [
         { name: regex },
         { email: regex },
@@ -306,50 +307,44 @@ export const processWithdrawal = async (req, res) => {
       });
     }
 
-    const withdrawal = await AffiliateWithdrawal.findById(req.params.id);
+    const now = new Date();
+    const update = {
+      status,
+      processed_by: req.user._id,
+      processed_at: now,
+      admin_note,
+    };
+    if (status === "completed") {
+      update.completed_at = now;
+      update.payment_reference = payment_reference;
+      update.transaction_id = transaction_id;
+    } else {
+      update.rejected_at = now;
+      update.rejection_reason = admin_note;
+    }
+
+    // Claim the request atomically so it can only be processed once
+    const withdrawal = await AffiliateWithdrawal.findOneAndUpdate(
+      { _id: req.params.id, status: { $in: ["pending", "processing"] } },
+      { $set: update },
+      { new: true }
+    );
 
     if (!withdrawal) {
-      return res.status(404).json({
+      const exists = await AffiliateWithdrawal.exists({ _id: req.params.id });
+      return res.status(exists ? 400 : 404).json({
         success: false,
-        message: "Withdrawal request not found",
+        message: exists ? "Withdrawal request has already been processed" : "Withdrawal request not found",
       });
     }
 
-    if (withdrawal.status !== "pending" && withdrawal.status !== "processing") {
-      return res.status(400).json({
-        success: false,
-        message: "Withdrawal request has already been processed",
-      });
-    }
-
-    const affiliate = await Affiliate.findById(withdrawal.affiliate);
-
-    if (status === "completed") {
-      // Mark withdrawal as completed
-      withdrawal.status = "completed";
-      withdrawal.completed_at = new Date();
-      withdrawal.payment_reference = payment_reference;
-      withdrawal.transaction_id = transaction_id;
-      
-      // Update affiliate withdrawn amount
-      affiliate.withdrawn_amount += withdrawal.amount;
-      
-    } else if (status === "rejected") {
-      // Mark withdrawal as rejected and refund balance
-      withdrawal.status = "rejected";
-      withdrawal.rejected_at = new Date();
-      withdrawal.rejection_reason = admin_note;
-      
-      // Refund to available balance
-      affiliate.available_balance += withdrawal.amount;
-    }
-
-    withdrawal.processed_by = req.user._id;
-    withdrawal.processed_at = new Date();
-    withdrawal.admin_note = admin_note;
-
-    await withdrawal.save();
-    await affiliate.save();
+    // Completed: record the payout. Rejected: refund the balance taken at request time.
+    await Affiliate.updateOne(
+      { _id: withdrawal.affiliate },
+      status === "completed"
+        ? { $inc: { withdrawn_amount: withdrawal.amount } }
+        : { $inc: { available_balance: withdrawal.amount } }
+    );
 
     res.status(200).json({
       success: true,

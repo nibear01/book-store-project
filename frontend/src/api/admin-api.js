@@ -66,8 +66,7 @@ export const adminOrdersAPI = {
         return request(`/orders/admin/all?${params.toString()}`, { method: 'GET' });
     },
     stats: (period) => request(`/orders/admin/stats${period ? `?period=${encodeURIComponent(period)}` : ''}`, { method: 'GET' }),
-    updateOrderStatus: (id, body) => request(`/orders/${id}/status`, { method: 'PUT', body: JSON.stringify(body) }),
-    updatePaymentStatus: (id, payment_status) => request(`/orders/${id}/payment`, { method: 'PUT', body: JSON.stringify({ payment_status }) }),
+    updateOrderStatus: (id, body) => request(`/orders/admin/${id}/status`, { method: 'PUT', body: JSON.stringify(body) }),
 };
 
 export const adminSubscribersAPI = {

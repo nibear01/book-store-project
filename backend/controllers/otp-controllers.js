@@ -1,10 +1,12 @@
+import crypto from "crypto";
 import User from "../models/user-model.js";
 import EmailOtp from "../models/email-otp-model.js";
 import nodemailer from "nodemailer";
 import { sendVerificationEmail } from "../middlewares/email-verify.js";
 
 // Generate a 6-digit code
-const generateCode = () => String(Math.floor(100000 + Math.random() * 900000));
+// Cryptographically random 6-digit code
+const generateCode = () => String(crypto.randomInt(100000, 1000000));
 
 // Cached transporter (uses real SMTP if provided, otherwise Ethereal for dev)
 let cachedTransporter = null;
@@ -61,6 +63,10 @@ const sendWelcomeEmail = async ({ to, name }) => {
   return info;
 };
 
+// The email being verified must be the account's own email
+const isOwnEmail = (user, email) =>
+  typeof email === "string" && email.trim().toLowerCase() === String(user.email).toLowerCase();
+
 export const sendOtp = async (req, res) => {
   try {
     const { email, phone } = req.body || {};
@@ -83,6 +89,10 @@ export const sendOtp = async (req, res) => {
 
     const code = generateCode();
 
+    if (email && !isOwnEmail(user, email)) {
+      return res.status(400).json({ success: false, message: "You can only verify your own email address" });
+    }
+
     if (email) {
       // Enforce resend cooldown (60s)
       const now = new Date();
@@ -100,7 +110,7 @@ export const sendOtp = async (req, res) => {
       }
       // Create OTP document
       const otpDoc = new EmailOtp({
-        email,
+        email: user.email,
         code,
         sentAt: now,
         expiresAt: new Date(now.getTime() + 10 * 60 * 1000),
@@ -113,7 +123,7 @@ export const sendOtp = async (req, res) => {
 
       let info;
       try {
-        info = await sendVerificationEmail({ to: email, code, name: user.name });
+        info = await sendVerificationEmail({ to: user.email, code, name: user.name });
       } catch (e) {
         return res.status(500).json({
           success: false,
@@ -188,8 +198,11 @@ export const verifyOtp = async (req, res) => {
         .json({ success: false, message: "User not found" });
 
     if (email) {
-      // Verify email OTP
-      const otpDoc = await EmailOtp.findOne({ email, code });
+      if (!isOwnEmail(user, email)) {
+        return res.status(400).json({ success: false, message: "You can only verify your own email address" });
+      }
+      // Verify email OTP (newest code sent to this account's email)
+      const otpDoc = await EmailOtp.findOne({ email: user.email, code: String(code).trim() }).sort({ sentAt: -1 });
       if (!otpDoc) {
         return res
           .status(400)

@@ -15,6 +15,9 @@ const CategoriesPage = () => {
   const params = new URLSearchParams(location.search);
   const categorySlug = params.get("category");
   const book = books.data || [];
+  // Pagination info comes from the last /api/books response
+  const nextCursor = books.pagination?.nextCursor || null;
+  const hasNextPage = !!books.pagination?.hasNextPage;
 
   const {
     // States
@@ -33,15 +36,13 @@ const CategoriesPage = () => {
     filteredBooks,
     cursor,
     limit,
-    nextCursor,
-    previousCursor,
-    hasNextPage,
     hasPreviousPage,
     filterSections,
     categories,
     groupCount,
 
-    setCursor,
+    goToNextPage,
+    goToPreviousPage,
     setPriceRange,
     setRatingFilter,
     setLanguageFilter,
@@ -205,7 +206,7 @@ const CategoriesPage = () => {
           <div className="mt-8 flex items-center justify-center gap-2">
             <button
               className="px-3 py-2 border border-gray-300 rounded-md text-sm disabled:opacity-50 hover:border-gray-400"
-              onClick={() => setCursor(previousCursor)}
+              onClick={goToPreviousPage}
               disabled={!hasPreviousPage}
               title={
                 hasPreviousPage ? "Load previous page" : "No previous page"
@@ -220,7 +221,7 @@ const CategoriesPage = () => {
             </span>
             <button
               className="px-3 py-2 border border-gray-300 rounded-md text-sm disabled:opacity-50 hover:border-gray-400"
-              onClick={() => setCursor(nextCursor)}
+              onClick={() => goToNextPage(nextCursor)}
               disabled={!hasNextPage}
               title={hasNextPage ? "Load next page" : "No more results"}
             >

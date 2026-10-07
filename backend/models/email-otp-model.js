@@ -6,6 +6,7 @@ const EmailOtpSchema = new mongoose.Schema(
     code: { type: String, required: true },
     sentAt: { type: Date, default: Date.now },
     expiresAt: { type: Date, required: true },
+    verifiedAt: { type: Date, default: null }, // set when the code is confirmed (author requests)
   },
   { timestamps: true }
 );

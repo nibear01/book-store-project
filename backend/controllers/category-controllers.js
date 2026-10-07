@@ -1,16 +1,8 @@
 import mongoose from "mongoose";
+import { slugify } from "../utils/slugify.js"; // keeps Bangla names
 import Category from "../models/category-model.js";
 import Book from "../models/book-model.js";
 
-// Lightweight slugify (ensure consistent with model if manual slug provided)
-const slugify = (s = "") =>
-  String(s)
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/-{2,}/g, "-");
 
 // GET /api/categories
 // Query params: ?includeEmpty=true|false&status=all|active|inactive

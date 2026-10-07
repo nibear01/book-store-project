@@ -23,7 +23,7 @@ export const protectAffiliate = async (req, res, next) => {
 
     try {
       // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       // Get affiliate from token (token contains userId field)
       const affiliate = await Affiliate.findById(decoded.userId).select("-password");

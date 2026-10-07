@@ -1,6 +1,6 @@
 import Order from "../models/order-model.js";
+import { escapeRegex } from "../utils/escape-regex.js";
 import Book from "../models/book-model.js"; // Import Book model
-import Setting from "../models/setting-model.js";
 import Affiliate from "../models/affiliate-model.js";
 import AffiliateCommission from "../models/affiliate-commission-model.js";
 import {
@@ -14,12 +14,26 @@ import {
 import { orderEvents } from "../events/order-events.js";
 import csv from "csv-parser";
 import fs from "fs";
+import mongoose from "mongoose";
+import {
+  getPrintPricingConfig,
+  buildFinalUnitPrice,
+  sanitizeVariant,
+  DEFAULT_VARIANT,
+} from "../utils/print-pricing.js";
+import { getDeliveryCostConfig } from "./setting-controllers.js";
 
-// Utility: compute discount based on subtotal & itemCount (mirrors frontend rules)
-const computeDiscount = (subtotal, itemCount) => {
+export const AFFILIATE_DISCOUNT_PERCENT = 5;
+
+// Utility: compute discount based on subtotal & itemCount (mirrors frontend rules).
+// A valid affiliate promo code replaces the tiered discount, as shown at checkout.
+const computeDiscount = (subtotal, itemCount, promoCode = null) => {
   let amount = 0;
   let label = "";
-  if (subtotal >= 10000) {
+  if (promoCode) {
+    amount = subtotal * (AFFILIATE_DISCOUNT_PERCENT / 100);
+    label = `${AFFILIATE_DISCOUNT_PERCENT}% off (Promo: ${promoCode})`;
+  } else if (subtotal >= 10000) {
     amount = subtotal * 0.15;
     label = "15% off orders ৳10,000+";
   } else if (subtotal >= 5000) {
@@ -32,46 +46,32 @@ const computeDiscount = (subtotal, itemCount) => {
   return { discountAmount: Number(amount.toFixed(2)), discountLabel: label };
 };
 
-// Helper function to create affiliate commission when order is placed
-const createAffiliateCommission = async (order, promoCode) => {
+// Helper: record a pending affiliate commission for a new order.
+// The affiliate's balance is only credited once the order is completed (see settleAffiliateCommission).
+const createAffiliateCommission = async (order, affiliate, customer) => {
   try {
-    if (!promoCode) return null;
-
-    // Find affiliate by promo code
-    const affiliate = await Affiliate.findOne({
-      promo_code: promoCode.toUpperCase(),
-      status: "active",
-    });
-
     if (!affiliate) return null;
 
-    // Calculate commission and discount
-    const commissionAmount = (order.grand_total * affiliate.commission_rate) / 100;
-    const discountAmount = (order.subtotal_amount * 5) / 100; // 5% discount for customer
+    const commissionAmount = Number(((order.grand_total * affiliate.commission_rate) / 100).toFixed(2));
 
-    // Create commission record
     const commission = await AffiliateCommission.create({
       affiliate: affiliate._id,
       order: order._id,
-      user: order.user,
-      promo_code_used: promoCode.toUpperCase(),
+      user: customer._id,
+      promo_code_used: affiliate.promo_code,
       order_number: order.order_number,
       order_amount: order.grand_total,
       commission_rate: affiliate.commission_rate,
       commission_amount: commissionAmount,
-      discount_percentage: 5,
-      discount_amount: discountAmount,
+      discount_percentage: AFFILIATE_DISCOUNT_PERCENT,
+      discount_amount: order.discount_amount,
       status: "pending",
     });
 
-    // Update affiliate statistics
-    affiliate.total_referrals += 1;
-    affiliate.total_orders += 1;
-    affiliate.total_sales_value += order.grand_total;
-    affiliate.total_earnings += commissionAmount;
-    affiliate.available_balance += commissionAmount;
-    
-    await affiliate.save();
+    await Affiliate.updateOne(
+      { _id: affiliate._id },
+      { $inc: { total_referrals: 1, total_orders: 1, total_sales_value: order.grand_total } }
+    );
 
     return commission;
   } catch (error) {
@@ -81,80 +81,41 @@ const createAffiliateCommission = async (order, promoCode) => {
   }
 };
 
-// -------- Print Pricing Helpers --------
-const PRINT_DEFAULTS = Object.freeze({
-  basePerPage: 0.05,
-  contentFee: 0,
-  multipliers: {
-    quality: { economy: 1.0, standard: 1.15, premium: 1.3 },
-    side: { single: 1.0, double: 0.92 },
-    size: { A5: 0.85, A4: 1.0, A3: 1.25 },
-    color: { bw: 1.0, color: 1.4 },
-  },
-  margin: { type: "percent", value: 10 },
-  mode: "derived",
-});
-
-async function getPrintConfigFast() {
+// Helper: when an order reaches a terminal stage, approve (and credit) or cancel its commission.
+// The status filter makes this idempotent, so a commission is never credited twice.
+const settleAffiliateCommission = async (order) => {
   try {
-    const setting = await Setting.findOne({ key: "printPricingConfig" }).lean();
-    if (!setting || !setting.value) return PRINT_DEFAULTS;
-    const v = setting.value;
-    return {
-      basePerPage: Number(v.basePerPage) >= 0 ? Number(v.basePerPage) : PRINT_DEFAULTS.basePerPage,
-      contentFee: Number(v.contentFee) >= 0 ? Number(v.contentFee) : PRINT_DEFAULTS.contentFee,
-      multipliers: {
-        quality: {
-          economy: Number(v?.multipliers?.quality?.economy) || PRINT_DEFAULTS.multipliers.quality.economy,
-          standard: Number(v?.multipliers?.quality?.standard) || PRINT_DEFAULTS.multipliers.quality.standard,
-          premium: Number(v?.multipliers?.quality?.premium) || PRINT_DEFAULTS.multipliers.quality.premium,
-        },
-        side: {
-          single: Number(v?.multipliers?.side?.single) || PRINT_DEFAULTS.multipliers.side.single,
-          double: Number(v?.multipliers?.side?.double) || PRINT_DEFAULTS.multipliers.side.double,
-        },
-        size: {
-          A5: Number(v?.multipliers?.size?.A5) || PRINT_DEFAULTS.multipliers.size.A5,
-          A4: Number(v?.multipliers?.size?.A4) || PRINT_DEFAULTS.multipliers.size.A4,
-          A3: Number(v?.multipliers?.size?.A3) || PRINT_DEFAULTS.multipliers.size.A3,
-        },
-        color: {
-          bw: Number(v?.multipliers?.color?.bw) || PRINT_DEFAULTS.multipliers.color.bw,
-          color: Number(v?.multipliers?.color?.color) || PRINT_DEFAULTS.multipliers.color.color,
-        },
-      },
-      margin: {
-        type: v?.margin?.type === "flat" ? "flat" : "percent",
-        value: Number(v?.margin?.value) || PRINT_DEFAULTS.margin.value,
-      },
-      mode: v?.mode === "relative" ? "relative" : "derived",
-    };
-  } catch {
-    return PRINT_DEFAULTS;
+    if (order.internal_stage === "OM_COMPLETED") {
+      const commission = await AffiliateCommission.findOneAndUpdate(
+        { order: order._id, status: "pending" },
+        { $set: { status: "approved" } },
+        { new: true }
+      );
+      if (commission) {
+        await Affiliate.updateOne(
+          { _id: commission.affiliate },
+          { $inc: { total_earnings: commission.commission_amount, available_balance: commission.commission_amount } }
+        );
+      }
+    } else if (TERMINAL_STAGES.includes(order.internal_stage)) {
+      await AffiliateCommission.updateOne(
+        { order: order._id, status: "pending" },
+        { $set: { status: "cancelled" } }
+      );
+    }
+  } catch (error) {
+    console.error("Error settling affiliate commission:", error);
   }
-}
+};
 
-function computeDerivedPriceForBook({ pages = 0, cfg, variant = {} }) {
-  const p = Math.max(0, Number(pages) || 0);
-  const base = p * (Number(cfg.basePerPage) || 0);
-  const qKey = String(variant.paperQuality || "standard").toLowerCase();
-  const sKey = String(variant.printSide || "single").toLowerCase();
-  const szKey = String(variant.paperSize || "a4").toUpperCase();
-  const cKey = String(variant.colorMode || "bw").toLowerCase();
-  const multQ = Number(cfg?.multipliers?.quality?.[qKey]) || 1;
-  const multS = Number(cfg?.multipliers?.side?.[sKey]) || 1;
-  const multSz = Number(cfg?.multipliers?.size?.[szKey]) || 1;
-  const multC = Number(cfg?.multipliers?.color?.[cKey]) || 1;
-  const printCost = base * multQ * multS * multSz * multC;
-  const contentPrice = Number(cfg.contentFee) || 0;
-  const baseCost = printCost + contentPrice;
-  const finalPrice = cfg.margin?.type === "flat"
-    ? baseCost + (Number(cfg.margin?.value) || 0)
-    : baseCost * (1 + (Number(cfg.margin?.value) || 0) / 100);
-  const roundedFinal = Math.max(0, Math.round(finalPrice * 100) / 100);
-  const marginAmount = Math.max(0, Math.round((roundedFinal - baseCost) * 100) / 100);
-  return { contentPrice, printCost, baseCost, finalPrice: roundedFinal, marginAmount };
-}
+// Helper: give stock back for every item of a cancelled order
+const restockOrder = async (order) => {
+  for (const item of order.items || []) {
+    await Book.updateOne({ _id: item.book }, { $inc: { stock: item.quantity } });
+  }
+};
+
+const CANCELLED_STAGES = ["TERMINATED_OM", "CANCELLED_CSM", "CANCELLED_FM", "FM_REJECTED"];
 
 // Helper: normalize roles consistently (lowercase, trimmed, unique)
 function normalizeRoles(user) {
@@ -168,128 +129,116 @@ function normalizeRoles(user) {
 }
 
 // Create new order
+// Prices, discount, shipping and payment status are all computed here on the server;
+// the client only chooses books, quantities, print options, delivery location and payment method.
 export const createOrder = async (req, res) => {
+  if (!Array.isArray(req.body.items) || !req.body.items.length) {
+    return res
+      .status(400)
+      .json({ success: false, message: "No order items provided" });
+  }
+
+  // Validate items
+  const requested = [];
+  for (const item of req.body.items) {
+    const quantity = Number(item?.quantity);
+    if (!mongoose.isValidObjectId(item?.book)) {
+      return res.status(400).json({ success: false, message: "Invalid book id in order items" });
+    }
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      return res.status(400).json({ success: false, message: "Quantity must be a positive whole number" });
+    }
+    requested.push({ bookId: String(item.book), quantity, variant: sanitizeVariant(item.variant) });
+  }
+
+  // Delivery location decides shipping cost
+  const location = req.body.shipping_address?.shippingLocation;
+  if (!["insideDhaka", "outsideDhaka"].includes(location)) {
+    return res.status(400).json({ success: false, message: "Please select a delivery location" });
+  }
+
+  const reserved = []; // stock taken so far, returned if anything fails
+  const releaseStock = async () => {
+    for (const r of reserved.splice(0)) {
+      await Book.updateOne({ _id: r.bookId }, { $inc: { stock: r.quantity } });
+    }
+  };
+
   try {
-    if (!Array.isArray(req.body.items) || !req.body.items.length) {
-      return res
-        .status(400)
-        .json({ success: false, message: "No order items provided" });
+    const ids = [...new Set(requested.map((r) => r.bookId))];
+    const books = await Book.find({ _id: { $in: ids }, is_active: true }).lean();
+    const bookById = new Map(books.map((b) => [String(b._id), b]));
+    if (ids.some((id) => !bookById.has(id))) {
+      return res.status(400).json({ success: false, message: "One or more books are unavailable" });
     }
 
-    // Generate unique order number
+    // Reserve stock atomically (per book, summing quantities across variants)
+    const qtyByBook = new Map();
+    for (const r of requested) qtyByBook.set(r.bookId, (qtyByBook.get(r.bookId) || 0) + r.quantity);
+    for (const [bookId, quantity] of qtyByBook) {
+      const result = await Book.updateOne(
+        { _id: bookId, stock: { $gte: quantity } },
+        { $inc: { stock: -quantity } }
+      );
+      if (result.modifiedCount !== 1) {
+        await releaseStock();
+        const b = bookById.get(bookId);
+        return res.status(400).json({
+          success: false,
+          message: `Only ${b?.stock ?? 0} copies of "${b?.title}" are available`,
+        });
+      }
+      reserved.push({ bookId, quantity });
+    }
+
+    const cfg = await getPrintPricingConfig();
+    const items = requested.map((r) => {
+      const book = bookById.get(r.bookId);
+      const { unitPrice, breakdown } = buildFinalUnitPrice({ book, variant: r.variant || DEFAULT_VARIANT, cfg });
+      return {
+        book: book._id,
+        book_title: book.title,
+        book_cover: Array.isArray(book.cover_image) && book.cover_image.length ? book.cover_image[0] : null,
+        quantity: r.quantity,
+        price: unitPrice,
+        configured: !!r.variant,
+        variant: r.variant || undefined,
+        pricing: {
+          contentPrice: breakdown.contentPrice ?? null,
+          printCost: breakdown.printCost ?? null,
+          margin: breakdown.margin ?? null,
+          baseCost: breakdown.baseCost ?? null,
+          finalPrice: breakdown.finalPrice ?? null,
+        },
+      };
+    });
+
+    // Affiliate promo code (ignored if invalid, or if the affiliate is the customer)
+    let affiliate = null;
+    if (typeof req.body.promo_code === "string" && req.body.promo_code.trim()) {
+      affiliate = await Affiliate.findOne({
+        promo_code: req.body.promo_code.trim().toUpperCase(),
+        status: "active",
+      });
+      if (affiliate && affiliate.email === req.user.email) affiliate = null;
+    }
+
+    const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
+    const { discountAmount, discountLabel } = computeDiscount(subtotal, itemCount, affiliate?.promo_code);
+    const shipping = (await getDeliveryCostConfig())[location];
+    const grand = Math.max(0, Number((subtotal - discountAmount + shipping).toFixed(2)));
+
     const orderNumber = `ORD-${Date.now()}-${Math.random()
       .toString(36)
       .substring(2, 11)
       .toUpperCase()}`;
 
-    // Load global print config once
-    const printCfg = await getPrintConfigFast();
-
-    // Fetch book snapshots and, when in derived mode, compute pricing
-    const itemsWithSnapshots = await Promise.all(
-      req.body.items.map(async (item) => {
-        try {
-          const book = await Book.findById(item.book).lean();
-          let computed = null;
-          if (printCfg.mode === "derived") {
-            computed = computeDerivedPriceForBook({
-              pages: book?.pages || 0,
-              cfg: printCfg,
-              variant: item.variant || {},
-            });
-            // Sale override: if book is on sale and sale_price < computed final, use sale_price
-            const bookSale = Number(book?.sale_price);
-            const bookOnSale = !!book?.is_on_sale && Number.isFinite(bookSale) && bookSale >= 0 && bookSale < (computed?.finalPrice ?? Infinity);
-            if (bookOnSale) {
-              computed.finalPrice = bookSale;
-            }
-          }
-          return {
-            book: item.book,
-            book_title: book ? book.title : "Unknown Book",
-            book_cover:
-              Array.isArray(book?.cover_image) && book.cover_image.length
-                ? book.cover_image[0]
-                : null,
-            quantity: item.quantity,
-            price: printCfg.mode === "derived" ? (computed?.finalPrice ?? item.price) : item.price,
-            configured: printCfg.mode === "derived" ? true : !!item.configured,
-            variant: item.variant && typeof item.variant === 'object' ? {
-              paperQuality: item.variant.paperQuality || null,
-              printSide: item.variant.printSide || null,
-              paperSize: item.variant.paperSize || null,
-              colorMode: item.variant.colorMode || null,
-            } : undefined,
-            pricing: printCfg.mode === "derived"
-              ? {
-                  contentPrice: computed?.contentPrice ?? null,
-                  printCost: computed?.printCost ?? null,
-                  margin: computed?.marginAmount ?? null,
-                  baseCost: computed?.baseCost ?? null,
-                  finalPrice: computed?.finalPrice ?? null,
-                }
-              : (item.pricing && typeof item.pricing === 'object'
-                ? {
-                    contentPrice: Number(item.pricing.contentPrice ?? null),
-                    printCost: Number(item.pricing.printCost ?? null),
-                    margin: Number(item.pricing.margin ?? null),
-                    baseCost: Number(item.pricing.baseCost ?? null),
-                    finalPrice: Number(item.pricing.finalPrice ?? null),
-                  }
-                : undefined),
-          };
-        } catch (err) {
-          return {
-            book: item.book,
-            book_title: "Error Loading Book Title",
-            book_cover: null,
-            quantity: item.quantity,
-            price: item.price,
-            configured: !!item.configured,
-            variant: item.variant && typeof item.variant === 'object' ? {
-              paperQuality: item.variant.paperQuality || null,
-              printSide: item.variant.printSide || null,
-              paperSize: item.variant.paperSize || null,
-              colorMode: item.variant.colorMode || null,
-            } : undefined,
-            pricing: item.pricing && typeof item.pricing === 'object' ? {
-              contentPrice: Number(item.pricing.contentPrice ?? null),
-              printCost: Number(item.pricing.printCost ?? null),
-              margin: Number(item.pricing.margin ?? null),
-              baseCost: Number(item.pricing.baseCost ?? null),
-              finalPrice: Number(item.pricing.finalPrice ?? null),
-            } : undefined,
-          };
-        }
-      })
-    );
-
-    const subtotal = itemsWithSnapshots.reduce(
-      (sum, i) => sum + i.price * i.quantity,
-      0
-    );
-    const itemCount = itemsWithSnapshots.reduce(
-      (sum, i) => sum + i.quantity,
-      0
-    );
-    const { discountAmount, discountLabel } = computeDiscount(
-      subtotal,
-      itemCount
-    );
-    const providedShipping = Number(req.body.shipping_amount);
-    const shipping =
-      Number.isFinite(providedShipping) && providedShipping >= 0
-        ? providedShipping
-        : 0;
-    const grand = Math.max(
-      0,
-      Number((subtotal - discountAmount + shipping).toFixed(2))
-    );
-
+    const method = req.body.payment_info?.method;
     const order = await Order.create({
       order_number: orderNumber,
       user: req.user._id,
-      items: itemsWithSnapshots,
+      items,
       subtotal_amount: Number(subtotal.toFixed(2)),
       discount_amount: discountAmount,
       discount_label: discountLabel,
@@ -297,15 +246,14 @@ export const createOrder = async (req, res) => {
       grand_total: grand,
       total_amount: grand, // maintain old field
       shipping_address: req.body.shipping_address || {},
-      payment_info: req.body.payment_info || {
-        method: "Unknown",
+      payment_info: {
+        method: typeof method === "string" && method.trim() ? method.trim() : "Unknown",
         status: "pending",
       },
     });
 
-    // Create affiliate commission if promo code was used
-    if (req.body.promo_code) {
-      await createAffiliateCommission(order, req.body.promo_code);
+    if (affiliate) {
+      await createAffiliateCommission(order, affiliate, req.user);
     }
 
     res.status(201).json({ success: true, data: order });
@@ -316,6 +264,7 @@ export const createOrder = async (req, res) => {
       });
     } catch {}
   } catch (error) {
+    await releaseStock();
     res.status(400).json({ success: false, message: error.message });
   }
 };
@@ -358,7 +307,7 @@ export const getAllOrders = async (req, res) => {
     if (internal_stage) query.internal_stage = internal_stage;
     if (handler) query.current_handler_role = handler;
     if (search) {
-      query.order_number = { $regex: search, $options: "i" };
+      query.order_number = { $regex: escapeRegex(search), $options: "i" };
     }
     const baseCursor = Order.find(query)
       .populate("user", "name email phone")
@@ -425,19 +374,52 @@ export const getOrderById = async (req, res) => {
   }
 };
 
+// Public status -> internal workflow stage used when an admin sets the status directly
+const STATUS_TO_STAGE = {
+  pending: "OM_INTAKE",
+  processing: "FM_APPROVED",
+  shipped: "DM_OUT_FOR_DELIVERY",
+  delivered: "DM_DELIVERED",
+  cancelled: "TERMINATED_OM",
+};
+
 // Update order status
+// Moves the internal stage too (with an audit entry), so order_status and internal_stage never disagree.
 export const updateOrderStatus = async (req, res) => {
   try {
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      { order_status: req.body.status },
-      { new: true }
-    );
+    const status = req.body.status === "cancel" ? "cancelled" : req.body.status;
+    const targetStage = STATUS_TO_STAGE[status];
+    if (!targetStage) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Allowed: ${Object.keys(STATUS_TO_STAGE).join(", ")}`,
+      });
+    }
+    const order = await Order.findById(req.params.id);
     if (!order) {
       return res.status(404).json({
         success: false,
         message: "Order not found",
       });
+    }
+    if (TERMINAL_STAGES.includes(order.internal_stage)) {
+      return res.status(400).json({
+        success: false,
+        message: "Order is already closed and cannot change status",
+      });
+    }
+    if (order.internal_stage !== targetStage) {
+      const roles = normalizeRoles(req.user);
+      order.advance(targetStage, {
+        userId: req.user._id,
+        role: roles.find((r) => r !== "admin") || "admin",
+        remarks: req.body.remarks || `Status set to ${status} by staff`,
+        nextHandlerRole: status === "cancelled" ? order.current_handler_role : undefined,
+      });
+      if (status === "cancelled") order.cancellation_reason = req.body.remarks || "Cancelled by staff";
+      await order.save();
+      if (status === "cancelled") await restockOrder(order);
+      await settleAffiliateCommission(order);
     }
     res.status(200).json({
       success: true,
@@ -476,7 +458,7 @@ export const listWorkflowOrders = async (req, res) => {
       if (from) criteria.createdAt.$gte = new Date(from);
       if (to) criteria.createdAt.$lte = new Date(to);
     }
-    if (search) criteria.order_number = { $regex: search, $options: "i" };
+    if (search) criteria.order_number = { $regex: escapeRegex(search), $options: "i" };
     const numericPage = Math.max(1, parseInt(page));
     const numericLimit = Math.min(100, Math.max(1, parseInt(limit)));
     const total = await Order.countDocuments(criteria);
@@ -606,6 +588,8 @@ export const advanceWorkflowStage = async (req, res) => {
       nextHandlerRole,
     });
     await order.save();
+    if (CANCELLED_STAGES.includes(targetStage)) await restockOrder(order);
+    await settleAffiliateCommission(order);
     try {
       orderEvents.emit("order.stage.changed", {
         orderId: order._id,
@@ -639,81 +623,127 @@ export const getNextWorkflowStages = async (req, res) => {
 };
 
 // Import orders from CSV
+// One row per order line. Columns (header names, case-insensitive):
+//   user_email (required), book_id or isbn (required), quantity (default 1),
+//   order_ref (rows sharing it become one order; default: one order per row),
+//   payment_method, full_name, phone, street, city, state, zip_code, country,
+//   shipping_location (insideDhaka | outsideDhaka, default insideDhaka)
+// Prices, discount and shipping are computed exactly like checkout. Stock is not changed.
 export const importOrdersFromCSV = async (req, res) => {
+  const file = req.file;
+  if (!file) {
+    return res.status(400).json({
+      success: false,
+      message: "Please upload a CSV file",
+    });
+  }
+
+  const cleanup = () => fs.promises.unlink(file.path).catch(() => {});
+
   try {
-    if (!req.files || !req.files.file || !req.files.file[0]) {
-      return res.status(400).json({
-        success: false,
-        message: "Please upload a CSV file",
-      });
+    const rows = await new Promise((resolve, reject) => {
+      const out = [];
+      fs.createReadStream(file.path)
+        .pipe(csv({ mapHeaders: ({ header }) => header.trim().toLowerCase() }))
+        .on("data", (row) => out.push(row))
+        .on("end", () => resolve(out))
+        .on("error", reject);
+    });
+    if (!rows.length) {
+      return res.status(400).json({ success: false, message: "CSV file has no rows" });
     }
 
-    const file = req.files.file[0];
-    const results = [];
+    // Group rows into orders
+    const groups = new Map();
+    rows.forEach((row, i) => {
+      const key = row.order_ref?.trim() || `row-${i}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push({ row, line: i + 2 }); // +2: header is line 1
+    });
 
-    fs.createReadStream(file.path)
-      .pipe(csv())
-      .on("data", (data) => results.push(data))
-      .on("end", async () => {
-        try {
-          // NEW: Add book titles to imported orders
-          const ordersWithTitles = await Promise.all(
-            results.map(async (orderData) => {
-              if (orderData.items && Array.isArray(orderData.items)) {
-                const itemsWithTitles = await Promise.all(
-                  orderData.items.map(async (item) => {
-                    try {
-                      const book = await Book.findById(item.book);
-                      return {
-                        ...item,
-                        book_title: book ? book.title : "Unknown Book",
-                      };
-                    } catch (error) {
-                      return {
-                        ...item,
-                        book_title: "Error Loading Book Title",
-                      };
-                    }
-                  })
-                );
-                return {
-                  ...orderData,
-                  items: itemsWithTitles,
-                };
-              }
-              return orderData;
-            })
-          );
+    const cfg = await getPrintPricingConfig();
+    const deliveryCost = await getDeliveryCostConfig();
+    const User = (await import("../models/user-model.js")).default;
 
-          const orders = await Order.insertMany(ordersWithTitles);
-          fs.unlinkSync(file.path); // Clean up uploaded file
-          res.status(201).json({
-            success: true,
-            message: `${orders.length} orders imported successfully`,
-          });
-        } catch (error) {
-          fs.unlinkSync(file.path); // Clean up on error
-          res.status(400).json({
-            success: false,
-            message: error.message,
+    const orders = [];
+    const errors = [];
+    for (const [ref, lines] of groups) {
+      try {
+        const first = lines[0].row;
+        const email = String(first.user_email || "").trim().toLowerCase();
+        const user = email ? await User.findOne({ email }) : null;
+        if (!user) throw new Error(`line ${lines[0].line}: unknown user_email "${email}"`);
+
+        const items = [];
+        for (const { row, line } of lines) {
+          const bookId = String(row.book_id || "").trim();
+          const isbn = String(row.isbn || "").trim();
+          const book = mongoose.isValidObjectId(bookId)
+            ? await Book.findById(bookId).lean()
+            : isbn ? await Book.findOne({ isbn }).lean() : null;
+          if (!book) throw new Error(`line ${line}: book not found`);
+          const quantity = row.quantity ? Number(row.quantity) : 1;
+          if (!Number.isInteger(quantity) || quantity < 1) throw new Error(`line ${line}: invalid quantity`);
+          const { unitPrice, breakdown } = buildFinalUnitPrice({ book, variant: DEFAULT_VARIANT, cfg });
+          items.push({
+            book: book._id,
+            book_title: book.title,
+            book_cover: Array.isArray(book.cover_image) && book.cover_image.length ? book.cover_image[0] : null,
+            quantity,
+            price: unitPrice,
+            pricing: breakdown,
           });
         }
-      })
-      .on("error", (error) => {
-        fs.unlinkSync(file.path); // Clean up on error
-        res.status(400).json({
-          success: false,
-          message: error.message,
+
+        const location = first.shipping_location === "outsideDhaka" ? "outsideDhaka" : "insideDhaka";
+        const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+        const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
+        const { discountAmount, discountLabel } = computeDiscount(subtotal, itemCount);
+        const shipping = deliveryCost[location];
+        const grand = Math.max(0, Number((subtotal - discountAmount + shipping).toFixed(2)));
+
+        orders.push({
+          order_number: `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 11).toUpperCase()}`,
+          user: user._id,
+          items,
+          subtotal_amount: Number(subtotal.toFixed(2)),
+          discount_amount: discountAmount,
+          discount_label: discountLabel,
+          shipping_amount: shipping,
+          grand_total: grand,
+          total_amount: grand,
+          shipping_address: {
+            fullName: first.full_name || user.name,
+            email: user.email,
+            phone: first.phone || user.phone,
+            street: first.street,
+            city: first.city,
+            state: first.state,
+            zipCode: first.zip_code,
+            country: first.country || "Bangladesh",
+            shippingLocation: location,
+          },
+          payment_info: { method: first.payment_method || "Unknown", status: "pending" },
         });
-      });
-  } catch (error) {
-    if (req.files?.file?.[0]?.path) {
-      fs.unlinkSync(req.files.file[0].path); // Clean up on error
+      } catch (e) {
+        errors.push(ref.startsWith("row-") ? e.message : `order_ref ${ref}: ${e.message}`);
+      }
     }
-    res.status(400).json({
-      success: false,
-      message: error.message,
+
+    // All-or-nothing: report every problem instead of importing half a file
+    if (errors.length) {
+      return res.status(400).json({ success: false, message: "CSV has errors; nothing was imported", errors });
+    }
+
+    const created = await Order.insertMany(orders);
+    return res.status(201).json({
+      success: true,
+      message: `${created.length} orders imported successfully`,
     });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  } finally {
+    await cleanup();
   }
 };
 

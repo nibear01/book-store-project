@@ -193,7 +193,7 @@ const Navbar = () => {
                 <ul className="divide-y">
                   {state.items.map((item, index) => (
                     <li
-                      key={item._id || item.id || index}
+                      key={item.key || index}
                       className="p-4 flex items-start gap-3"
                     >
                       <div className="flex-1">
@@ -204,7 +204,7 @@ const Navbar = () => {
                           <button
                             type="button"
                             onClick={() =>
-                              removeItem({ id: item._id || item.id })
+                              removeItem({ key: item.key })
                             }
                             className="text-xs text-gray-500 hover:text-red-600"
                           >
@@ -220,7 +220,7 @@ const Navbar = () => {
                             className="px-2 py-1 text-sm hover:bg-gray-100"
                             onClick={() =>
                               updateQuantity({
-                                id: item._id || item.id,
+                                key: item.key,
                                 quantity: Math.max(1, item.quantity - 1),
                               })
                             }
@@ -234,7 +234,7 @@ const Navbar = () => {
                             className="px-2 py-1 text-sm hover:bg-gray-100"
                             onClick={() =>
                               updateQuantity({
-                                id: item._id || item.id,
+                                key: item.key,
                                 quantity: item.quantity + 1,
                               })
                             }

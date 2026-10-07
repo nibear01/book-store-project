@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useMemo, useCallback } from "react";
 import axios from "axios";
+import { BACKEND_URL } from "../api/apiBase";
 
 const AffiliateContext = createContext();
 
@@ -27,7 +28,7 @@ export const AffiliateProvider = ({ children }) => {
   }, [affiliateToken]);
 
   // Base URL for API
-  const API_URL = import.meta.env.VITE_BACKEND_URL + "/api/affiliates";
+  const API_URL = BACKEND_URL + "/api/affiliates";
 
   // Save token to localStorage when it changes
   useEffect(() => {

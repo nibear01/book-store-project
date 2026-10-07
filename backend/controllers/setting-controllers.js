@@ -1,6 +1,7 @@
 import Setting from "../models/setting-model.js";
 import User from "../models/user-model.js";
 import bcrypt from "bcrypt";
+import { invalidatePrintPricingCache } from "../utils/print-pricing.js";
 
 // Helpers
 const clampNumber = (v, min, max) => {
@@ -206,6 +207,7 @@ export const updatePrintConfig = async (req, res) => {
       { basePerPage, contentFee, multipliers, margin, mode },
       "Global print-on-demand pricing configuration"
     );
+    invalidatePrintPricingCache();
     return res.json({ success: true, data: saved.value });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Failed to update print config", error: error.message });
@@ -267,6 +269,15 @@ export const updateDeliveryCost = async (req, res) => {
 };
 
 export const __deliveryCostDefaults = DEFAULT_DELIVERY_COST;
+
+// Delivery cost lookup for server-side order totals
+export const getDeliveryCostConfig = async () => {
+  const value = await getSetting("deliveryCost", DEFAULT_DELIVERY_COST);
+  return {
+    insideDhaka: Number(value?.insideDhaka) >= 0 ? Number(value.insideDhaka) : DEFAULT_DELIVERY_COST.insideDhaka,
+    outsideDhaka: Number(value?.outsideDhaka) >= 0 ? Number(value.outsideDhaka) : DEFAULT_DELIVERY_COST.outsideDhaka,
+  };
+};
 
 // ------------------- PROFILE SETTINGS -------------------
 // GET /api/settings/profile

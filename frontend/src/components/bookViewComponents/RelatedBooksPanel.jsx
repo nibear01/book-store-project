@@ -5,8 +5,7 @@ import { usePrintSettings } from "@/context/PrintSettingsContext";
 import { FaStar } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 import {
-  computeFinalConfiguredPrice,
-  defaultPrintState,
+  getBookPrice,
 } from "./BookPrintPricing";
 
 const RelatedBooksPanel = ({ book }) => {
@@ -178,57 +177,11 @@ const RelatedBookCard = ({ book, baseUrl, printSettings }) => {
       : `${baseUrl || ""}${coverRaw}`
     : null;
 
-  // Compute displayed price (Admin/Deal/POD-aware)
+  // Price for the default print options (same rule the cart charges)
   const price = useMemo(() => {
-    const isOnSale = !!(
-      book?.is_on_sale && typeof book?.sale_price === "number"
-    );
-    const isDeal = !!book?.is_deal_of_the_week && isOnSale;
-    const base = Number(book?.price || 0);
-    const sale = Number(book?.sale_price || 0);
-    const pages = Number(book?.pages || 0);
-    if (isDeal) {
-      return {
-        now: sale,
-        ref: base,
-        sale: true,
-      };
-    }
-    if (!printSettings) {
-      return {
-        now: isOnSale ? sale : base,
-        ref: base,
-        sale: isOnSale,
-      };
-    }
-    const cfg = defaultPrintState;
-    const basePod = computeFinalConfiguredPrice({
-      baseContentPrice: base,
-      pages,
-      cfg,
-      settings: printSettings,
-    });
-    const salePod = isOnSale
-      ? computeFinalConfiguredPrice({
-          baseContentPrice: sale,
-          pages,
-          cfg,
-          settings: printSettings,
-        })
-      : null;
-    return {
-      now: isOnSale ? Number(salePod?.price) : Number(basePod.price),
-      ref: Number(basePod.price),
-      sale: isOnSale,
-    };
-  }, [
-    book?.is_on_sale,
-    book?.is_deal_of_the_week,
-    book?.sale_price,
-    book?.price,
-    book?.pages,
-    printSettings,
-  ]);
+    const p = getBookPrice(book, printSettings);
+    return { now: p.price, ref: p.compareAt ?? p.price, sale: p.onSale };
+  }, [book, printSettings]);
 
   const displayImage =
     cover && !imageError
@@ -246,7 +199,7 @@ const RelatedBookCard = ({ book, baseUrl, printSettings }) => {
 
   return (
     <Link
-      to={`/bookview/${book.slug}`}
+      to={`/bookview/${book.slug || book._id}`}
       className="group block bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 overflow-hidden"
     >
       <div className="relative overflow-hidden">

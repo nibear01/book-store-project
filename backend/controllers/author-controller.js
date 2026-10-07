@@ -1,4 +1,5 @@
 import Author from "../models/author-model.js";
+import { escapeRegex } from "../utils/escape-regex.js";
 import fs from "fs";
 import path from "path";
 import Book from "../models/book-model.js";
@@ -6,6 +7,7 @@ import Book from "../models/book-model.js";
 import fsp from "fs/promises";
 // NEW: id validation
 import mongoose from "mongoose";
+import { BACKEND_ROOT } from "../utils/paths.js";
 
 // Create
 export const createAuthor = async (req, res) => {
@@ -103,7 +105,7 @@ export const getAuthorBySlug = async (req, res) => {
 
     // 4) Try case-insensitive name search
     if (decoded) {
-      const regex = new RegExp(`^${decoded}$`, "i");
+      const regex = new RegExp(`^${escapeRegex(decoded)}$`, "i");
       author = await Author.findOne({ name: regex }).populate("books");
       if (author) return res.json(author);
     }
@@ -339,12 +341,12 @@ export const reviewAuthor = async (req, res) => {
 };
 
 // NEW: local uploads root and safe deletion helpers
-const uploadsRoot = path.resolve(process.cwd(), "uploads");
+const uploadsRoot = path.resolve(BACKEND_ROOT, "uploads");
 const isHttpUrl = (s) => typeof s === "string" && /^https?:\/\//i.test(s);
 const toAbsoluteIfLocal = (p) => {
   if (!p || isHttpUrl(p)) return null;
   const rel = String(p).replace(/^\/+/, "");
-  const abs = path.resolve(process.cwd(), rel);
+  const abs = path.resolve(BACKEND_ROOT, rel);
   if (!abs.startsWith(uploadsRoot)) return null;
   return abs;
 };

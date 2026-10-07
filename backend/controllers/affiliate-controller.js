@@ -343,10 +343,11 @@ export const getAffiliateCommissions = async (req, res) => {
 // @access  Private/Affiliate
 export const requestWithdrawal = async (req, res) => {
   try {
-    const { amount, affiliate_note } = req.body;
+    const { affiliate_note } = req.body;
+    const amount = Number(req.body.amount);
 
     // Validation
-    if (!amount || amount <= 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({
         success: false,
         message: "Valid amount is required",
@@ -362,14 +363,6 @@ export const requestWithdrawal = async (req, res) => {
       });
     }
 
-    // Check if affiliate has enough balance
-    if (affiliate.available_balance < amount) {
-      return res.status(400).json({
-        success: false,
-        message: `Insufficient balance. Available balance: ${affiliate.available_balance}`,
-      });
-    }
-
     // Check if payment details are set
     if (!affiliate.payment_method || !affiliate.payment_details) {
       return res.status(400).json({
@@ -378,19 +371,35 @@ export const requestWithdrawal = async (req, res) => {
       });
     }
 
-    // Create withdrawal request
-    const withdrawal = await AffiliateWithdrawal.create({
-      affiliate: req.affiliateId,
-      amount,
-      payment_method: affiliate.payment_method,
-      payment_details: affiliate.payment_details,
-      affiliate_note,
-      status: "pending",
-    });
+    // Deduct atomically: only succeeds if the balance still covers the amount,
+    // so concurrent requests can never overdraw (refunded if rejected)
+    const debited = await Affiliate.findOneAndUpdate(
+      { _id: req.affiliateId, available_balance: { $gte: amount } },
+      { $inc: { available_balance: -amount } },
+      { new: true }
+    );
+    if (!debited) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient balance. Available balance: ${affiliate.available_balance}`,
+      });
+    }
 
-    // Deduct from available balance (will be refunded if rejected)
-    affiliate.available_balance -= amount;
-    await affiliate.save();
+    // Create withdrawal request
+    let withdrawal;
+    try {
+      withdrawal = await AffiliateWithdrawal.create({
+        affiliate: req.affiliateId,
+        amount,
+        payment_method: affiliate.payment_method,
+        payment_details: affiliate.payment_details,
+        affiliate_note,
+        status: "pending",
+      });
+    } catch (err) {
+      await Affiliate.updateOne({ _id: req.affiliateId }, { $inc: { available_balance: amount } });
+      throw err;
+    }
 
     res.status(201).json({
       success: true,

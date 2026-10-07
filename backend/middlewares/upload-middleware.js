@@ -1,16 +1,18 @@
 import multer from "multer";
 import fs from "fs";
 import path from "path";
+import { BACKEND_ROOT } from "../utils/paths.js";
 
-const uploadRoot = path.resolve(process.cwd(), "uploads");
+const uploadRoot = path.resolve(BACKEND_ROOT, "uploads");
 const imgDir = path.join(uploadRoot, "images", "books");
 const fileDir = path.join(uploadRoot, "files", "books");
 const userImgDir = path.join(uploadRoot, "images", "users"); // added
 const authorImgDir = path.join(uploadRoot, "images", "authors"); // added
 const publisherImgDir = path.join(uploadRoot, "images", "publishers"); // added
+const tmpDir = path.join(uploadRoot, "tmp"); // short-lived imports (CSV), never served
 
 // Ensure upload directories exist
-for (const dir of [imgDir, fileDir, userImgDir, authorImgDir, publisherImgDir]) {
+for (const dir of [imgDir, fileDir, userImgDir, authorImgDir, publisherImgDir, tmpDir]) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
@@ -97,6 +99,20 @@ export const uploadBulkAssets = uploadBulk.fields([
   { name: "bulk_images", maxCount: 400 },
   { name: "bulk_files", maxCount: 100 },
 ]);
+
+// CSV import (single file in field "file"), stored in uploads/tmp and deleted after processing
+const CSV_TYPES = new Set(["text/csv", "application/vnd.ms-excel", "text/plain", "application/csv"]);
+export const uploadCsv = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, tmpDir),
+    filename: (req, file, cb) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}.csv`),
+  }),
+  fileFilter: (req, file, cb) => {
+    if (CSV_TYPES.has(file.mimetype) || /\.csv$/i.test(file.originalname)) return cb(null, true);
+    return cb(new Error("Please upload a .csv file"), false);
+  },
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+}).single("file");
 
 // Author profile photo (single)
 export const uploadAuthorPhoto = upload.single("photo"); // added

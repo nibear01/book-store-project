@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import axios from "axios";
-import { createContext, useState, useCallback, useMemo } from "react";
+import { createContext, useState, useCallback, useMemo, useRef } from "react";
+import { BACKEND_URL } from "../api/apiBase";
 // Simple slug normalizer (mirrors backend rules loosely)
 const slugify = (s = "") =>
   String(s)
@@ -14,8 +15,8 @@ const slugify = (s = "") =>
 export const BooksContext = createContext();
 
 const BooksContextProvider = ({ children }) => {
-  // Backend base URL fallback: prefer env, then current origin
-  const url = import.meta.env.VITE_BACKEND_URL || window.location.origin;
+  // Backend base URL (env in production, localhost in dev)
+  const url = BACKEND_URL;
 
   const [books, setBooks] = useState([]);
   const [featuredBooks, setFeaturedBooks] = useState([]);
@@ -24,27 +25,45 @@ const BooksContextProvider = ({ children }) => {
   const [onSaleBooks, setOnSaleBooks] = useState([]);
   const [mostViewedBooks, setMostViewedBooks] = useState([]);
   const [dealsOfWeek, setDealsOfWeek] = useState([]);
+  const [newReleases, setNewReleases] = useState([]);
 
+  // `loading`/`error` describe the main books list (shop/categories pages and bulk tools).
+  // Home sections each get their own entry in `sectionStatus`, so one section's request
+  // never blanks or errors another.
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [sectionStatus, setSectionStatus] = useState({});
+  const latestRequest = useRef({}); // key -> id of the newest request, to drop stale responses
 
   // Optional: keep the latest bulk import report for UI
   const [importReport, setImportReport] = useState(null);
 
-  // Generic fetch helper
+  // Generic fetch helper. Only the newest request per key may update state, so a slow
+  // earlier response (e.g. a previous filter) can't overwrite a newer one.
   const fetchData = useCallback(
-    async (endpoint = "/", params = {}, setter) => {
-      setLoading(true);
-      setError(null);
+    async (endpoint = "/", params = {}, setter, key = "books") => {
+      const requestId = (latestRequest.current[key] || 0) + 1;
+      latestRequest.current[key] = requestId;
+      const isLatest = () => latestRequest.current[key] === requestId;
+      const setStatus = (st) => {
+        if (key === "books") {
+          setLoading(st.loading);
+          setError(st.error);
+        } else {
+          setSectionStatus((prev) => ({ ...prev, [key]: st }));
+        }
+      };
+      setStatus({ loading: true, error: null });
       try {
         const { data } = await axios.get(`${url}/api/books${endpoint}`, { params });
-        if (setter) setter(data);
+        if (isLatest()) {
+          if (setter) setter(data);
+          setStatus({ loading: false, error: null });
+        }
         return data;
       } catch (err) {
-        setError(err);
+        if (isLatest()) setStatus({ loading: false, error: err });
         throw err;
-      } finally {
-        setLoading(false);
       }
     },
     [url]
@@ -58,37 +77,44 @@ const BooksContextProvider = ({ children }) => {
 
   // Fetch featured books
   const fetchFeaturedBooks = useCallback(
-    (limit = 10) => fetchData("/featured", { limit }, setFeaturedBooks),
+    (limit = 10) => fetchData("/featured", { limit }, setFeaturedBooks, "featured"),
     [fetchData]
   );
 
   // Fetch trending books
   const fetchTrendingBooks = useCallback(
-    ({ limit = 10, days } = {}) => fetchData("/trending", { limit, days }, setTrendingBooks),
+    ({ limit = 10, days } = {}) => fetchData("/trending", { limit, days }, setTrendingBooks, "trending"),
     [fetchData]
   );
 
   // Fetch latest books
   const fetchLatestBooks = useCallback(
-    (limit = 10) => fetchData("/latest", { limit }, setLatestBooks),
+    (limit = 10) => fetchData("/latest", { limit }, setLatestBooks, "latest"),
     [fetchData]
   );
 
   // Fetch on-sale books
   const fetchOnSaleBooks = useCallback(
-    (limit = 10) => fetchData("/on-sale", { limit }, setOnSaleBooks),
+    (limit = 10) => fetchData("/on-sale", { limit }, setOnSaleBooks, "onSale"),
     [fetchData]
   );
 
   // Fetch most-viewed books
   const fetchMostViewedBooks = useCallback(
-    (limit = 10) => fetchData("/most-viewed", { limit }, setMostViewedBooks),
+    (limit = 10) => fetchData("/most-viewed", { limit }, setMostViewedBooks, "mostViewed"),
+    [fetchData]
+  );
+
+  // Newest books for the home page (own state: not shared with the shop page's filtered list)
+  const fetchNewReleases = useCallback(
+    (params = {}) =>
+      fetchData("/", { limit: 11, sort: "-created_at", ...params }, setNewReleases, "newReleases"),
     [fetchData]
   );
 
   // Fetch deals of the week
   const fetchDealsOfWeek = useCallback(
-    (limit = 10) => fetchData("/deals", { limit }, setDealsOfWeek),
+    (limit = 10) => fetchData("/deals", { limit }, setDealsOfWeek, "deals"),
     [fetchData]
   );
 
@@ -257,9 +283,12 @@ const BooksContextProvider = ({ children }) => {
     onSaleBooks,
     mostViewedBooks,
     dealsOfWeek,
+    newReleases,
     loading,
     error,
+    sectionStatus,
     fetchBooks,
+    fetchNewReleases,
     fetchFeaturedBooks,
     fetchTrendingBooks,
     fetchLatestBooks,
@@ -286,9 +315,12 @@ const BooksContextProvider = ({ children }) => {
     onSaleBooks,
     mostViewedBooks,
     dealsOfWeek,
+    newReleases,
     loading,
     error,
+    sectionStatus,
     fetchBooks,
+    fetchNewReleases,
     fetchFeaturedBooks,
     fetchTrendingBooks,
     fetchLatestBooks,

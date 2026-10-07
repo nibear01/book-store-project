@@ -7,18 +7,17 @@ const CartPage = () => {
   const {
     state,
     subtotal,
-    shipping,
     total,
     removeItem,
     updateQuantity,
     clearCart,
   } = useCart();
 
-  const handleQuantityChange = (id, newQuantity) => {
+  const handleQuantityChange = (key, newQuantity) => {
     if (newQuantity < 1) {
-      removeItem({ id });
+      removeItem({ key });
     } else {
-      updateQuantity({ id, quantity: newQuantity });
+      updateQuantity({ key, quantity: newQuantity });
     }
   };
 
@@ -56,7 +55,7 @@ const CartPage = () => {
           <div className="md:col-span-2 bg-white rounded-md shadow-sm divide-y">
             {state.items.map((item) => (
               <div
-                key={item.id}
+                key={item.key}
                 className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4"
               >
                 <div className="flex-1 w-full">
@@ -77,14 +76,14 @@ const CartPage = () => {
                         min={1}
                         value={item.quantity}
                         onChange={(e) =>
-                          handleQuantityChange(item.id, Number(e.target.value))
+                          handleQuantityChange(item.key, Number(e.target.value))
                         }
                         className="w-24 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
                       />
                     </div>
 
                     <button
-                      onClick={() => removeItem({ id: item.id })}
+                      onClick={() => removeItem({ key: item.key })}
                       className="w-full sm:w-auto px-3 py-2 text-sm text-gray-700 border border-transparent rounded-md hover:bg-gray-50 hover:text-red-600"
                     >
                       {t('cart:cart.remove')}
@@ -107,7 +106,7 @@ const CartPage = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">{t('cart:checkout.shipping')}</span>
-                <span className="text-gray-800">{t('common:currency')}{shipping.toFixed(2)}</span>
+                <span className="text-gray-500">{t('cart:cart.shippingAtCheckout')}</span>
               </div>
               <div className="flex justify-between font-semibold text-base pt-3 border-t border-gray-200">
                 <span className="text-gray-800">{t('cart:checkout.grandTotal')}</span>

@@ -105,3 +105,46 @@ export const defaultPrintState = {
   paperSize: SIZES[1].id,
   colorMode: COLOR[0].id,
 };
+
+/**
+ * The price a shopper pays for a book — the single rule used by cards, deals and the book page.
+ * Mirrors the backend's buildFinalUnitPrice (backend/utils/print-pricing.js), which the cart and orders charge.
+ *  - derived mode: contentFee + per-page print cost + margin (book.price is not used)
+ *  - relative mode: book.price scaled by the chosen print options
+ *  - a sale counts only when it is below the regular price; in derived mode the
+ *    print-option difference is added on top of the sale price
+ * Returns { price, compareAt (regular price when on sale, else null), breakdown, onSale }.
+ */
+export function getBookPrice(book, settings, variant = defaultPrintState) {
+  const cfg = variant || defaultPrintState;
+  const pages = Number(book?.pages) || 0;
+  const regular = Number(book?.price) || 0;
+  const sale = Number(book?.sale_price);
+  const saleSet = !!book?.is_on_sale && book?.sale_price != null && Number.isFinite(sale) && sale >= 0;
+  const round2 = (n) => Number(Number(n).toFixed(2));
+
+  if (!settings) {
+    const onSale = saleSet && sale < regular;
+    return { price: onSale ? sale : regular, compareAt: onSale ? regular : null, breakdown: null, onSale };
+  }
+
+  if (settings.mode === "derived") {
+    const current = computeFinalConfiguredPrice({ baseContentPrice: 0, pages, cfg, settings });
+    const base = computeFinalConfiguredPrice({ baseContentPrice: 0, pages, cfg: defaultPrintState, settings });
+    const onSale = saleSet && sale < base.price;
+    const price = onSale ? round2(sale + (current.price - base.price)) : current.price;
+    return {
+      price,
+      compareAt: onSale ? current.price : null,
+      breakdown: { ...current.breakdown, finalPrice: price },
+      onSale,
+    };
+  }
+
+  // relative
+  const current = computeFinalConfiguredPrice({ baseContentPrice: regular, pages, cfg, settings });
+  const onSale = saleSet && sale < regular;
+  if (!onSale) return { price: current.price, compareAt: null, breakdown: current.breakdown, onSale };
+  const saleCurrent = computeFinalConfiguredPrice({ baseContentPrice: sale, pages, cfg, settings });
+  return { price: saleCurrent.price, compareAt: current.price, breakdown: saleCurrent.breakdown, onSale };
+}

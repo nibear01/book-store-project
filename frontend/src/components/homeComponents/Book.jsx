@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { BooksContext } from '@/context/BooksContext';
 import BookCard from '../categories/BookCard';
+import { BACKEND_URL } from "../../api/apiBase";
 
 const categories = ["All", "History", "Science & Math", "Romance", "Travel"];
 
 const Book = () => {
-  const url = import.meta.env.VITE_BACKEND_URL;
+  const url = BACKEND_URL;
   const [activeCategory, setActiveCategory] = useState("All");
   const { books, loading, error, fetchBooks } = useContext(BooksContext);
 

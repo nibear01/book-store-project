@@ -1,14 +1,6 @@
 import mongoose from "mongoose";
+import { slugify } from "../utils/slugify.js"; // keeps Bangla names
 
-// Helper slugify (duplicated lightweight version; could be refactored later)
-const slugify = (s = "") =>
-	String(s)
-		.normalize("NFKD")
-		.replace(/[\u0300-\u036f]/g, "")
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-+|-+$/g, "")
-		.replace(/-{2,}/g, "-");
 
 const categorySchema = new mongoose.Schema(
 	{

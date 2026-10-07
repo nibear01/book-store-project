@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { authorAPI } from "../api/author-api";
+import { BACKEND_URL } from "../api/apiBase";
 
 const AuthorContext = createContext(null);
 
@@ -8,7 +9,7 @@ export const AuthorProvider = ({ children }) => {
   const [author, setAuthor] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const url = import.meta.env.VITE_BACKEND_URL;
+  const url = BACKEND_URL;
 
   const list = useCallback(async (params = {}) => {
     setLoading(true);

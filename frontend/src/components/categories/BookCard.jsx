@@ -17,7 +17,7 @@ import { usePrintSettings } from "../../context/PrintSettingsContext";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 import {
-  computeFinalConfiguredPrice,
+  getBookPrice,
   defaultPrintState,
 } from "../bookViewComponents/BookPrintPricing";
 
@@ -162,97 +162,19 @@ function BookCardInner({ book, baseUrl, viewMode = "grid" }) {
 
   const id = useMemo(() => book._id || book.id, [book._id, book.id]);
   const rating = useMemo(() => Number(book.rating) || 0, [book.rating]);
-  const isOnSale = !!(book.is_on_sale && book.sale_price);
-  const isDealOfWeek = !!book.is_deal_of_the_week;
-
   // Load global print pricing settings from context
   const { printSettings } = usePrintSettings();
 
-  // Compute listing prices using default configuration and book.pages
-  const {
-    displayPrice,
-    displaySalePrice,
-    listingVariant,
-    listingBreakdown,
-    dealOverride,
-  } = useMemo(() => {
-    const basePrice = Number(book.price || 0);
-    const salePrice = Number(book.sale_price || 0);
-    const pages = Number(book.pages || 0);
-    // If this is a Deal of the Week and on sale, show the admin-provided sale value as-is
-    if (isDealOfWeek && isOnSale) {
-      return {
-        displayPrice: basePrice.toFixed(0),
-        displaySalePrice: salePrice.toFixed(0),
-        listingVariant: null,
-        listingBreakdown: null,
-        dealOverride: true,
-      };
-    }
-    if (!printSettings) {
-      return {
-        displayPrice: basePrice.toFixed(0),
-        displaySalePrice: isOnSale ? salePrice.toFixed(0) : null,
-        listingVariant: null,
-        listingBreakdown: null,
-        dealOverride: false,
-      };
-    }
-    // Use default print configuration for listing
-    const cfg = defaultPrintState;
-    const mode = printSettings.mode || "relative";
-    if (mode === "derived") {
-      // Derived: contentFee + basePerPage*pages*multipliers + margin
-      const { price: derivedFinal, breakdown } = computeFinalConfiguredPrice({
-        baseContentPrice: 0,
-        pages,
-        cfg,
-        settings: printSettings,
-      });
-      const useSale =
-        isOnSale && Number.isFinite(salePrice) && salePrice >= 0
-          ? salePrice
-          : null;
-      return {
-        displayPrice: Number(derivedFinal).toFixed(2),
-        displaySalePrice: useSale != null ? Number(useSale).toFixed(2) : null,
-        listingVariant: cfg,
-        listingBreakdown: breakdown,
-        dealOverride: false,
-      };
-    }
-    // relative mode
-    const baseComputed = computeFinalConfiguredPrice({
-      baseContentPrice: basePrice,
-      pages,
-      cfg,
-      settings: printSettings,
-    });
-    const saleComputed = isOnSale
-      ? computeFinalConfiguredPrice({
-          baseContentPrice: salePrice,
-          pages,
-          cfg,
-          settings: printSettings,
-        })
-      : null;
-    return {
-      displayPrice: Number(baseComputed.price || basePrice).toFixed(2),
-      displaySalePrice: isOnSale
-        ? Number(saleComputed?.price ?? salePrice).toFixed(2)
-        : null,
-      listingVariant: cfg,
-      listingBreakdown: baseComputed.breakdown,
-      dealOverride: false,
-    };
-  }, [
-    book.price,
-    book.sale_price,
-    book.pages,
-    isOnSale,
-    isDealOfWeek,
-    printSettings,
-  ]);
+  // Listing price for the default print options (same rule the cart charges)
+  const priceInfo = useMemo(
+    () => getBookPrice(book, printSettings),
+    [book, printSettings],
+  );
+  const isOnSale = priceInfo.onSale;
+  const displayPrice = Number(priceInfo.compareAt ?? priceInfo.price).toFixed(2);
+  const displaySalePrice = isOnSale ? Number(priceInfo.price).toFixed(2) : null;
+  const listingVariant = printSettings ? defaultPrintState : null;
+  const listingBreakdown = priceInfo.breakdown;
 
   /** Handle adding item to cart */
   const handleAddToCart = useCallback(
@@ -274,26 +196,16 @@ function BookCardInner({ book, baseUrl, viewMode = "grid" }) {
 
       setIsAdding(true);
       try {
-        // If print settings exist, add default-configured variant and price to keep consistency with listing price
-        // If Deal of the Week + sale, keep admin-provided sale as-is (no POD config)
-        const variant =
-          printSettings && !dealOverride
-            ? {
-                paperQuality: listingVariant?.paperQuality,
-                printSide: listingVariant?.printSide,
-                paperSize: listingVariant?.paperSize,
-                colorMode: listingVariant?.colorMode,
-              }
-            : undefined;
-        const unitPrice = dealOverride
-          ? isOnSale && displaySalePrice != null
-            ? Number(displaySalePrice)
-            : Number(displayPrice)
-          : printSettings
-            ? isOnSale && displaySalePrice != null
-              ? Number(displaySalePrice)
-              : Number(displayPrice)
-            : Number(book.price);
+        // Same print options as the listing price (deal-of-the-week books included)
+        const variant = listingVariant
+          ? {
+              paperQuality: listingVariant.paperQuality,
+              printSide: listingVariant.printSide,
+              paperSize: listingVariant.paperSize,
+              colorMode: listingVariant.colorMode,
+            }
+          : undefined;
+        const unitPrice = priceInfo.price;
         await addToCart({
           item: {
             id: bid,
@@ -301,10 +213,9 @@ function BookCardInner({ book, baseUrl, viewMode = "grid" }) {
             price: unitPrice,
             cover_image: coverImage,
             slug: book.slug,
-            configured: !!(printSettings && !dealOverride),
+            configured: !!listingVariant,
             variant,
-            breakdown:
-              printSettings && !dealOverride ? listingBreakdown : undefined,
+            breakdown: listingVariant ? listingBreakdown : undefined,
           },
           quantity: 1,
           variant,
@@ -328,16 +239,11 @@ function BookCardInner({ book, baseUrl, viewMode = "grid" }) {
       book._id,
       book.id,
       book.title,
-      book.price,
       coverImage,
       book.slug,
-      printSettings,
-      isOnSale,
-      displaySalePrice,
-      displayPrice,
       listingVariant,
       listingBreakdown,
-      dealOverride,
+      priceInfo.price,
     ],
   );
 
@@ -383,7 +289,7 @@ function BookCardInner({ book, baseUrl, viewMode = "grid" }) {
   return (
     <div className={containerClass}>
       {/* Sale Badge - Improved mobile positioning */}
-      {book.is_on_sale && (
+      {isOnSale && (
         <div
           className={`absolute top-2 left-2 z-20 bg-gradient-to-r from-red-500 via-pink-500 to-rose-500 text-white text-xs font-bold px-2 py-1 sm:px-3 sm:py-1.5 rounded-full shadow-lg animate-pulse ${
             viewMode === "list" ? "sm:top-3 sm:left-3" : ""

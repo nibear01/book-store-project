@@ -9,7 +9,6 @@ import {
 import img1 from "../../assets/images/img1-12 (4).png";
 import img2 from "../../assets/pexels-pixabay-159866.jpg";
 import img3 from "../../assets/pexels-minan1398-694740.jpg";
-import img4 from "../../assets/images/img1-12 (4).png";
 import ButtonFill from "@/Button/ButtonFill";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -18,7 +17,6 @@ const defaultImages = [
   { src: img1, alt: "Hero slide 1" },
   { src: img2, alt: "Hero slide 2" },
   { src: img3, alt: "Hero slide 3" },
-  { src: img4, alt: "Hero slide 4" },
 ];
 
 const Hero = ({
@@ -27,7 +25,7 @@ const Hero = ({
   fullWidth = true, // false = centered container with side padding
   pauseOnHover = true,
 }) => {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const [activeIndex, setActiveIndex] = useState(0);
   const trackRef = useRef(null);
   const hoveringRef = useRef(false);
@@ -132,10 +130,10 @@ const Hero = ({
   const widthClass = fullWidth ? "w-full" : "max-w-7xl mx-auto";
   const heightClass = "h-[350px] md:h-[50vh] lg:h-[60vh] xl:h-[70vh]";
 
-  // track style (viewport-based width per slide)
+  // track style: each slide is exactly as wide as the carousel (not the browser window)
   const trackStyle = {
-    width: `${length * 100}vw`,
-    transform: `translate3d(-${activeIndex * 100}vw, 0, 0)`,
+    width: `${length * 100}%`,
+    transform: `translate3d(-${(activeIndex * 100) / length}%, 0, 0)`,
     transition: reducedMotion ? "none" : "transform 700ms ease-in-out",
     willChange: "transform",
     WebkitBackfaceVisibility: "hidden",
@@ -150,15 +148,16 @@ const Hero = ({
     img.src = images[next].src;
   }, [activeIndex, images, length]);
 
+  // Current month name in the site's language
   const month = useMemo(
-    () => new Date().toLocaleString(undefined, { month: "long" }),
-    []
+    () => new Date().toLocaleString(i18n.language === "bn" ? "bn-BD" : "en-US", { month: "long" }),
+    [i18n.language]
   );
 
   return (
     <section
       name="hero-section"
-      className={`relative ${widthClass} ${heightClass} select-none m-5d:m-8 lg:m-10 rounded-none md:rounded-2xl shadow-sm md:shadow-md`}
+      className={`relative ${widthClass} ${heightClass} select-none lg:m-10 rounded-none md:rounded-2xl shadow-sm md:shadow-md`}
       aria-roledescription="carousel"
       aria-label="Featured slides"
       tabIndex={0}
@@ -176,8 +175,8 @@ const Hero = ({
             <div
               key={i}
               name="hero-slide"
-              className="relative w-screen h-full flex-shrink-0 overflow-hidden"
-              style={{ lineHeight: 0 }}
+              className="relative h-full flex-shrink-0 overflow-hidden"
+              style={{ lineHeight: 0, width: `${100 / length}%` }}
               role="group"
               aria-roledescription="slide"
               aria-label={`Slide ${i + 1} of ${length}`}
@@ -197,23 +196,21 @@ const Hero = ({
         </div>
 
         {/* Center content (responsive typography + spacing) */}
-        <div className="absolute inset-0 z-20 flex items-center justify-center px-3 sm:px-4">
+        <div className="absolute inset-0 z-20 flex items-center justify-center px-12 sm:px-16 md:px-20">
           <div className="text-center max-w-[680px]">
             <p className="uppercase text-gray-200 text-xs sm:text-sm md:text-base tracking-widest">
-              The Bookworm Editors&apos;
+              {t('home.hero.editorsChoice')}
             </p>
             <h1 className="mt-2 sm:mt-3 text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
-              Featured Book of the{" "}
+              {t('home.hero.featuredBook')}{" "}
               <span className="text-indigo-400">{month}</span>
             </h1>
             <p className="mt-3 sm:mt-4 text-gray-200 text-sm sm:text-base md:text-lg">
-              Discover our handpicked recommendation — a book that inspires,
-              educates, and entertains. Dive in and explore the story everyone’s
-              talking about this month.
+              {t('home.hero.description')}
             </p>
 
             <Link to="/shop" name="hero-shop-now-link" className="mt-6 inline-block">
-              <ButtonFill>Shop Now</ButtonFill>
+              <ButtonFill>{t('home.hero.shopNow')}</ButtonFill>
             </Link>
           </div>
         </div>

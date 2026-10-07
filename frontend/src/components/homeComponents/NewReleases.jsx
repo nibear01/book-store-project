@@ -12,24 +12,57 @@ import { Link } from "react-router-dom";
 import ButtonFill from "@/Button/ButtonFill";
 import BookLoadingSkeleton from "@/components/ui/BookLoadingSkeleton";
 import { useTranslation } from "react-i18next";
+import { BACKEND_URL } from "../../api/apiBase";
+import { categoryAPI } from "../../api/category-api";
 
-const categories = ["All", "History", "Science & Math", "Romance", "Travel"];
+const ALL = "All";
+const PAGE_SIZE = 10;
 
 const NewReleases = () => {
   const { t } = useTranslation("common");
-  const url = import.meta.env.VITE_BACKEND_URL;
-  const [activeCategory, setActiveCategory] = useState("All");
-  const { books, loading, error, fetchBooks } = useContext(BooksContext);
-  // Normalize books shape
+  const url = BACKEND_URL;
+  const [activeCategory, setActiveCategory] = useState(ALL);
+  // Own list + status: the shop page's filtered `books` must not leak in here
+  const { newReleases, sectionStatus, fetchNewReleases } = useContext(BooksContext);
+  const { loading = true, error = null } = sectionStatus.newReleases || {};
   const list = useMemo(
-    () => (Array.isArray(books) ? books : books?.data || []),
-    [books],
+    () => (Array.isArray(newReleases) ? newReleases : newReleases?.data || []),
+    [newReleases],
+  );
+  const hasMore = !!newReleases?.pagination?.hasNextPage || list.length > PAGE_SIZE;
+
+  // Filter buttons: the categories that actually have books (largest first)
+  const [categories, setCategories] = useState([ALL]);
+  const [slugByName, setSlugByName] = useState({});
+  useEffect(() => {
+    let alive = true;
+    categoryAPI
+      .list({ includeEmpty: false })
+      .then((res) => {
+        const names = (Array.isArray(res?.data) ? res.data : [])
+          .slice()
+          .sort((x, y) => (y.book_count || 0) - (x.book_count || 0))
+          .slice(0, 4)
+          .filter((c) => c?.name);
+        if (!alive) return;
+        setCategories([ALL, ...names.map((c) => c.name)]);
+        setSlugByName(Object.fromEntries(names.map((c) => [c.name, c.slug || c.name])));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const load = useCallback(
+    (category) =>
+      fetchNewReleases(category === ALL ? {} : { genre: category }).catch(() => {}),
+    [fetchNewReleases],
   );
 
-  // Fetch books on mount if not already loaded
   useEffect(() => {
-    if (list.length === 0 && !loading) fetchBooks();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    load(ALL);
+  }, [load]);
 
   // Debounce switching categories to avoid repeated fetches
   const debounceRef = useRef(null);
@@ -44,12 +77,9 @@ const NewReleases = () => {
     (category) => {
       setActiveCategory(category);
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
-        if (category === "All") fetchBooks();
-        else fetchBooks({ genre: category });
-      }, 200);
+      debounceRef.current = setTimeout(() => load(category), 200);
     },
-    [fetchBooks],
+    [load],
   );
 
   if (loading) {
@@ -80,7 +110,7 @@ const NewReleases = () => {
             {errorMsg}
           </div>
           <button
-            onClick={() => fetchBooks()}
+            onClick={() => load(activeCategory)}
             className="px-6 py-2 bg-black text-white rounded-[2px] hover:bg-gray-800 transition-colors"
           >
             {t("shop.tryAgain")}
@@ -120,7 +150,7 @@ const NewReleases = () => {
                         : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
                     }`}
                 >
-                  {category}
+                  {category === ALL ? t("common.all") : category}
                 </button>
               ))}
             </div>
@@ -133,8 +163,8 @@ const NewReleases = () => {
           className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6"
         >
           {list
-            .filter((b) => !!b?.slug)
-            .slice(0, 10) // Limit to 10 books
+            .filter((b) => !!(b?.slug || b?._id))
+            .slice(0, PAGE_SIZE)
             .map((b, index) => (
               <BookCard
                 key={b?._id || b?.id || b?.slug || index}
@@ -143,13 +173,13 @@ const NewReleases = () => {
                 viewMode="grid"
               />
             ))}
-          {list.length > 10 ? (
+          {hasMore ? (
             <div className="col-span-2 md:col-span-3 lg:col-span-5 flex justify-center mt-4">
               <Link
                 to={
-                  activeCategory === "All"
+                  activeCategory === ALL
                     ? "/shop"
-                    : `/categories?category=${encodeURIComponent(activeCategory)}`
+                    : `/categories?category=${encodeURIComponent(slugByName[activeCategory] || activeCategory)}`
                 }
                 className="block text-center"
               >

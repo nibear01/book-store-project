@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { categoryAPI } from "../api/category-api";
 import { settingsAPI } from "../api/settings-api";
 
@@ -23,11 +23,24 @@ export const useCategories = (books, initialCategorySlug = null) => {
 
   // Cursor-based pagination (replaces page/limit)
   const [cursor, setCursor] = useState(null);
-  const [nextCursor, setNextCursor] = useState(null);
-  const [previousCursor, setPreviousCursor] = useState(null);
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const [hasPreviousPage, setHasPreviousPage] = useState(false);
+  // Cursors of the pages already visited, so "previous" can step back
+  const [cursorHistory, setCursorHistory] = useState([]);
   const limit = 12; // Fixed limit per page
+
+  const goToNextPage = useCallback(
+    (nextCursor) => {
+      if (!nextCursor) return;
+      setCursorHistory((h) => [...h, cursor]);
+      setCursor(nextCursor);
+    },
+    [cursor],
+  );
+
+  const goToPreviousPage = useCallback(() => {
+    if (!cursorHistory.length) return;
+    setCursor(cursorHistory[cursorHistory.length - 1]);
+    setCursorHistory(cursorHistory.slice(0, -1));
+  }, [cursorHistory]);
 
   // Listen for sort option changes from BooksContent
   useEffect(() => {
@@ -255,8 +268,7 @@ export const useCategories = (books, initialCategorySlug = null) => {
   // Reset to first cursor when changing any non-pagination filter
   useEffect(() => {
     setCursor(null);
-    setNextCursor(null);
-    setPreviousCursor(null);
+    setCursorHistory([]);
   }, [
     selectedCategory,
     sortOption,
@@ -285,10 +297,7 @@ export const useCategories = (books, initialCategorySlug = null) => {
     filteredBooks,
     cursor,
     limit,
-    nextCursor,
-    previousCursor,
-    hasNextPage,
-    hasPreviousPage,
+    hasPreviousPage: cursorHistory.length > 0,
     filterSections,
     categories,
     categoriesLoading,
@@ -308,7 +317,8 @@ export const useCategories = (books, initialCategorySlug = null) => {
     setViewMode,
     setMobileViewStrategy,
     setActiveGroupIndex,
-    setCursor,
+    goToNextPage,
+    goToPreviousPage,
     handleCategorySelect,
     resetFilters,
     toggleFilterSection,

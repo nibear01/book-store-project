@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
-dotenv.config();
+// Load backend/.env no matter which folder the server is started from
+dotenv.config({ path: fileURLToPath(new URL(".env", import.meta.url)) });
 import cors from "cors";
 import express from "express";
 import connectDb from "./config/db.js";
@@ -40,8 +41,30 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
+// Behind Render's proxy: use X-Forwarded-For so rate limits are per client, not per proxy
+app.set("trust proxy", 1);
+
 app.use(express.json());
 app.use(cors(corsOptions));
+
+// Strip MongoDB operator keys ($ne, $gt, ...) from request bodies so user input
+// can never become a query operator (e.g. { token: { $ne: null } })
+const stripMongoOperators = (value) => {
+  if (Array.isArray(value)) return value.map(stripMongoOperators);
+  if (value && typeof value === "object") {
+    const clean = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (k.startsWith("$")) continue;
+      clean[k] = stripMongoOperators(v);
+    }
+    return clean;
+  }
+  return value;
+};
+app.use((req, res, next) => {
+  if (req.body && typeof req.body === "object") req.body = stripMongoOperators(req.body);
+  next();
+});
 
 // Rate limiting for auth/OTP endpoints
 const authLimiter = rateLimit({
@@ -62,6 +85,23 @@ app.use("/api/users/forgot-password", authLimiter);
 app.use("/api/otp", authLimiter);
 app.use("/api/affiliates/login", authLimiter);
 app.use("/api/affiliates/register", authLimiter);
+
+// Public forms that send email or create records: throttle per client
+const publicFormLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  message: { success: false, message: "Too many requests, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use("/api/author-requests/otp", publicFormLimiter);
+app.use("/api/author-requests/submit", publicFormLimiter);
+app.use("/api/book-requests/submit", publicFormLimiter);
+app.use("/api/contact", publicFormLimiter);
+// Only the public subscribe endpoint (POST /api/subscribers), not the admin routes under it
+app.use("/api/subscribers", (req, res, next) =>
+  req.method === "POST" && req.path === "/" ? publicFormLimiter(req, res, next) : next()
+);
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/cart", cartRoutes);
@@ -100,6 +140,11 @@ app.use((err, req, res, next) => {
 });
 
 const startServer = async () => {
+  // Tokens can't be signed or verified safely without a secret
+  if (!process.env.JWT_SECRET) {
+    console.error("JWT_SECRET is not set. Refusing to start.");
+    process.exit(1);
+  }
   await connectDb();
   if (process.env.SEED_CATEGORIES === "true") {
     try {

@@ -12,11 +12,12 @@ import { buildImageUrl } from "@/utils/imageUrlHelper";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
+import { usePrintSettings } from "../../context/PrintSettingsContext";
 import { toast } from "react-toastify";
 import { FaCheck, FaShoppingCart } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 import {
-  computeFinalConfiguredPrice,
+  getBookPrice,
   defaultPrintState,
 } from "../bookViewComponents/BookPrintPricing";
 
@@ -106,17 +107,13 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
   const imagePreloadRef = useRef(null);
   const [isAdding, setIsAdding] = useState(false);
   const [addSuccess, setAddSuccess] = useState(false);
-  const [printSettings, setPrintSettings] = useState(null);
+  const { printSettings } = usePrintSettings();
 
-  const fmtBDT = useMemo(
-    () =>
-      new Intl.NumberFormat("en-BD", {
-        style: "currency",
-        currency: "BDT",
-        maximumFractionDigits: 0,
-      }),
-    [],
-  );
+  // Same format as the book cards (৳ and paisa), so the shown price matches what the cart charges
+  const fmtBDT = useMemo(() => {
+    const nf = new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    return { format: (n) => `৳${nf.format(Number(n) || 0)}` };
+  }, []);
 
   // Preload next image for smoother transitions
   const preloadNextImage = useCallback(() => {
@@ -172,18 +169,6 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
   useEffect(() => {
     mountedRef.current = true;
     loadDeals();
-    // fetch global print settings once
-    (async () => {
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL || "http://localhost:5000"}/api/settings/print-config`,
-        );
-        const data = await res.json();
-        if (res.ok && data?.success && data?.data) setPrintSettings(data.data);
-      } catch {
-        // ignore
-      }
-    })();
     return () => {
       mountedRef.current = false;
       window.clearInterval(autoplayRef.current);
@@ -307,86 +292,22 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
     return Array.isArray(c) ? c[0] : c;
   }, [currentDeal?.cover_image]);
 
+  // Price for the default print options (same rule the cart charges)
   const priceInfo = useMemo(() => {
-    const isOnSale =
-      !!currentDeal?.is_on_sale && typeof currentDeal?.sale_price === "number";
-    const basePrice = Number(currentDeal?.price || 0);
-    const salePrice = Number(currentDeal?.sale_price || 0);
-    const pages = Number(currentDeal?.pages || 0);
-    const isDOW = !!currentDeal?.is_deal_of_the_week;
-    // If Deal of the Week + on sale, display the admin-provided sale value exactly
-    if (isDOW && isOnSale) {
-      const priceNow = salePrice;
-      const baseRef = basePrice;
-      const discount =
-        Number.isFinite(baseRef) && baseRef > 0
-          ? Math.max(0, Math.round(((baseRef - priceNow) / baseRef) * 100))
-          : 0;
-      return {
-        isOnSale,
-        priceNow,
-        baseRef,
-        discount,
-        variant: null,
-        breakdown: null,
-      };
-    }
-    if (!printSettings) {
-      const priceNow = isOnSale ? salePrice : basePrice;
-      return {
-        isOnSale,
-        priceNow,
-        baseRef: basePrice,
-        discount:
-          isOnSale && Number.isFinite(basePrice) && basePrice > 0
-            ? Math.max(
-                0,
-                Math.round(((basePrice - priceNow) / basePrice) * 100),
-              )
-            : 0,
-        variant: null,
-        breakdown: null,
-      };
-    }
-    const cfg = defaultPrintState;
-    const baseComputed = computeFinalConfiguredPrice({
-      baseContentPrice: basePrice,
-      pages,
-      cfg,
-      settings: printSettings,
-    });
-    const saleComputed = isOnSale
-      ? computeFinalConfiguredPrice({
-          baseContentPrice: salePrice,
-          pages,
-          cfg,
-          settings: printSettings,
-        })
-      : null;
-    const priceNow = isOnSale
-      ? Number(saleComputed?.price)
-      : Number(baseComputed.price);
-    const baseRef = Number(baseComputed.price);
-    const discount =
-      isOnSale && Number.isFinite(baseRef) && baseRef > 0
-        ? Math.max(0, Math.round(((baseRef - priceNow) / baseRef) * 100))
-        : 0;
+    const p = getBookPrice(currentDeal, printSettings);
+    const baseRef = p.compareAt ?? p.price;
     return {
-      isOnSale,
-      priceNow,
+      isOnSale: p.onSale,
+      priceNow: p.price,
       baseRef,
-      discount,
-      variant: cfg,
-      breakdown: baseComputed.breakdown,
+      discount:
+        p.onSale && baseRef > 0
+          ? Math.max(0, Math.round(((baseRef - p.price) / baseRef) * 100))
+          : 0,
+      variant: printSettings ? defaultPrintState : null,
+      breakdown: p.breakdown,
     };
-  }, [
-    currentDeal?.is_on_sale,
-    currentDeal?.sale_price,
-    currentDeal?.price,
-    currentDeal?.pages,
-    currentDeal?.is_deal_of_the_week,
-    printSettings,
-  ]);
+  }, [currentDeal, printSettings]);
 
   // Action handlers
   const onAddToCart = useCallback(async () => {
@@ -403,10 +324,8 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
 
     try {
       setIsAdding(true);
-      const isDOW =
-        !!currentDeal?.is_deal_of_the_week && !!currentDeal?.is_on_sale;
       const variant =
-        priceInfo.variant && !isDOW
+        priceInfo.variant
           ? {
               paperQuality: priceInfo.variant.paperQuality,
               printSide: priceInfo.variant.printSide,
@@ -421,9 +340,9 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
           title: currentDeal.title,
           price: unitPrice,
           slug: currentDeal.slug,
-          configured: !!printSettings && !isDOW,
+          configured: !!priceInfo.variant,
           variant,
-          breakdown: !isDOW ? priceInfo.breakdown || undefined : undefined,
+          breakdown: priceInfo.variant ? priceInfo.breakdown || undefined : undefined,
         },
         quantity: 1,
         variant,
@@ -434,6 +353,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
       setTimeout(() => setAddSuccess(false), 1200);
     } catch (error) {
       console.error("Failed to add item to cart:", error);
+      toast.error(error?.message || "Failed to add to cart.");
     } finally {
       setIsAdding(false);
     }
@@ -450,9 +370,6 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
     priceInfo.breakdown,
     priceInfo.priceNow,
     priceInfo.variant,
-    printSettings,
-    currentDeal?.is_deal_of_the_week,
-    currentDeal?.is_on_sale,
   ]);
 
   const onImgError = useCallback((e) => {
@@ -712,7 +629,7 @@ function DealsV2({ pageSize = 10, autoplayMs = 5000 }) {
                   )}
                 </button>
                 <Link
-                  to={`/bookview/${currentDeal.slug}`}
+                  to={`/bookview/${currentDeal.slug || currentDeal._id}`}
                   className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gray-900 text-white hover:bg-black transition shadow-sm"
                 >
                   <svg

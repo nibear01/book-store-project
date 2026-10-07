@@ -8,80 +8,26 @@ import React, {
   useCallback,
 } from "react";
 import { cartAPI } from "../api/cart-api";
-import { defaultPrintState } from "../components/bookViewComponents/BookPrintPricing";
 import { useAuth } from "./AuthContext";
 
 const CartContext = createContext(null);
 const LOCAL_STORAGE_KEY = "cart_items";
-const PRICE_OVERRIDES_KEY = "cart_price_overrides"; // persists unit prices per id+variant
+// Old client-side price cache; prices now always come from the server
+const LEGACY_PRICE_OVERRIDES_KEY = "cart_price_overrides";
 
-function readPriceOverrides() {
-  try {
-    const raw = localStorage.getItem(PRICE_OVERRIDES_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function writePriceOverrides(map) {
-  try {
-    localStorage.setItem(PRICE_OVERRIDES_KEY, JSON.stringify(map));
-  } catch {
-    // ignore storage errors
-  }
-}
-
+// Same order and defaults as the backend's "?variant=" line key
 function variantKey(variant) {
-  if (!variant || typeof variant !== "object") return "default";
-  const q = variant.paperQuality || "economy";
-  const s = variant.printSide || "single";
-  const z = variant.paperSize || "A4";
-  const c = variant.colorMode || "bw";
+  const v = variant && typeof variant === "object" ? variant : {};
+  const q = v.paperQuality || "economy";
+  const s = v.printSide || "single";
+  const z = v.paperSize || "A4";
+  const c = v.colorMode || "bw";
   return `${q}|${s}|${z}|${c}`;
 }
 
+// A cart line is one book with one set of print options
 function makeItemKey(id, variant) {
   return `${String(id)}|${variantKey(variant)}`;
-}
-
-function applyOverrides(items) {
-  const overrides = readPriceOverrides();
-  return items.map((i) => {
-    const key = makeItemKey(i.id, i.variant);
-    const ov = overrides[key];
-    return ov != null
-      ? { ...i, price: Number(ov) }
-      : i;
-  });
-}
-
-function setOverridePrice(id, variant, price) {
-  const overrides = readPriceOverrides();
-  const key = makeItemKey(id, variant);
-  overrides[key] = Number(price);
-  writePriceOverrides(overrides);
-}
-
-function removeOverridesForId(id) {
-  const overrides = readPriceOverrides();
-  const prefix = `${String(id)}|`;
-  let changed = false;
-  for (const k of Object.keys(overrides)) {
-    if (k.startsWith(prefix)) {
-      delete overrides[k];
-      changed = true;
-    }
-  }
-  if (changed) writePriceOverrides(overrides);
-}
-
-function clearAllOverrides() {
-  try {
-    localStorage.removeItem(PRICE_OVERRIDES_KEY);
-  } catch {
-    // ignore
-  }
 }
 
 function cartReducer(state, action) {
@@ -91,11 +37,11 @@ function cartReducer(state, action) {
     }
     case "ADD_ITEM": {
       const { item } = action;
-      const existing = state.items.find((i) => i.id === item.id);
+      const existing = state.items.find((i) => i.key === item.key);
       let nextItems;
       if (existing) {
         nextItems = state.items.map((i) =>
-          i.id === item.id
+          i.key === item.key
             ? { ...i, quantity: i.quantity + (item.quantity || 1) }
             : i
         );
@@ -105,15 +51,15 @@ function cartReducer(state, action) {
       return { ...state, items: nextItems };
     }
     case "REMOVE_ITEM": {
-      return { ...state, items: state.items.filter((i) => i.id !== action.id) };
+      return { ...state, items: state.items.filter((i) => i.key !== action.key) };
     }
     case "UPDATE_QTY": {
-      const { id, quantity } = action;
+      const { key, quantity } = action;
       const q = Math.max(1, quantity);
       return {
         ...state,
         items: state.items.map((i) =>
-          i.id === id ? { ...i, quantity: q } : i
+          i.key === key ? { ...i, quantity: q } : i
         ),
       };
     }
@@ -131,29 +77,24 @@ function mapBackendCartToLocalItems(backendCart) {
     const book =
       it.book && typeof it.book === "object" ? it.book : { _id: it.book };
     const qty = Number(it.quantity) || 1;
-    // Prefer explicit unit price fields, else derive from pricing.finalPrice, else treat provided price as unit price
-    let unitPrice;
-    if (Number.isFinite(it.unit_price)) {
-      unitPrice = Number(it.unit_price);
-    } else if (it.pricing && Number.isFinite(it.pricing.finalPrice)) {
-      unitPrice = Number(it.pricing.finalPrice);
-    } else if (Number.isFinite(it.price)) {
-      unitPrice = Number(it.price);
-    } else if (Number.isFinite(book.price)) {
-      unitPrice = Number(book.price);
-    } else {
-      unitPrice = 0;
-    }
-    const variant = it.variant && typeof it.variant === 'object' && (it.variant.paperQuality || it.variant.printSide || it.variant.paperSize || it.variant.colorMode)
+    // The server prices every line (print options, sale price, margin)
+    const unitPrice = Number.isFinite(Number(it.price)) ? Number(it.price) : 0;
+    const hasVariant =
+      it.variant &&
+      typeof it.variant === "object" &&
+      (it.variant.paperQuality || it.variant.printSide || it.variant.paperSize || it.variant.colorMode);
+    const variant = hasVariant
       ? {
           paperQuality: it.variant.paperQuality,
           printSide: it.variant.printSide,
           paperSize: it.variant.paperSize,
           colorMode: it.variant.colorMode,
         }
-      : { ...defaultPrintState };
+      : undefined;
+    const id = book._id || book.id || it.book;
     return {
-      id: book._id || book.id || it.book, // local key
+      key: makeItemKey(id, variant),
+      id,
       title: it.title || book.title || "",
       price: unitPrice,
       quantity: qty,
@@ -164,37 +105,62 @@ function mapBackendCartToLocalItems(backendCart) {
   });
 }
 
+function readGuestCart() {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    // Older guest carts have no line key
+    return parsed.map((i) => ({ ...i, key: i.key || makeItemKey(i.id, i.variant) }));
+  } catch {
+    return [];
+  }
+}
+
 export function CartProvider({ children }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [] });
   const { isAuthenticated } = useAuth();
 
+  const refreshFromServer = useCallback(async () => {
+    const res = await cartAPI.getCart();
+    dispatch({ type: "SET_CART", items: mapBackendCartToLocalItems(res.data) });
+  }, []);
+
   // Hydrate cart on load based on auth state
   useEffect(() => {
     let mounted = true;
+    try {
+      localStorage.removeItem(LEGACY_PRICE_OVERRIDES_KEY);
+    } catch {
+      // ignore storage errors
+    }
     const load = async () => {
       if (isAuthenticated) {
-        // Load from backend
+        // Move anything added while logged out into the account's cart, then load it
+        const guestItems = readGuestCart();
+        for (const item of guestItems) {
+          try {
+            await cartAPI.addItem({ bookId: item.id, quantity: item.quantity, variant: item.variant });
+          } catch {
+            // skip lines the server refuses (e.g. out of stock)
+          }
+        }
+        if (guestItems.length) {
+          try {
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
+          } catch {
+            // ignore storage errors
+          }
+        }
         try {
           const res = await cartAPI.getCart();
           if (!mounted) return;
-          let items = mapBackendCartToLocalItems(res.data);
-          // Apply client-stored unit price overrides for stability across refresh
-          items = applyOverrides(items);
-          dispatch({ type: "SET_CART", items });
+          dispatch({ type: "SET_CART", items: mapBackendCartToLocalItems(res.data) });
         } catch {
           // keep current state on error — cart loads in background
         }
       } else {
-        // Load from localStorage for guests
-        try {
-          const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-          const parsed = raw ? JSON.parse(raw) : [];
-          if (Array.isArray(parsed)) {
-            dispatch({ type: "SET_CART", items: parsed });
-          }
-        } catch {
-          // ignore corrupt local storage
-        }
+        dispatch({ type: "SET_CART", items: readGuestCart() });
       }
     };
     load();
@@ -216,139 +182,91 @@ export function CartProvider({ children }) {
 
   const addToCart = useCallback(
     async ({ item, quantity = 1, variant }) => {
-      const localItem = {
-        id: item.id,
-        title: item.title,
-        price: item.price,
-        quantity,
-        configured: item.configured,
-        variant: item.variant,
-        breakdown: item.breakdown,
-      };
-
+      const lineVariant = variant || item.variant;
       if (isAuthenticated) {
         const bookId = item._id || item.bookId || item.id;
-        try {
-          const res = await cartAPI.addItem({ bookId, quantity, variant });
-          const next = mapBackendCartToLocalItems(res.data);
-          // Preserve existing unit prices for all previously present items, and override the newly added one with UI-computed price
-          const items = next.map((i) => {
-            if (String(i.id) === String(bookId)) {
-              return {
-                ...i,
-                price: Number(localItem.price || 0),
-                configured: localItem.configured ?? i.configured,
-                variant: localItem.variant || i.variant,
-                breakdown: localItem.breakdown || i.breakdown,
-              };
-            }
-            const prev = state.items.find((p) => String(p.id) === String(i.id));
-            return prev
-              ? {
-                  ...i,
-                  price: Number(prev.price || 0),
-                  configured: prev.configured ?? i.configured,
-                  variant: prev.variant || i.variant,
-                  breakdown: prev.breakdown || i.breakdown,
-                }
-              : i;
-          });
-          // Persist override for the just-added item to keep price stable across refresh
-          setOverridePrice(bookId, localItem.variant, localItem.price);
-          dispatch({ type: "SET_CART", items });
-          return;
-        } catch {
-          // fallback to local update if backend fails
-        }
+        await cartAPI.addItem({ bookId, quantity, variant: lineVariant });
+        await refreshFromServer();
+        return;
       }
-
-      // Guest cart: set override too
-      setOverridePrice(localItem.id, localItem.variant, localItem.price);
-      dispatch({ type: "ADD_ITEM", item: localItem });
+      // Guest cart: the shown price is only an estimate; the server reprices after login
+      dispatch({
+        type: "ADD_ITEM",
+        item: {
+          key: makeItemKey(item.id, lineVariant),
+          id: item.id,
+          title: item.title,
+          price: item.price,
+          quantity,
+          configured: item.configured,
+          variant: lineVariant,
+          breakdown: item.breakdown,
+        },
+      });
     },
-    [isAuthenticated, state.items]
+    [isAuthenticated, refreshFromServer]
+  );
+
+  // Lines are addressed by key; a bare book id is accepted for older callers
+  const findLine = useCallback(
+    ({ key, id }) =>
+      state.items.find((i) => (key ? i.key === key : String(i.id) === String(id))),
+    [state.items]
   );
 
   const updateQuantity = useCallback(
-    async ({ id, quantity }) => {
+    async ({ key, id, quantity }) => {
+      const line = findLine({ key, id });
+      if (!line) return;
       if (isAuthenticated) {
         try {
-          const res = await cartAPI.updateItem({ bookId: id, quantity });
-          const next = mapBackendCartToLocalItems(res.data);
-          // Preserve unit prices and variants for items already in state; only quantity should change
-          const items = next.map((i) => {
-            const prev = state.items.find((p) => String(p.id) === String(i.id));
-            return prev
-              ? {
-                  ...i,
-                  price: Number(prev.price || 0),
-                  configured: prev.configured ?? i.configured,
-                  variant: prev.variant || i.variant,
-                  breakdown: prev.breakdown || i.breakdown,
-                }
-              : i;
-          });
-          dispatch({ type: "SET_CART", items });
-          return;
-        } catch {
-          // fallback to local update
+          await cartAPI.updateItem({ bookId: line.id, variant: variantKey(line.variant), quantity });
+        } finally {
+          await refreshFromServer();
         }
+        return;
       }
-      dispatch({ type: "UPDATE_QTY", id, quantity });
+      dispatch({ type: "UPDATE_QTY", key: line.key, quantity });
     },
-    [isAuthenticated, state.items]
+    [isAuthenticated, findLine, refreshFromServer]
   );
 
   const removeItem = useCallback(
-    async ({ id }) => {
+    async ({ key, id }) => {
+      const line = findLine({ key, id });
+      if (!line) return;
+      // Update UI immediately, even if the API call fails
+      dispatch({ type: "REMOVE_ITEM", key: line.key });
       if (isAuthenticated) {
         try {
-          await cartAPI.removeItem({ bookId: id });
-          // Always update UI immediately, even if API call might fail
-          dispatch({ type: "REMOVE_ITEM", id });
-          removeOverridesForId(id);
-          return;
+          await cartAPI.removeItem({ bookId: line.id, variant: variantKey(line.variant) });
         } catch (error) {
           console.error("Failed to remove item from server:", error);
-          // Still remove from UI even if API fails to maintain consistency
-          dispatch({ type: "REMOVE_ITEM", id });
-          removeOverridesForId(id);
         }
-      } else {
-        dispatch({ type: "REMOVE_ITEM", id });
-        removeOverridesForId(id);
       }
     },
-    [isAuthenticated]
+    [isAuthenticated, findLine]
   );
 
   const clearCart = useCallback(async () => {
     if (isAuthenticated) {
       try {
         await cartAPI.clear();
-        dispatch({ type: "CLEAR" });
-        clearAllOverrides();
-        return;
       } catch (error) {
         console.error("Failed to clear cart on server:", error);
-        // Still clear UI even if API fails
-        dispatch({ type: "CLEAR" });
-        clearAllOverrides();
       }
-    } else {
-      dispatch({ type: "CLEAR" });
-      clearAllOverrides();
     }
+    // Still clear UI even if API fails
+    dispatch({ type: "CLEAR" });
   }, [isAuthenticated]);
 
+  // Shipping depends on the delivery location chosen at checkout, so it isn't part of the cart total
   const totals = useMemo(() => {
     const subtotal = state.items.reduce(
       (sum, i) => sum + (i.price || 0) * i.quantity,
       0
     );
-    const shipping = subtotal > 0 ? 60 : 0;
-    const total = subtotal + shipping;
-    return { subtotal, shipping, total };
+    return { subtotal, total: subtotal };
   }, [state.items]);
 
   const value = useMemo(
@@ -356,7 +274,11 @@ export function CartProvider({ children }) {
       state,
       dispatch,
       ...totals,
-      isInCart: (id) => state.items.some((i) => String(i.id) === String(id)),
+      // With a variant: is that exact line in the cart? Without: is any line of the book?
+      isInCart: (id, variant) =>
+        state.items.some((i) =>
+          variant ? i.key === makeItemKey(id, variant) : String(i.id) === String(id)
+        ),
       addToCart,
       updateQuantity,
       removeItem,

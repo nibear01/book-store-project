@@ -3,14 +3,15 @@ import Book from "../models/book-model.js";
 import mongoose from "mongoose";
 import path from "path";
 import fsp from "fs/promises";
+import { BACKEND_ROOT } from "../utils/paths.js";
 
 // Local uploads root and safe deletion helpers
-const uploadsRoot = path.resolve(process.cwd(), "uploads");
+const uploadsRoot = path.resolve(BACKEND_ROOT, "uploads");
 const isHttpUrl = (s) => typeof s === "string" && /^https?:\/\//i.test(s);
 const toAbsoluteIfLocal = (p) => {
   if (!p || isHttpUrl(p)) return null;
   const rel = String(p).replace(/^\/+/, "");
-  const abs = path.resolve(process.cwd(), rel);
+  const abs = path.resolve(BACKEND_ROOT, rel);
   if (!abs.startsWith(uploadsRoot)) return null;
   return abs;
 };

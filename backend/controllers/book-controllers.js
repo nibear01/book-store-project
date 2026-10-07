@@ -1,10 +1,15 @@
 import mongoose from "mongoose";
+import { escapeRegex } from "../utils/escape-regex.js";
 import path from "path";
 import Book from "../models/book-model.js";
+import { slugify } from "../utils/slugify.js";
 import Publisher from "../models/publisher-model.js";
+import Cart from "../models/cart-model.js";
+import Wishlist from "../models/wishlist-model.js";
 
 // NEW: fs/promises for renaming
 import fs from "fs/promises";
+import { BACKEND_ROOT } from "../utils/paths.js";
 
 // Helper: safely parse number with default
 const toNumber = (val, def) => {
@@ -116,7 +121,8 @@ const paginateCursor = async (
   const cursorCondition = buildCursorQuery(decodedCursor, sortFields, sortSpec);
 
   // Merge cursor condition with base query
-  const finalQuery = cursorCondition ? { ...query, ...cursorCondition } : query;
+  // Combine with $and: spreading would let the cursor's $or overwrite a search $or in the filter
+  const finalQuery = cursorCondition.$or ? { $and: [query, cursorCondition] } : query;
 
   // Fetch l+1 to detect if there's a next page
   let queryBuilder = Book.find(finalQuery);
@@ -173,15 +179,7 @@ const paginateCursor = async (
   };
 };
 
-// Slug helpers
-const slugify = (s = "") =>
-  String(s)
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/-{2,}/g, "-");
+// Slug helpers (slugify keeps Bangla and other scripts; see utils/slugify.js)
 
 const ensureUniqueSlug = async (baseSlug, excludeId) => {
   if (!baseSlug) return undefined;
@@ -201,16 +199,16 @@ const ensureUniqueSlug = async (baseSlug, excludeId) => {
 // Map Multer file.path to a web-friendly relative path
 const toPublicPath = (file) => {
   if (!file?.path) return undefined;
-  const rel = path.relative(process.cwd(), file.path).split(path.sep).join("/");
+  const rel = path.relative(BACKEND_ROOT, file.path).split(path.sep).join("/");
   return rel.startsWith("/") ? rel : `/${rel}`;
 };
 
 // NEW: local uploads root and safe deletion helpers
-const uploadsRoot = path.resolve(process.cwd(), "uploads");
+const uploadsRoot = path.resolve(BACKEND_ROOT, "uploads");
 const toAbsoluteIfLocal = (p) => {
   if (!p || isAbsoluteUrl(p)) return null; // skip remote URLs
   const rel = String(p).replace(/^\/+/, ""); // strip leading slash
-  const abs = path.resolve(process.cwd(), rel);
+  const abs = path.resolve(BACKEND_ROOT, rel);
   if (!abs.startsWith(uploadsRoot)) return null; // safety: only within uploads
   return abs;
 };
@@ -544,12 +542,12 @@ export const getBooks = async (req, res) => {
         { isbn: { $regex: escaped, $options: "i" } },
       ];
     }
-    if (genre) filter.genre = { $regex: String(genre), $options: "i" };
-    if (author) filter.author = { $regex: String(author), $options: "i" };
-    if (language) filter.language = { $regex: String(language), $options: "i" };
+    if (genre) filter.genre = { $regex: escapeRegex(genre), $options: "i" };
+    if (author) filter.author = { $regex: escapeRegex(author), $options: "i" };
+    if (language) filter.language = { $regex: escapeRegex(language), $options: "i" };
 
     if (isbnQuery && String(isbnQuery).trim()) {
-      filter.isbn = { $regex: String(isbnQuery).trim(), $options: "i" };
+      filter.isbn = { $regex: escapeRegex(String(isbnQuery).trim()), $options: "i" };
     }
 
     const minR = Number(minRating);
@@ -767,10 +765,9 @@ export const createBook = async (req, res) => {
       }
     }
 
-    // Derive slug if missing
-    if (!payload.slug && payload.meta_title) {
-      payload.slug = slugify(payload.meta_title);
-    }
+    // Derive slug if missing. Every book must get one: links to the book page are built from it.
+    if (!payload.slug) payload.slug = slugify(payload.meta_title) || slugify(payload.title);
+    if (!payload.slug) payload.slug = `book-${Date.now().toString(36)}`;
     payload.slug = await ensureUniqueSlug(payload.slug);
 
     // NEW: enforce sale logic on create
@@ -908,7 +905,15 @@ export const updateBook = async (req, res) => {
       }
     }
 
-    // If slug provided, ensure uniqueness
+    // Keep the book reachable: an emptied slug, or a book that never had one,
+    // gets a slug rebuilt from its title
+    const current = await Book.findById(id).select("slug title meta_title").lean();
+    if (payload.slug === "" || (payload.slug === undefined && current && !current.slug)) {
+      payload.slug =
+        slugify(payload.meta_title || current?.meta_title || "") ||
+        slugify(payload.title || current?.title || "") ||
+        `book-${id}`;
+    }
     if (payload.slug) {
       payload.slug = await ensureUniqueSlug(payload.slug, id);
     }
@@ -1052,7 +1057,8 @@ export const deleteBook = async (req, res) => {
         .json({ success: false, message: "Invalid book id" });
     }
 
-    const doHardDelete = String(hard ?? "true").toLowerCase() !== "false";
+    // Soft delete unless ?hard=true is passed explicitly
+    const doHardDelete = String(hard ?? "false").toLowerCase() === "true";
 
     if (doHardDelete) {
       // Fetch doc first so we can delete assets
@@ -1079,6 +1085,10 @@ export const deleteBook = async (req, res) => {
       }
 
       await Book.findByIdAndDelete(id);
+
+      // Remove the book from every cart and wishlist that still holds it
+      await Cart.updateMany({ "items.book": id }, { $pull: { items: { book: id } } });
+      await Wishlist.updateMany({ "items.book": id }, { $pull: { items: { book: id } } });
 
       return res.json({ success: true, message: "Book permanently deleted" });
     }
@@ -1513,7 +1523,7 @@ export const bulkUploadAssets = async (req, res) => {
     } catch {}
 
     const toPublic = (abs) => {
-      const rel = path.relative(process.cwd(), abs).split(path.sep).join("/");
+      const rel = path.relative(BACKEND_ROOT, abs).split(path.sep).join("/");
       return rel.startsWith("/") ? `/${rel}` : `/${rel}`;
     };
 

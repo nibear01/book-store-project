@@ -16,7 +16,7 @@ import {
 } from "../controllers/order-controllers.js";
 
 import { protect, authorize, requireAnyAdminRole } from "../middlewares/auth-middleware.js";
-import { upload } from "../middlewares/upload-middleware.js";
+import { uploadCsv } from "../middlewares/upload-middleware.js";
 
 const router = express.Router();
 
@@ -45,7 +45,7 @@ router.post(
   "/admin/import",
   protect,
   authorize("admin", "order_manager"),
-  upload.fields([{ name: "file", maxCount: 1 }]),
+  uploadCsv,
   importOrdersFromCSV
 );
 

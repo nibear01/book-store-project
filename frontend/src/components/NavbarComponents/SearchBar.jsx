@@ -55,7 +55,9 @@ const SearchBar = ({ isMobile = false, onResultClick = () => {} }) => {
         ? response 
         : response?.data || response?.books || [];
       
-      setResults(books);
+      // Results are opened by slug only (the database id never goes in the URL),
+      // so a book without a slug can't be linked from here
+      setResults(books.filter((b) => b?.slug));
       setShowDropdown(true);
     } catch {
       setError('Failed to search books');
@@ -83,12 +85,12 @@ const SearchBar = ({ isMobile = false, onResultClick = () => {} }) => {
 
   // Handle result click
   const handleResultClick = (book) => {
-    const slug = book.slug || book._id;
+    if (!book?.slug) return;
     setQuery('');
     setShowDropdown(false);
     setResults([]);
     onResultClick();
-    navigate(`/bookview/${slug}`);
+    navigate(`/bookview/${encodeURIComponent(book.slug)}`);
   };
 
   // Clear search

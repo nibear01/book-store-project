@@ -6,6 +6,7 @@ import { validatePromoCode } from "../api/affiliate-api";
 import { toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
 import { useTranslation } from "react-i18next";
+import { BACKEND_URL } from "../api/apiBase";
 
 const asMoney = (n) => (Number.isFinite(n) ? Number(n.toFixed(2)) : 0);
 
@@ -22,7 +23,6 @@ const CheckoutPage = () => {
   const {
     state,
     subtotal: rawSubtotal,
-    shipping: rawShipping,
     clearCart,
   } = useCart();
   const { user, isAuthenticated } = useAuth();
@@ -62,8 +62,8 @@ const CheckoutPage = () => {
     } else if (form.shippingLocation === "outsideDhaka") {
       return asMoney(deliveryCosts.outsideDhaka);
     }
-    return asMoney(rawShipping || 0);
-  }, [form.shippingLocation, deliveryCosts, rawShipping]);
+    return 0; // until a delivery location is chosen
+  }, [form.shippingLocation, deliveryCosts]);
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -106,7 +106,7 @@ const CheckoutPage = () => {
   useEffect(() => {
     const fetchDeliveryCosts = async () => {
       try {
-        const baseUrl = import.meta.env.VITE_BACKEND_URL;
+        const baseUrl = BACKEND_URL;
         const res = await fetch(`${baseUrl}/api/settings/delivery-cost`);
         const data = await res.json();
         if (res.ok && data.success && data.data) {
@@ -636,7 +636,7 @@ const CheckoutPage = () => {
             </h2>
             <ul className="mt-4 text-sm space-y-3">
               {items.map((i) => (
-                <li key={i.id} className="flex flex-col gap-1">
+                <li key={i.key} className="flex flex-col gap-1">
                   <div className="flex justify-between">
                     <span>
                       {i.title} × {i.quantity}
